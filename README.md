@@ -1,6 +1,5 @@
-<<<<<<< HEAD
 # vaultly
-=======
+
 # Turborepo Tailwind CSS starter
 
 This Turborepo starter is maintained by the Turborepo core team.
