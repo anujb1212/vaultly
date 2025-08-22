@@ -1,0 +1,17 @@
+{
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.includeLanguages": {
+    "javascript": "javascript",
+    "javascriptreact": "javascript",
+    "typescript": "typescript",
+    "typescriptreact": "typescript"
+  },
+  "tailwindCSS.experimental.configFile": {
+    "apps/user-app/tailwind.config.js": "apps/user-app/**",
+    "apps/merchant-app/tailwind.config.js": "apps/merchant-app/**",
+    "packages/ui/tailwind.config.js": "packages/ui/**"
+  }
+}

@@ -6,4 +6,9 @@ module.exports = {
   parserOptions: {
     project: true,
   },
+  ignorePatterns: [
+    "postcss.config.*",
+    "tailwind.config.*",
+    "vite.config.*"
+  ]
 };
