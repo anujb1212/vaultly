@@ -1,5 +1,5 @@
-import express from "express";
 import db from "@repo/db/client";
+import express from "express";
 import zod from "zod";
 const app = express();
 
@@ -31,6 +31,16 @@ app.post("/hdfcWebhook", async (req, res) => {
     };
 
     try {
+        const alreadyProcessed = await db.onRampTransaction.findFirst({
+            where: {
+                token: paymentInformation.token,
+                status: "Success"
+            }
+        })
+        if (alreadyProcessed) {
+            return res.status(200).json({ message: "Already processed" });
+        }
+
         await db.$transaction([
             db.balance.updateMany({
                 where: {
