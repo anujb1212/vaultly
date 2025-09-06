@@ -1,8 +1,8 @@
 "use server"
 
+import prisma from "@repo/db/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
-import prisma from "@repo/db/client";
 
 export async function p2pTransfer(to: string, amount: number) {
     const session = await getServerSession(authOptions);
@@ -24,6 +24,8 @@ export async function p2pTransfer(to: string, amount: number) {
         }
     }
     await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${Number(sender)} FOR UPDATE`
+
         const fromBalance = await tx.balance.findUnique({
             where: { userId: Number(sender) },
         });
@@ -40,5 +42,14 @@ export async function p2pTransfer(to: string, amount: number) {
             where: { userId: receiver.id },
             data: { amount: { increment: amount } },
         });
+
+        await tx.p2pTransfer.create({
+            data: {
+                senderId: Number(sender),
+                receiverId: receiver.id,
+                amount,
+                timestamp: new Date()
+            }
+        })
     });
 }
