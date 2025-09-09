@@ -3,6 +3,12 @@
   "globalDependencies": [
     "**/.env.*local"
   ],
+  "globalEnv": [
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "NEXTAUTH_SECRET",
+    "JWT_SECRET"
+  ],
   "pipeline": {
     "build": {
       "dependsOn": [
@@ -12,6 +18,12 @@
         "dist/**",
         ".next/**",
         "!.next/cache/**"
+      ],
+      "env": [
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "NEXTAUTH_SECRET",
+        "JWT_SECRET"
       ]
     },
     "lint": {
