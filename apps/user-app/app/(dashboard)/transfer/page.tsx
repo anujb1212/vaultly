@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
 
 async function getBalance() {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return {
             amount: 0,
@@ -42,24 +42,36 @@ async function getOnRampTransactions() {
     }))
 }
 
-export default async function () {
+export default async function TransferPage() {
     const balance = await getBalance();
     const transactions = await getOnRampTransactions();
 
-    return <div className="w-screen">
-        <div className="text-4xl text-[#6a51a6] pt-8 mb-8 font-bold">
-            Transfer
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 p-4">
-            <div>
-                <AddMoney />
-            </div>
-            <div>
-                <BalanceCard amount={balance.amount} locked={balance.locked} />
-                <div className="pt-4">
-                    <OnRampTransactions transactions={transactions} />
+    return (
+        <div className="min-h-screen bg-gray-50 w-full p-8">
+            {/* Title */}
+            <div className="text-4xl font-bold mb-8 text-[#6a51a6]">Transfer</div>
+
+            {/* Main widget area */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* Left: Add Money */}
+                <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col space-y-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Add Funds</h2>
+                    <AddMoney />
+                </div>
+
+                {/* Right: Balance and Transactions */}
+                <div className="flex flex-col space-y-6">
+                    {/* Balance */}
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <BalanceCard amount={balance.amount} locked={balance.locked} />
+                    </div>
+                    {/* Transactions */}
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent On-Ramp Transactions</h2>
+                        <OnRampTransactions transactions={transactions} />
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    );
 }
