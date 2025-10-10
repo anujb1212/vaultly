@@ -7,39 +7,25 @@ import { authOptions } from "../../lib/auth";
 
 async function getBalance() {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-        return {
-            amount: 0,
-            locked: 0
-        };
-    }
+    if (!session?.user?.id) return { amount: 0, locked: 0 };
     const balance = await prisma.balance.findFirst({
-        where: {
-            userId: Number(session?.user?.id)
-        }
+        where: { userId: Number(session?.user?.id) }
     });
-    return {
-        amount: balance?.amount || 0,
-        locked: balance?.locked || 0
-    }
+    return { amount: balance?.amount || 0, locked: balance?.locked || 0 };
 }
 
 async function getOnRampTransactions() {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-        return [];
-    }
+    if (!session?.user?.id) return [];
     const txns = await prisma.onRampTransaction.findMany({
-        where: {
-            userId: Number(session?.user?.id)
-        }
+        where: { userId: Number(session?.user?.id) }
     });
     return txns.map(t => ({
         time: t.startTime,
         amount: t.amount,
         status: t.status,
         provider: t.provider
-    }))
+    }));
 }
 
 export default async function TransferPage() {
@@ -47,30 +33,32 @@ export default async function TransferPage() {
     const transactions = await getOnRampTransactions();
 
     return (
-        <div className="min-h-screen bg-gray-50 w-full p-8">
-            {/* Title */}
-            <div className="text-4xl font-bold mb-8 text-[#6a51a6]">Transfer</div>
+        <div className="min-h-screen p-8 max-w-6xl mx-auto">
+            <header className="flex items-center justify-between mb-8">
+                <h1 className="text-4xl font-extrabold text-primary-700 dark:text-primary-200 tracking-tight">
+                    Transfer Funds
+                </h1>
+                <span className="inline-flex px-4 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 font-semibold shadow">
+                    Instant & Secure
+                </span>
+            </header>
 
-            {/* Main widget area */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {/* Left: Add Money */}
-                <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col space-y-6">
+            <main className="grid md:grid-cols-3 gap-8">
+                {/* Add Money */}
+                <section className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg p-6 flex flex-col">
                     <AddMoney />
-                </div>
+                </section>
 
-                {/* Right: Balance and Transactions */}
-                <div className="flex flex-col space-y-6">
-                    {/* Balance */}
-                    <div className="bg-white rounded-xl shadow-lg p-6">
+                {/* Balance + Transactions */}
+                <section className="md:col-span-2 flex flex-col gap-6">
+                    <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg p-6">
                         <BalanceCard amount={balance.amount} locked={balance.locked} />
                     </div>
-                    {/* Transactions */}
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent On-Ramp Transactions</h2>
+                    <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg p-6">
                         <OnRampTransactions transactions={transactions} />
                     </div>
-                </div>
-            </div>
+                </section>
+            </main>
         </div>
     );
 }

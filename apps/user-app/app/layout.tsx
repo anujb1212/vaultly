@@ -19,7 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <div className="min-w-screen min-h-screen bg-[#ebe6e6] dark:bg-gray-900">
+          <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-blue-100 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900">
             {children}
           </div>
         </Providers>

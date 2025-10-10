@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -16,11 +15,7 @@ export default function SigninPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const res = await signIn("credentials", {
-      phone,
-      password,
-      redirect: false,
-    });
+    const res = await signIn("credentials", { phone, password, redirect: false });
     setLoading(false);
     if (res?.error) {
       setError("Invalid credentials");
@@ -30,22 +25,18 @@ export default function SigninPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 dark:bg-gray-900 relative">
-      <ThemeToggle />
+    <div className="relative min-h-screen flex items-center justify-center px-4">
+      <div className="absolute top-8 right-8 z-50">
+        <ThemeToggle />
+      </div>
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 space-y-6"
+        className="w-full max-w-md bg-white/85 dark:bg-gray-900/80 rounded-2xl shadow-2xl p-8 space-y-6 border border-gray-200 dark:border-neutral-700"
       >
-        <h2 className="text-2xl font-semibold text-center text-gray-800 dark:text-gray-100">
-          Sign In
-        </h2>
+        <h2 className="text-2xl font-semibold text-center text-gray-800 dark:text-gray-100">Sign In</h2>
+
         <div>
-          <label
-            htmlFor="phone"
-            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Phone
-          </label>
+          <label htmlFor="phone" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
           <input
             id="phone"
             type="tel"
@@ -56,13 +47,9 @@ export default function SigninPage() {
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
+
         <div>
-          <label
-            htmlFor="password"
-            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Password
-          </label>
+          <label htmlFor="password" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
           <input
             id="password"
             type="password"
@@ -73,6 +60,7 @@ export default function SigninPage() {
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
+
         <button
           type="submit"
           disabled={loading}
@@ -80,9 +68,8 @@ export default function SigninPage() {
         >
           {loading ? "Signing In..." : "Sign In"}
         </button>
-        {error && (
-          <div className="text-center text-red-600 font-medium dark:text-red-400">{error}</div>
-        )}
+
+        {error && <div className="text-center text-red-600 font-medium dark:text-red-400">{error}</div>}
       </form>
     </div>
   );

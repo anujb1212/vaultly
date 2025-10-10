@@ -1,5 +1,3 @@
-// components/Appbar.tsx
-
 import { Button } from "./button";
 
 interface AppbarProps {

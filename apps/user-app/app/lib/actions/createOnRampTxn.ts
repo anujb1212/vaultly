@@ -19,7 +19,7 @@ export async function createOnRampTxn(amount: number, provider: string) {
             amount: amount,
             status: "Processing",
             startTime: new Date(),
-            token: dummyToken               // like a txn ID
+            token: dummyToken
         }
     })
     return {

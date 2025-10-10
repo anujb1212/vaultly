@@ -17,13 +17,11 @@ export function SendMoneyCard() {
             alert("Please enter valid number and amount");
             return;
         }
-
         setIsSending(true);
-
         try {
             await p2pTransfer(number, Number(amount) * 100);
             router.push("/dashboard");
-        } catch (err) {
+        } catch {
             alert("Transfer failed, please try again.");
         } finally {
             setIsSending(false);
@@ -34,9 +32,8 @@ export function SendMoneyCard() {
         <div className="h-[90vh] flex justify-center items-center">
             <Card title="Send">
                 <div className="min-w-72 pt-2 space-y-4">
-                    {/* Number Input */}
                     <div>
-                        <label htmlFor="number" className="block mb-1 font-medium text-gray-700">
+                        <label htmlFor="number" className="block mb-1 font-medium text-gray-700 dark:text-gray-300">
                             Number
                         </label>
                         <input
@@ -51,13 +48,11 @@ export function SendMoneyCard() {
                                 setNumber(val);
                             }}
                             disabled={isSending}
-                            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-800 dark:text-white"
                         />
                     </div>
-
-                    {/* Amount Input */}
                     <div>
-                        <label htmlFor="amount" className="block mb-1 font-medium text-gray-700">
+                        <label htmlFor="amount" className="block mb-1 font-medium text-gray-700 dark:text-gray-300">
                             Amount
                         </label>
                         <input
@@ -68,12 +63,11 @@ export function SendMoneyCard() {
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             disabled={isSending}
-                            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-800 dark:text-white"
                         />
                     </div>
-
                     <div className="pt-4 flex justify-center">
-                        <Button onClick={handleSend} disabled={isSending}>
+                        <Button onClick={handleSend} disabled={isSending} className={isSending ? "opacity-50 cursor-not-allowed" : ""}>
                             {isSending ? "Sending..." : "Send"}
                         </Button>
                     </div>
