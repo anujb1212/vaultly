@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@repo/db/client";
-import { Prisma } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export const GET = async () => {
     try {
-        await prisma.merchant.create({
+        const merchant = await prisma.merchant.create({
             data: {
                 email: "asd",
                 name: "adsads",
@@ -13,21 +13,15 @@ export const GET = async () => {
         });
 
         return NextResponse.json({
-            message: "hi there",
+            message: "Merchant created successfully",
+            merchant,
         });
-    } catch (error) {
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === "P2002" // unique constraint violation code
-        ) {
-            return NextResponse.json(
-                { error: "Email already exists" },
-                { status: 409 }
-            );
+    } catch (error: unknown) {
+        if (error instanceof PrismaClientKnownRequestError && error.code === "P2002") {
+            return NextResponse.json({ error: "Email already exists" }, { status: 409 });
         }
-        return NextResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
-        );
+
+        console.error(error);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 };
