@@ -12,33 +12,27 @@ interface Transaction {
     description?: string;
 }
 
-interface TransactionsPageProps {
-    onRampTransactions?: Transaction[];
-    p2pTransfers?: Transaction[];
-}
-
-export default function TransactionsPage({
-    onRampTransactions = [],
-    p2pTransfers = [],
-}: TransactionsPageProps) {
-    const [onRampTransactionsState, setOnRampTransactionsState] = useState<Transaction[]>(onRampTransactions);
-    const [p2pTransfersState, setP2pTransfersState] = useState<Transaction[]>(p2pTransfers);
+export default function TransactionsPage() {
+    const [onRampTransactionsState, setOnRampTransactionsState] = useState<Transaction[]>([]);
+    const [p2pTransfersState, setP2pTransfersState] = useState<Transaction[]>([]);
 
     function addP2pTransferTxn(newTx: Transaction) {
         setP2pTransfersState((prev) => [newTx, ...prev]);
     }
 
-    const combinedTransactions: Transaction[] = useMemo(() => {
+    const combinedTransactions = useMemo(() => {
         const onRampTxns = onRampTransactionsState.map((tx) => ({
             ...tx,
             provider: tx.provider ?? "Wallet",
             description: tx.description ?? "Wallet Transaction",
         }));
+
         const p2pTxns = p2pTransfersState.map((tx) => ({
             ...tx,
             provider: tx.provider ?? "Bank Transfer",
             description: tx.description ?? "Bank Transfer",
         }));
+
         return [...onRampTxns, ...p2pTxns].sort((a, b) => b.time.getTime() - a.time.getTime());
     }, [onRampTransactionsState, p2pTransfersState]);
 
@@ -49,9 +43,11 @@ export default function TransactionsPage({
 
     const filteredSortedTransactions = useMemo(() => {
         let filtered = combinedTransactions;
+
         if (filterStatus !== "All") {
             filtered = filtered.filter((tx) => tx.status === filterStatus);
         }
+
         if (searchTerm.trim() !== "") {
             const lowerTerm = searchTerm.toLowerCase();
             filtered = filtered.filter(
@@ -60,17 +56,15 @@ export default function TransactionsPage({
                     (tx.provider && tx.provider.toLowerCase().includes(lowerTerm))
             );
         }
+
         filtered.sort((a, b) => {
             let comp = 0;
-            if (sortField === "amount") {
-                comp = a.amount - b.amount;
-            } else if (sortField === "time") {
-                comp = a.time.getTime() - b.time.getTime();
-            } else if (sortField === "status") {
-                comp = String(a.status).localeCompare(String(b.status));
-            }
+            if (sortField === "amount") comp = a.amount - b.amount;
+            else if (sortField === "time") comp = a.time.getTime() - b.time.getTime();
+            else if (sortField === "status") comp = String(a.status).localeCompare(String(b.status));
             return sortOrder === "asc" ? comp : -comp;
         });
+
         return filtered;
     }, [combinedTransactions, filterStatus, searchTerm, sortField, sortOrder]);
 

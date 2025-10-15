@@ -5,6 +5,12 @@
       {
         "name": "next"
       }
+    ],
+    "jsx": "preserve",
+    "types": [
+      "node",
+      "react",
+      "react-dom"
     ]
   },
   "include": [

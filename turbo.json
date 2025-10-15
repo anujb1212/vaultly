@@ -9,7 +9,7 @@
     "NEXTAUTH_SECRET",
     "JWT_SECRET"
   ],
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": [
         "^build"
