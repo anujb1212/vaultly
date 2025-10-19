@@ -1,40 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTransactions } from "@repo/store";
 
-type TxStatus = "Pending" | "Success" | "Failed" | string;
-
-interface Transaction {
-    time: Date;
-    amount: number;
-    status: TxStatus;
-    provider?: string;
-    description?: string;
-}
+type TxStatus = "Pending" | "Success" | "Failed" | "Processing" | string;
 
 export default function TransactionsPage() {
-    const [onRampTransactionsState, setOnRampTransactionsState] = useState<Transaction[]>([]);
-    const [p2pTransfersState, setP2pTransfersState] = useState<Transaction[]>([]);
-
-    function addP2pTransferTxn(newTx: Transaction) {
-        setP2pTransfersState((prev) => [newTx, ...prev]);
-    }
+    const { onRampTransactions, p2pTransactions, isLoading } = useTransactions();
 
     const combinedTransactions = useMemo(() => {
-        const onRampTxns = onRampTransactionsState.map((tx) => ({
+        const onRampTxns = onRampTransactions.map((tx) => ({
             ...tx,
-            provider: tx.provider ?? "Wallet",
-            description: tx.description ?? "Wallet Transaction",
+            time: new Date(tx.time),
+            description: `${tx.provider} - OnRamp`,
         }));
 
-        const p2pTxns = p2pTransfersState.map((tx) => ({
+        const p2pTxns = p2pTransactions.map((tx) => ({
             ...tx,
-            provider: tx.provider ?? "Bank Transfer",
-            description: tx.description ?? "Bank Transfer",
+            time: new Date(tx.time),
+            description: `P2P ${tx.type} - ${tx.toUser}`,
+            provider: "P2P Transfer",
+            status: "Success",
         }));
 
-        return [...onRampTxns, ...p2pTxns].sort((a, b) => b.time.getTime() - a.time.getTime());
-    }, [onRampTransactionsState, p2pTransfersState]);
+        return [...onRampTxns, ...p2pTxns].sort(
+            (a, b) => b.time.getTime() - a.time.getTime()
+        );
+    }, [onRampTransactions, p2pTransactions]);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState<TxStatus | "All">("All");
@@ -61,18 +53,33 @@ export default function TransactionsPage() {
             let comp = 0;
             if (sortField === "amount") comp = a.amount - b.amount;
             else if (sortField === "time") comp = a.time.getTime() - b.time.getTime();
-            else if (sortField === "status") comp = String(a.status).localeCompare(String(b.status));
+            else if (sortField === "status")
+                comp = String(a.status).localeCompare(String(b.status));
             return sortOrder === "asc" ? comp : -comp;
         });
 
         return filtered;
     }, [combinedTransactions, filterStatus, searchTerm, sortField, sortOrder]);
 
+    if (isLoading) {
+        return (
+            <div className="min-h-screen py-6">
+                <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow p-8 max-w-6xl mx-auto">
+                    <div className="text-center py-12 text-gray-400">
+                        Loading transactions...
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen py-6">
             <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow p-8 max-w-6xl mx-auto">
                 <header className="mb-6">
-                    <h1 className="text-3xl font-semibold text-primary-900 dark:text-white">Transactions</h1>
+                    <h1 className="text-3xl font-semibold text-primary-900 dark:text-white">
+                        Transactions
+                    </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Search, filter, and sort all on-ramp and P2P transfers.
                     </p>
@@ -99,12 +106,14 @@ export default function TransactionsPage() {
                             <option value="All">All Statuses</option>
                             <option value="Success">Success</option>
                             <option value="Failed">Failed</option>
-                            <option value="Pending">Pending</option>
+                            <option value="Processing">Processing</option>
                         </select>
 
                         <select
                             value={sortField}
-                            onChange={(e) => setSortField(e.target.value as "time" | "amount" | "status")}
+                            onChange={(e) =>
+                                setSortField(e.target.value as "time" | "amount" | "status")
+                            }
                             className="w-full md:w-48 px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:text-white transition"
                             aria-label="Sort field"
                         >
@@ -129,17 +138,30 @@ export default function TransactionsPage() {
                     <table className="w-full text-left table-auto">
                         <thead>
                             <tr className="border-b border-gray-200 dark:border-neutral-700">
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">Date & Time</th>
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">Description</th>
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">Amount</th>
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">Provider</th>
+                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    Date & Time
+                                </th>
+                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    Description
+                                </th>
+                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    Amount
+                                </th>
+                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    Status
+                                </th>
+                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    Provider
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredSortedTransactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="p-6 text-center text-gray-500 dark:text-gray-400 italic">
+                                    <td
+                                        colSpan={5}
+                                        className="p-6 text-center text-gray-500 dark:text-gray-400 italic"
+                                    >
                                         No transactions found.
                                     </td>
                                 </tr>
@@ -149,15 +171,30 @@ export default function TransactionsPage() {
                                         key={`${tx.time.getTime()}-${idx}`}
                                         className="border-b border-gray-100 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-900/60"
                                     >
-                                        <td className="p-3 whitespace-nowrap">{tx.time.toLocaleString()}</td>
+                                        <td className="p-3 whitespace-nowrap">
+                                            {tx.time.toLocaleString()}
+                                        </td>
                                         <td className="p-3">{tx.description}</td>
                                         <td
-                                            className={`p-3 font-semibold ${tx.status === "Failed" ? "text-red-500" : "text-green-600"
+                                            className={`p-3 font-semibold ${tx.status === "Failed"
+                                                ? "text-red-500"
+                                                : "text-green-600"
                                                 }`}
                                         >
-                                            ₹{tx.amount}
+                                            ₹{(tx.amount / 100).toLocaleString()}
                                         </td>
-                                        <td className="p-3">{tx.status}</td>
+                                        <td className="p-3">
+                                            <span
+                                                className={`px-2 py-1 text-xs rounded ${tx.status === "Success"
+                                                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                                    : tx.status === "Processing"
+                                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
+                                                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                                    }`}
+                                            >
+                                                {tx.status}
+                                            </span>
+                                        </td>
                                         <td className="p-3">{tx.provider}</td>
                                     </tr>
                                 ))
