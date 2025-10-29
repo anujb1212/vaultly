@@ -5,7 +5,7 @@ const app = express();
 
 app.use(express.json())
 
-app.post("/hdfcWebhook", async (req, res) => {
+app.post("/bankWebhook", async (req, res) => {
     const webhookBody = zod.object({
         token: zod.string(),
         user_identifier: zod.string(),
