@@ -13,3 +13,8 @@ const prisma: ReturnType<typeof prismaClientSingleton> = globalThis.prismaGlobal
 export default prisma
 
 if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma
+
+export { AuditLogger } from './src/utils/auditLogger';
+export type { AuditLogEntry, AuditMetadata } from './src/utils/auditLogger';
+
+export { IdempotencyManager } from './src/utils/idempotency';

@@ -1,14 +1,14 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export class IdempotencyManager {
-    constructor(private prisma: PrismaClient) { }
+    constructor(private readonly prisma: PrismaClient) { }
 
     async checkAndStore(
         key: string,
         userId: number,
         action: string,
         ttlHours: number = 24
-    ): Promise<{ exists: boolean; response?: any } | void> {
+    ): Promise<{ exists: boolean; response?: unknown } | void> {
         const existingRecord = await this.prisma.idempotencyKey.findUnique({
             where: { key }
         })
@@ -19,7 +19,7 @@ export class IdempotencyManager {
                     exists: true,
                     response: existingRecord.response
                 }
-
+            } else {
                 await this.prisma.idempotencyKey.delete({ where: { key } })
             }
         }
@@ -32,18 +32,22 @@ export class IdempotencyManager {
                 key,
                 userId,
                 action,
-                response: {},
+                response: Prisma.JsonNull,
                 expiresAt
             }
         })
 
-        return { exists: false }
+        return {
+            exists: false
+        }
     }
 
-    async updatedResponse(key: string, response: any): Promise<void> {
+    async updateResponse(key: string, response: unknown): Promise<void> {
         await this.prisma.idempotencyKey.update({
             where: { key },
-            data: { response }
+            data: {
+                response: response as Prisma.InputJsonValue
+            }
         })
     }
 
