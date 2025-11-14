@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { p2pTransfer } from "../app/lib/actions/p2pTransfer";
 import { useBalance, useTransactions } from "@repo/store";
+import { v4 as uuidv4 } from "uuid";
 
 export function SendMoneyCard() {
     const [number, setNumber] = useState("");
@@ -32,8 +33,14 @@ export function SendMoneyCard() {
 
         setIsSending(true);
 
+        const idempotencyKey = uuidv4();
+
         try {
-            const result = await p2pTransfer(number, amountInPaise);
+            const result = await p2pTransfer(
+                number,
+                amountInPaise,
+                idempotencyKey
+            );
 
             if (result.success) {
                 // Refresh balance and transactions immediately

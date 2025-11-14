@@ -22,9 +22,15 @@ export class AuditLogger {
     constructor(private readonly prisma: PrismaClient) { }
 
     //Generic Audit Log Creator
-    async createAuditLog(entry: AuditLogEntry): Promise<void> {
+    async createAuditLog(
+        entry: AuditLogEntry,
+        txClient?: Prisma.TransactionClient
+    ): Promise<void> {
+
+        const client = txClient ?? this.prisma;
+
         try {
-            await this.prisma.auditLog.create({
+            await client.auditLog.create({
                 data: {
                     userId: entry.userId,
                     action: entry.action,
@@ -36,7 +42,7 @@ export class AuditLogger {
                 }
             })
         } catch (error) {
-            console.error('', {
+            console.error('Audit log failed', {
                 action: entry.action,
                 error: error instanceof Error ? error.message : String(error),
             })
@@ -49,7 +55,8 @@ export class AuditLogger {
         previousBalance: number,
         currentBalance: number,
         changeReason: string,
-        additionalMetadata?: AuditMetadata
+        additionalMetadata?: AuditMetadata,
+        txClient?: Prisma.TransactionClient
     ): Promise<void> {
         await this.createAuditLog({
             userId,
@@ -63,7 +70,7 @@ export class AuditLogger {
                 reason: changeReason
             },
             metadata: additionalMetadata,
-        })
+        }, txClient)
     }
 
     //P2P Transfer Logger 
@@ -71,7 +78,8 @@ export class AuditLogger {
         initiatorUserId: number,
         transferRecordId: number,
         transferDetails: unknown,
-        additionalMetadata?: AuditMetadata
+        additionalMetadata?: AuditMetadata,
+        txClient?: Prisma.TransactionClient
     ): Promise<void> {
         await this.createAuditLog({
             userId: initiatorUserId,
@@ -80,6 +88,6 @@ export class AuditLogger {
             entityId: transferRecordId,
             newValue: transferDetails,
             metadata: additionalMetadata,
-        })
+        }, txClient)
     }
 }
