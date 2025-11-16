@@ -13,10 +13,14 @@ model User {
   name              String?
   number            String              @unique
   password          String
+  createdAt         DateTime            @default(now())
   OnRampTransaction OnRampTransaction[]
   Balance           Balance[]
   sentTransfers     p2pTransfer[]       @relation(name: "SenderRelation")
   receivedTransfers p2pTransfer[]       @relation(name: "ReceiverRelation")
+  AuditLog          AuditLog[]
+
+  @@index([number])
 }
 
 model Merchant {
@@ -27,32 +31,93 @@ model Merchant {
 }
 
 model OnRampTransaction {
-  id        Int          @id @default(autoincrement())
-  status    OnRampStatus
-  token     String       @unique
-  provider  String
-  amount    Int
-  startTime DateTime
-  userId    Int
-  user      User         @relation(fields: [userId], references: [id])
+  id            Int          @id @default(autoincrement())
+  status        OnRampStatus
+  token         String       @unique
+  provider      String
+  amount        Int
+  startTime     DateTime
+  userId        Int
+  user          User         @relation(fields: [userId], references: [id])
+  metadata      Json?
+  failureReason String?
+  retryCount    Int          @default(0)
+  lastRetryAt   DateTime?
+  completedAt   DateTime?
+
+  @@index([userId, status])
+  @@index([token])
+  @@index([startTime])
 }
 
 model Balance {
-  id     Int  @id @default(autoincrement())
-  userId Int  @unique
-  amount Int
-  locked Int
-  user   User @relation(fields: [userId], references: [id])
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  amount    Int
+  locked    Int
+  user      User     @relation(fields: [userId], references: [id])
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
 }
 
 model p2pTransfer {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   amount     Int
   timestamp  DateTime
   senderId   Int
-  sender     User     @relation(name: "SenderRelation", fields: [senderId], references: [id])
+  sender     User      @relation(name: "SenderRelation", fields: [senderId], references: [id])
   receiverId Int
-  receiver   User     @relation(name: "ReceiverRelation", fields: [receiverId], references: [id])
+  receiver   User      @relation(name: "ReceiverRelation", fields: [receiverId], references: [id])
+  status     P2PStatus @default(SUCCESS)
+  metadata   Json?
+
+  @@index([senderId, timestamp])
+  @@index([receiverId, timestamp])
+}
+
+model IdempotencyKey {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  userId    Int
+  action    String
+  response  Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([key])
+  @@index([userId, action])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   Int?
+  oldValue   Json?
+  newValue   Json
+  metadata   Json?
+  timestamp  DateTime @default(now())
+
+  @@index([userId, timestamp])
+  @@index([entityType, entityId])
+  @@index([action, timestamp])
+}
+
+model RateLimit {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  action      String
+  count       Int      @default(1)
+  windowStart DateTime
+  windowEnd   DateTime
+
+  @@unique([userId, action, windowStart])
+  @@index([userId, action])
+  @@index([windowEnd])
 }
 
 enum AuthType {
@@ -64,4 +129,10 @@ enum OnRampStatus {
   Success
   Failure
   Processing
+}
+
+enum P2PStatus {
+  SUCCESS
+  FAILED
+  REVERSED
 }

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { TextInput } from "@repo/ui/textinput";
 import { createOnRampTxn } from "../app/lib/actions/createOnRampTxn";
 import { useBalance, useTransactions } from "@repo/store";
+import { v4 as uuidv4 } from "uuid";
 
 const SUPPORTED_BANKS = [
     { name: "HDFC Bank", redirectUrl: "https://netbanking.hdfcbank.com" },
@@ -33,6 +34,8 @@ export const AddMoney = () => {
 
         setIsProcessing(true);
 
+        const idempotencyKey = uuidv4()
+
         try {
             // Optimistic update - show transaction immediately
             addOptimistic({
@@ -44,7 +47,11 @@ export const AddMoney = () => {
             });
 
             // Server mutation
-            const result = await createOnRampTxn(amount * 100, provider);
+            const result = await createOnRampTxn(
+                amount * 100,
+                provider,
+                idempotencyKey
+            );
 
             if (result.success) {
                 // Refresh data from server

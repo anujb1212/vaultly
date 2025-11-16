@@ -1,11 +1,12 @@
-import db from "@repo/db/client";
+import { Prisma } from "@prisma/client";
+import db, { auditLogger } from "@repo/db/client";
 import express from "express";
 import zod from "zod";
 const app = express();
 
 app.use(express.json())
 
-app.post("/hdfcWebhook", async (req, res) => {
+app.post("/bankWebhook", async (req, res) => {
     const webhookBody = zod.object({
         token: zod.string(),
         user_identifier: zod.string(),
@@ -31,48 +32,108 @@ app.post("/hdfcWebhook", async (req, res) => {
     };
 
     try {
-        const alreadyProcessed = await db.onRampTransaction.findFirst({
+        const existingTxn = await db.onRampTransaction.findUnique({
             where: {
-                token: paymentInformation.token,
-                status: "Success"
+                token: paymentInformation.token
             }
         })
-        if (alreadyProcessed) {
-            return res.status(200).json({ message: "Already processed" });
+
+        if (!existingTxn) {
+            return res.status(400).json({
+                message: "Transaction not found"
+            })
         }
 
-        await db.$transaction([
-            db.balance.updateMany({
-                where: {
-                    userId: Number(paymentInformation.userId)
-                },
+        if (existingTxn.status === "Success") {
+            console.log(`[Webhook] Token ${paymentInformation.token} already processed`)
+            return res.status(200).json({
+                message: "Already Processed"
+            })
+        }
+
+        await db.$transaction(async (tx: Prisma.TransactionClient) => {
+            const userId = Number(paymentInformation.userId)
+            const amount = Number(paymentInformation.amount)
+
+            const currentBalance = await tx.balance.findUnique({
+                where: { userId }
+            })
+
+            if (!currentBalance) {
+                throw new Error(`Balance record not found for user ${userId}`)
+            }
+
+            const updatedBalance = await tx.balance.update({
+                where: { userId },
                 data: {
                     amount: {
-                        // You can also get this from your DB
-                        increment: Number(paymentInformation.amount)
+                        increment: amount
                     }
                 }
-            }),
-            db.onRampTransaction.updateMany({
+            })
+
+            await tx.onRampTransaction.update({
                 where: {
                     token: paymentInformation.token
                 },
                 data: {
                     status: "Success",
+                    completedAt: new Date(),
+                    metadata: {
+                        ...(existingTxn.metadata as object),
+                        webhookRecivedAt: new Date().toISOString(),
+                        webhookPayload: req.body
+                    }
                 }
             })
-        ]);
+
+            await auditLogger.logBalanceChange(
+                userId,
+                currentBalance.amount,
+                updatedBalance.amount,
+                "ONRAMP_CREDIT",
+                {
+                    token: paymentInformation.token,
+                    provider: existingTxn.provider,
+                    onRampTxnId: existingTxn.id
+                },
+                tx
+            )
+
+            await auditLogger.createAuditLog({
+                userId,
+                action: "ONRAMP_COMPLETED",
+                entityType: "onRampTransaction",
+                entityId: existingTxn.id,
+                oldValue: { status: existingTxn.status },
+                newValue: {
+                    status: "Success",
+                    amount,
+                    completedAt: new Date()
+                },
+                metadata: {
+                    token: paymentInformation.token,
+                    provider: existingTxn.provider
+                }
+            },
+                tx
+            )
+        })
+
+        console.log(`[Webhook] Successfully processed token: ${paymentInformation.token}`);
 
         res.json({
-            message: "Captured"
-        })
-    } catch (e) {
-        console.error(e);
+            message: "Captured",
+        });
+    } catch (e: any) {
+        console.error("[Webhook] Processing failed:", e);
         res.status(411).json({
-            message: "Error while processing webhook"
-        })
+            message: "Error while processing webhook",
+        });
     }
 
 })
 
-app.listen(3003);
+app.listen(3003, () => {
+    console.log("[Webhook Server] Running on port 3003")
+});
