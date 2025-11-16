@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import db, { auditLogger } from "@repo/db/client";
 import express from "express";
 import zod from "zod";
@@ -50,7 +51,7 @@ app.post("/bankWebhook", async (req, res) => {
             })
         }
 
-        await db.$transaction(async (tx) => {
+        await db.$transaction(async (tx: Prisma.TransactionClient) => {
             const userId = Number(paymentInformation.userId)
             const amount = Number(paymentInformation.amount)
 
