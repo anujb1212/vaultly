@@ -20,7 +20,7 @@ app.post("/bankWebhook", async (req, res) => {
         })
     }
 
-    //TODO: HDFC bank should ideally send us a secret so we know this is sent by them
+    //TODO: Bank should ideally send us a secret so we know this is sent by them
     const paymentInformation: {
         token: string;
         userId: string;

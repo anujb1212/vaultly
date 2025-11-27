@@ -3,7 +3,18 @@ import { IdempotencyManager } from './src/utils/idempotency'
 import { AuditLogger } from './src/utils/auditLogger'
 
 const prismaClientSingleton = () => {
-  return new PrismaClient()
+  return new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL
+      }
+    },
+    log: [
+      { emit: 'event', level: 'query' },
+      { emit: 'stdout', level: 'error' },
+      { emit: 'stdout', level: 'warn' }
+    ]
+  })
 }
 
 declare global {
