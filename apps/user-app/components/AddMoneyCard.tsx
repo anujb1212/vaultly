@@ -8,6 +8,7 @@ import { TextInput } from "@repo/ui/textinput";
 import { createOnRampTxn } from "../app/lib/actions/createOnRampTxn";
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
+import { useRouter } from "next/navigation";
 
 const SUPPORTED_BANKS = [
     { name: "HDFC Bank", redirectUrl: "https://netbanking.hdfcbank.com" },
@@ -18,6 +19,8 @@ const SUPPORTED_BANKS = [
 ];
 
 export const AddMoney = () => {
+    const router = useRouter();
+
     const [redirectUrl, setRedirectUrl] = useState(SUPPORTED_BANKS[0]?.redirectUrl);
     const [provider, setProvider] = useState(SUPPORTED_BANKS[0]?.name || "");
     const [amount, setAmount] = useState(0);
@@ -33,11 +36,9 @@ export const AddMoney = () => {
         }
 
         setIsProcessing(true);
-
-        const idempotencyKey = uuidv4()
+        const idempotencyKey = uuidv4();
 
         try {
-            // Optimistic update - show transaction immediately
             addOptimistic({
                 id: Date.now(),
                 time: new Date(),
@@ -46,24 +47,33 @@ export const AddMoney = () => {
                 provider,
             });
 
-            // Server mutation
-            const result = await createOnRampTxn(
-                amount * 100,
-                provider,
-                idempotencyKey
-            );
+            const result = await createOnRampTxn(amount * 100, provider, idempotencyKey);
 
             if (result.success) {
-                // Refresh data from server
                 await Promise.all([refreshBalance(), refreshTransactions()]);
 
-                // Redirect to bank
-                window.location.href = redirectUrl || "";
-            } else {
-                alert(result.message || "Transaction failed");
-                // Revert optimistic update on error
-                await refreshTransactions();
+                //Extract token (adjust if action returns token elsewhere)
+                const token = (result as any)?.token ?? (result as any)?.data?.token;
+
+                if (!token) {
+                    alert("Transaction created but token missing in response.");
+                    await refreshTransactions();
+                    return;
+                }
+
+                const qs = new URLSearchParams({
+                    token: String(token),
+                    amount: String(amount * 100),
+                    userId: String(result.userId),
+                    provider: provider,
+                });
+
+                router.push(`/mock-bank?${qs.toString()}`);
+                return;
             }
+
+            alert(result.message || "Transaction failed");
+            await refreshTransactions();
         } catch (error) {
             alert("Failed to create transaction");
             await refreshTransactions();
@@ -88,9 +98,7 @@ export const AddMoney = () => {
                         setRedirectUrl(
                             SUPPORTED_BANKS.find((x) => x.name === value)?.redirectUrl || ""
                         );
-                        setProvider(
-                            SUPPORTED_BANKS.find((x) => x.name === value)?.name || ""
-                        );
+                        setProvider(SUPPORTED_BANKS.find((x) => x.name === value)?.name || "");
                     }}
                     options={SUPPORTED_BANKS.map((x) => ({
                         key: x.name,

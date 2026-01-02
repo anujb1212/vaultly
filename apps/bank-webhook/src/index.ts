@@ -10,7 +10,7 @@ app.post("/bankWebhook", async (req, res) => {
     const webhookBody = zod.object({
         token: zod.string(),
         user_identifier: zod.string(),
-        amount: zod.string()
+        amount: zod.coerce.number()
     })
 
     const { success } = webhookBody.safeParse(req.body);
@@ -24,7 +24,7 @@ app.post("/bankWebhook", async (req, res) => {
     const paymentInformation: {
         token: string;
         userId: string;
-        amount: string
+        amount: number
     } = {
         token: req.body.token,
         userId: req.body.user_identifier,
@@ -53,7 +53,7 @@ app.post("/bankWebhook", async (req, res) => {
 
         await db.$transaction(async (tx: Prisma.TransactionClient) => {
             const userId = Number(paymentInformation.userId)
-            const amount = Number(paymentInformation.amount)
+            const amount = paymentInformation.amount
 
             const currentBalance = await tx.balance.findUnique({
                 where: { userId }

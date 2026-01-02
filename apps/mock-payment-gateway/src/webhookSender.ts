@@ -1,4 +1,4 @@
-import { Queue, Worker } from 'bullmq'
+import { Queue, UnrecoverableError, Worker } from 'bullmq'
 import crypto from 'crypto'
 
 const redisConnection = {
@@ -67,7 +67,7 @@ async function sendWebhook(payload: any, secret: string, url: string): Promise<b
         return true
     } catch (error: any) {
         const isTransient =
-            error.name === 'AbortSignal' ||
+            error.name === 'AbortError' ||
             error.code === 'ECONNREFUSED' ||
             error.code === 'ETIMEOUT' ||
             (error.message && error.message.includes('HTTP 5'))
@@ -75,7 +75,7 @@ async function sendWebhook(payload: any, secret: string, url: string): Promise<b
         console.error(`[WebhookSender] Webhook failed (${isTransient ? 'transient' : 'permanent'}):`, error.message)
 
         if (!isTransient) {
-            throw new Error(`PERMANENT ERROR: ${error.message}`)
+            throw new UnrecoverableError(`PERMANENT ERROR: ${error.message}`)
         }
 
         throw error
