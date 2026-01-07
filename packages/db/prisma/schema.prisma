@@ -31,23 +31,26 @@ model Merchant {
 }
 
 model OnRampTransaction {
-  id            Int          @id @default(autoincrement())
-  status        OnRampStatus
-  token         String       @unique
-  provider      String
-  amount        Int
-  startTime     DateTime
-  userId        Int
-  user          User         @relation(fields: [userId], references: [id])
-  metadata      Json?
-  failureReason String?
-  retryCount    Int          @default(0)
-  lastRetryAt   DateTime?
-  completedAt   DateTime?
+  id                   Int          @id @default(autoincrement())
+  status               OnRampStatus
+  token                String       @unique
+  provider             String
+  amount               Int
+  startTime            DateTime
+  userId               Int
+  user                 User         @relation(fields: [userId], references: [id])
+  metadata             Json?
+  failureReason        String?
+  failureReasonCode    String?
+  failureReasonMessage String?
+  retryCount           Int          @default(0)
+  lastRetryAt          DateTime?
+  completedAt          DateTime?
 
   @@index([userId, status])
   @@index([token])
   @@index([startTime])
+  @@index([failureReasonCode])
 }
 
 model Balance {

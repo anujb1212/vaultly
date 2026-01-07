@@ -3,13 +3,28 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import prisma, { auditLogger, idempotencyManager } from "@repo/db/client";
+
+type CreateOnRampTxnResult =
+    | {
+        success: true;
+        message: string;
+        token: string;
+        userId: number;
+        amount: number;
+        provider: string;
+    }
+    | {
+        success: false;
+        message: string;
+    };
+
 import { revalidatePath } from "next/cache";
 
 export async function createOnRampTxn(
     amount: number,
     provider: string,
     idempotencyKey: string
-) {
+): Promise<CreateOnRampTxnResult> {
     const session = await getServerSession(authOptions);
     if (!session?.user || !session.user?.id) {
         return {
@@ -27,17 +42,14 @@ export async function createOnRampTxn(
     )
 
     if (idempotencyCheck?.exists) {
-        return idempotencyCheck.response as {
-            success: boolean;
-            message: string;
-        }
+        return idempotencyCheck.response as CreateOnRampTxnResult;
     }
 
     try {
         const result = await prisma.$transaction(async (tx) => {
             const dummyToken = crypto.randomUUID();
 
-            const onRampTxn = await prisma.onRampTransaction.create({
+            const onRampTxn = await tx.onRampTransaction.create({
                 data: {
                     provider,
                     userId: Number(session?.user?.id),
@@ -68,6 +80,10 @@ export async function createOnRampTxn(
             return {
                 success: true,
                 message: "On Ramp Transaction created successfully",
+                token: onRampTxn.token,
+                userId: onRampTxn.userId,
+                amount: onRampTxn.amount,
+                provider: onRampTxn.provider
             };
         })
 
@@ -81,7 +97,7 @@ export async function createOnRampTxn(
 
     } catch (error) {
         console.error("OnRamp transaction error:", error);
-        const errorResullt = {
+        const errorResullt: CreateOnRampTxnResult = {
             success: false,
             message: "Failed to create transaction",
         };

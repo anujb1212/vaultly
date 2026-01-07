@@ -8,17 +8,19 @@ import { TextInput } from "@repo/ui/textinput";
 import { createOnRampTxn } from "../app/lib/actions/createOnRampTxn";
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
+import { useRouter } from "next/navigation";
 
 const SUPPORTED_BANKS = [
-    { name: "HDFC Bank", redirectUrl: "https://netbanking.hdfcbank.com" },
-    { name: "Axis Bank", redirectUrl: "https://www.axisbank.com/" },
-    { name: "ICICI Bank", redirectUrl: "https://www.icicibank.com/" },
-    { name: "SBI", redirectUrl: "https://retail.onlinesbi.sbi/" },
-    { name: "Kotak Mahindra Bank", redirectUrl: "https://netbanking.kotak.com/" },
+    { name: "HDFC Bank" },
+    { name: "Axis Bank" },
+    { name: "ICICI Bank" },
+    { name: "SBI" },
+    { name: "Kotak Mahindra Bank" },
 ];
 
 export const AddMoney = () => {
-    const [redirectUrl, setRedirectUrl] = useState(SUPPORTED_BANKS[0]?.redirectUrl);
+    const router = useRouter();
+
     const [provider, setProvider] = useState(SUPPORTED_BANKS[0]?.name || "");
     const [amount, setAmount] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -27,17 +29,15 @@ export const AddMoney = () => {
     const { refresh: refreshTransactions, addOptimistic } = useTransactions();
 
     const handleAddMoney = async () => {
-        if (amount <= 0) {
+        if (!Number.isFinite(amount) || amount <= 0) {
             alert("Please enter a valid amount.");
             return;
         }
 
         setIsProcessing(true);
-
-        const idempotencyKey = uuidv4()
+        const idempotencyKey = uuidv4();
 
         try {
-            // Optimistic update - show transaction immediately
             addOptimistic({
                 id: Date.now(),
                 time: new Date(),
@@ -46,29 +46,30 @@ export const AddMoney = () => {
                 provider,
             });
 
-            // Server mutation
-            const result = await createOnRampTxn(
-                amount * 100,
-                provider,
-                idempotencyKey
-            );
+            const result = await createOnRampTxn(amount * 100, provider, idempotencyKey);
 
-            if (result.success) {
-                // Refresh data from server
-                await Promise.all([refreshBalance(), refreshTransactions()]);
-
-                // Redirect to bank
-                window.location.href = redirectUrl || "";
-            } else {
+            if (!result.success) {
                 alert(result.message || "Transaction failed");
-                // Revert optimistic update on error
                 await refreshTransactions();
+                return;
             }
+
+            await refreshTransactions();
+
+            const qs = new URLSearchParams({
+                token: result.token,
+                amount: String(result.amount),
+                userId: String(result.userId),
+                provider: result.provider,
+            });
+
+            router.push(`/mock-bank?${qs.toString()}`);
         } catch (error) {
             alert("Failed to create transaction");
             await refreshTransactions();
         } finally {
             setIsProcessing(false);
+            await refreshBalance().catch(() => { });
         }
     };
 
@@ -78,24 +79,12 @@ export const AddMoney = () => {
                 <TextInput
                     label="Amount"
                     placeholder="Amount"
-                    onChange={(value) => {
-                        setAmount(Number(value));
-                    }}
+                    onChange={(value) => setAmount(Number(value))}
                 />
                 <div className="py-4 text-left font-medium dark:text-gray-300">Bank</div>
                 <Select
-                    onSelect={(value) => {
-                        setRedirectUrl(
-                            SUPPORTED_BANKS.find((x) => x.name === value)?.redirectUrl || ""
-                        );
-                        setProvider(
-                            SUPPORTED_BANKS.find((x) => x.name === value)?.name || ""
-                        );
-                    }}
-                    options={SUPPORTED_BANKS.map((x) => ({
-                        key: x.name,
-                        value: x.name,
-                    }))}
+                    onSelect={(value) => setProvider(SUPPORTED_BANKS.find((x) => x.name === value)?.name || "")}
+                    options={SUPPORTED_BANKS.map((x) => ({ key: x.name, value: x.name }))}
                 />
                 <div className="flex justify-center pt-4">
                     <Button
