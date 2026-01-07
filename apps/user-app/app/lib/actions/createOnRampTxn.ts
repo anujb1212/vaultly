@@ -49,7 +49,7 @@ export async function createOnRampTxn(
         const result = await prisma.$transaction(async (tx) => {
             const dummyToken = crypto.randomUUID();
 
-            const onRampTxn = await prisma.onRampTransaction.create({
+            const onRampTxn = await tx.onRampTransaction.create({
                 data: {
                     provider,
                     userId: Number(session?.user?.id),

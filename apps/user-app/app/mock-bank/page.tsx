@@ -3,16 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type Scenario =
-    | "success"
-    | "failure"
-    | "chaos-slow"
-    | "chaos-duplicate"
-    | "chaos-race";
+type Scenario = "success" | "failure" | "chaos-slow" | "chaos-duplicate" | "chaos-race";
 
 const scenarios: Array<{ key: Scenario; label: string; hint: string }> = [
     { key: "success", label: "Approve", hint: "Payment succeeds normally." },
-    { key: "failure", label: "Decline", hint: "Simulate an отказ/failed payment." },
+    { key: "failure", label: "Decline", hint: "Simulate a failed payment." },
     { key: "chaos-slow", label: "Slow", hint: "Delays webhook delivery." },
     { key: "chaos-duplicate", label: "Duplicate", hint: "Sends duplicate webhooks." },
     { key: "chaos-race", label: "Race", hint: "Concurrent deliveries / ordering issues." },
@@ -37,12 +32,14 @@ export default function MockBankPage() {
         return Number.isFinite(n) ? n : NaN;
     }, [amountRaw]);
 
-    const isValid = token.length > 0 && userId.length > 0 && Number.isFinite(amount);
+    const isValid = token.length > 0 && userId.length > 0 && Number.isFinite(amount) && amount > 0;
 
     const [scenario, setScenario] = useState<Scenario>("success");
     const [submitting, setSubmitting] = useState(false);
     const [result, setResult] = useState<"idle" | "ok" | "error">("idle");
     const [errorMsg, setErrorMsg] = useState<string>("");
+
+    const gatewayBase = process.env.NEXT_PUBLIC_GATEWAY_URL?.replace(/\/$/, "") || "http://localhost:3004";
 
     async function onAuthorize() {
         if (!isValid || submitting) return;
@@ -52,7 +49,7 @@ export default function MockBankPage() {
         setErrorMsg("");
 
         try {
-            const res = await fetch("http://localhost:3004/api/process-payment", {
+            const res = await fetch(`${gatewayBase}/api/process-payment`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -70,8 +67,9 @@ export default function MockBankPage() {
 
             setResult("ok");
 
-            // Small “Apple-like” pause before redirect
-            setTimeout(() => router.push("/dashboard"), 900);
+            if (scenario === "chaos-slow") return;
+
+            setTimeout(() => router.push(`/dashboard?onramp=1&token=${encodeURIComponent(token)}`), 600);
         } catch (e: any) {
             setResult("error");
             setErrorMsg(e?.message ?? "Payment could not be processed.");
@@ -91,7 +89,7 @@ export default function MockBankPage() {
                     <div className="text-sm text-slate-500 mb-2">Vaultly Bank</div>
                     <div className="text-xl font-semibold text-slate-900">Invalid payment link</div>
                     <p className="mt-2 text-sm text-slate-600">
-                        Token, userId, ya amount missing/invalid hai. Back jaake “Add Money” flow se try karo.
+                        Invalid Request, Please follow through Add Money page
                     </p>
                     <button
                         onClick={() => router.push("/dashboard")}
@@ -106,19 +104,14 @@ export default function MockBankPage() {
 
     return (
         <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-slate-50 to-white">
-            {/* Ambient blobs */}
             <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-indigo-200/40 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-28 -right-24 h-96 w-96 rounded-full bg-sky-200/40 blur-3xl" />
 
             <div className="min-h-screen flex items-center justify-center px-6 py-10">
                 <div className="w-full max-w-lg">
                     <div className="mb-6 text-center">
-                        <div className="text-xs tracking-wide text-slate-500">
-                            Secure bank authorization
-                        </div>
-                        <div className="mt-2 text-2xl font-semibold text-slate-900">
-                            {provider}
-                        </div>
+                        <div className="text-xs tracking-wide text-slate-500">Secure bank authorization</div>
+                        <div className="mt-2 text-2xl font-semibold text-slate-900">{provider}</div>
                     </div>
 
                     <div className="rounded-3xl border border-white/50 bg-white/70 backdrop-blur-xl shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] p-7">
@@ -145,9 +138,7 @@ export default function MockBankPage() {
                         </div>
 
                         <div className="mt-6">
-                            <div className="text-sm font-medium text-slate-800 mb-2">
-                                Test scenario
-                            </div>
+                            <div className="text-sm font-medium text-slate-800 mb-2">Test scenario</div>
                             <div className="grid grid-cols-2 gap-2">
                                 {scenarios.map((s) => {
                                     const active = scenario === s.key;
@@ -186,7 +177,10 @@ export default function MockBankPage() {
 
                         {result === "ok" && (
                             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                                Authorized. Redirecting back to Vaultly…
+                                Authorized.
+                                {scenario === "chaos-slow"
+                                    ? " Webhook delivery is delayed. You can go back and refresh transactions."
+                                    : " Redirecting back to Vaultly…"}
                             </div>
                         )}
 
@@ -197,12 +191,19 @@ export default function MockBankPage() {
                                 disabled={submitting}
                                 className={[
                                     "flex-1 rounded-2xl py-3 text-sm font-medium transition",
-                                    submitting
-                                        ? "bg-slate-200 text-slate-500"
-                                        : "bg-slate-900 text-white hover:bg-slate-800",
+                                    submitting ? "bg-slate-200 text-slate-500" : "bg-slate-900 text-white hover:bg-slate-800",
                                 ].join(" ")}
                             >
                                 {submitting ? "Authorizing…" : "Authorize payment"}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => router.push(`/dashboard?onramp=1&token=${encodeURIComponent(token)}`)}
+                                disabled={submitting}
+                                className="rounded-2xl border border-slate-200 bg-white/60 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-white transition"
+                            >
+                                Back
                             </button>
 
                             <button

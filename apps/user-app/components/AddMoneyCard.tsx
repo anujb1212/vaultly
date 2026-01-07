@@ -11,17 +11,16 @@ import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 
 const SUPPORTED_BANKS = [
-    { name: "HDFC Bank", redirectUrl: "https://netbanking.hdfcbank.com" },
-    { name: "Axis Bank", redirectUrl: "https://www.axisbank.com/" },
-    { name: "ICICI Bank", redirectUrl: "https://www.icicibank.com/" },
-    { name: "SBI", redirectUrl: "https://retail.onlinesbi.sbi/" },
-    { name: "Kotak Mahindra Bank", redirectUrl: "https://netbanking.kotak.com/" },
+    { name: "HDFC Bank" },
+    { name: "Axis Bank" },
+    { name: "ICICI Bank" },
+    { name: "SBI" },
+    { name: "Kotak Mahindra Bank" },
 ];
 
 export const AddMoney = () => {
     const router = useRouter();
 
-    const [redirectUrl, setRedirectUrl] = useState(SUPPORTED_BANKS[0]?.redirectUrl);
     const [provider, setProvider] = useState(SUPPORTED_BANKS[0]?.name || "");
     const [amount, setAmount] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -30,7 +29,7 @@ export const AddMoney = () => {
     const { refresh: refreshTransactions, addOptimistic } = useTransactions();
 
     const handleAddMoney = async () => {
-        if (amount <= 0) {
+        if (!Number.isFinite(amount) || amount <= 0) {
             alert("Please enter a valid amount.");
             return;
         }
@@ -49,36 +48,28 @@ export const AddMoney = () => {
 
             const result = await createOnRampTxn(amount * 100, provider, idempotencyKey);
 
-            if (result.success) {
-                await Promise.all([refreshBalance(), refreshTransactions()]);
-
-                //Extract token (adjust if action returns token elsewhere)
-                const token = (result as any)?.token ?? (result as any)?.data?.token;
-
-                if (!token) {
-                    alert("Transaction created but token missing in response.");
-                    await refreshTransactions();
-                    return;
-                }
-
-                const qs = new URLSearchParams({
-                    token: String(token),
-                    amount: String(amount * 100),
-                    userId: String(result.userId),
-                    provider: provider,
-                });
-
-                router.push(`/mock-bank?${qs.toString()}`);
+            if (!result.success) {
+                alert(result.message || "Transaction failed");
+                await refreshTransactions();
                 return;
             }
 
-            alert(result.message || "Transaction failed");
             await refreshTransactions();
+
+            const qs = new URLSearchParams({
+                token: result.token,
+                amount: String(result.amount),
+                userId: String(result.userId),
+                provider: result.provider,
+            });
+
+            router.push(`/mock-bank?${qs.toString()}`);
         } catch (error) {
             alert("Failed to create transaction");
             await refreshTransactions();
         } finally {
             setIsProcessing(false);
+            await refreshBalance().catch(() => { });
         }
     };
 
@@ -88,22 +79,12 @@ export const AddMoney = () => {
                 <TextInput
                     label="Amount"
                     placeholder="Amount"
-                    onChange={(value) => {
-                        setAmount(Number(value));
-                    }}
+                    onChange={(value) => setAmount(Number(value))}
                 />
                 <div className="py-4 text-left font-medium dark:text-gray-300">Bank</div>
                 <Select
-                    onSelect={(value) => {
-                        setRedirectUrl(
-                            SUPPORTED_BANKS.find((x) => x.name === value)?.redirectUrl || ""
-                        );
-                        setProvider(SUPPORTED_BANKS.find((x) => x.name === value)?.name || "");
-                    }}
-                    options={SUPPORTED_BANKS.map((x) => ({
-                        key: x.name,
-                        value: x.name,
-                    }))}
+                    onSelect={(value) => setProvider(SUPPORTED_BANKS.find((x) => x.name === value)?.name || "")}
+                    options={SUPPORTED_BANKS.map((x) => ({ key: x.name, value: x.name }))}
                 />
                 <div className="flex justify-center pt-4">
                     <Button
