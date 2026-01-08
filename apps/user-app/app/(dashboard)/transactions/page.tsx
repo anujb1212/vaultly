@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTransactions } from "@repo/store";
+import { ArrowUpDown, Search, Filter } from "lucide-react"; // Optional: Use icons if available, else plain text works
 
 type TxStatus = "Pending" | "Success" | "Failed" | "Processing" | string;
 
@@ -12,15 +13,21 @@ export default function TransactionsPage() {
         const onRampTxns = onRampTransactions.map((tx) => ({
             ...tx,
             time: new Date(tx.time),
-            description: `${tx.provider} - OnRamp`,
+            description: `Added from ${tx.provider}`,
+            provider: tx.provider,
+            type: 'OnRamp',
+            rawStatus: tx.status,
+            displayStatus: tx.status
         }));
 
         const p2pTxns = p2pTransactions.map((tx) => ({
             ...tx,
             time: new Date(tx.time),
-            description: `P2P ${tx.type} - ${tx.toUser}`,
-            provider: "P2P Transfer",
-            status: "Success",
+            description: `Sent to user ${tx.toUser}`,
+            provider: "Vaultly P2P",
+            type: 'P2P',
+            rawStatus: 'Success', // P2P usually assumes success in this schema
+            displayStatus: 'Success'
         }));
 
         return [...onRampTxns, ...p2pTxns].sort(
@@ -30,14 +37,13 @@ export default function TransactionsPage() {
 
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState<TxStatus | "All">("All");
-    const [sortField, setSortField] = useState<"time" | "amount" | "status">("time");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
     const filteredSortedTransactions = useMemo(() => {
         let filtered = combinedTransactions;
 
         if (filterStatus !== "All") {
-            filtered = filtered.filter((tx) => tx.status === filterStatus);
+            filtered = filtered.filter((tx) => tx.displayStatus === filterStatus);
         }
 
         if (searchTerm.trim() !== "") {
@@ -50,152 +56,132 @@ export default function TransactionsPage() {
         }
 
         filtered.sort((a, b) => {
-            let comp = 0;
-            if (sortField === "amount") comp = a.amount - b.amount;
-            else if (sortField === "time") comp = a.time.getTime() - b.time.getTime();
-            else if (sortField === "status")
-                comp = String(a.status).localeCompare(String(b.status));
-            return sortOrder === "asc" ? comp : -comp;
+            const dateA = a.time.getTime();
+            const dateB = b.time.getTime();
+            return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
         });
 
         return filtered;
-    }, [combinedTransactions, filterStatus, searchTerm, sortField, sortOrder]);
+    }, [combinedTransactions, filterStatus, searchTerm, sortOrder]);
 
     if (isLoading) {
         return (
-            <div className="min-h-screen py-6">
-                <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow p-8 max-w-6xl mx-auto">
-                    <div className="text-center py-12 text-gray-400">
-                        Loading transactions...
-                    </div>
+            <div className="w-full max-w-7xl mx-auto px-4 py-8 animate-pulse">
+                <div className="h-8 w-48 bg-slate-200 dark:bg-neutral-800 rounded mb-8"></div>
+                <div className="space-y-4">
+                    {[1, 2, 3].map(i => <div key={i} className="h-16 w-full bg-slate-100 dark:bg-neutral-900 rounded-xl"></div>)}
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen py-6">
-            <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow p-8 max-w-6xl mx-auto">
-                <header className="mb-6">
-                    <h1 className="text-3xl font-semibold text-primary-900 dark:text-white">
-                        Transactions
-                    </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Search, filter, and sort all on-ramp and P2P transfers.
-                    </p>
-                </header>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    Transactions
+                </h1>
+                <p className="text-slate-500 dark:text-neutral-400 mt-1">
+                    History of your payments and deposits.
+                </p>
+            </div>
 
-                {/* Controls */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                    <input
-                        type="text"
-                        placeholder="Search by description or provider"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full md:w-1/3 px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:text-white transition"
-                        aria-label="Search transactions"
-                    />
+            <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
+                {/* Toolbar */}
+                <div className="p-4 border-b border-slate-100 dark:border-neutral-800 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-50/50 dark:bg-neutral-900">
+                    <div className="relative w-full md:w-96">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-slate-400">🔍</span>
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search transactions..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 block p-2.5 transition"
+                        />
+                    </div>
 
-                    <div className="flex gap-3 w-full md:w-auto">
+                    <div className="flex gap-2 w-full md:w-auto">
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value as TxStatus | "All")}
-                            className="w-full md:w-40 px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:text-white transition"
-                            aria-label="Filter by status"
+                            className="bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-neutral-300 text-sm rounded-xl focus:ring-indigo-500 block p-2.5 cursor-pointer hover:bg-slate-50"
                         >
-                            <option value="All">All Statuses</option>
+                            <option value="All">All Status</option>
                             <option value="Success">Success</option>
-                            <option value="Failed">Failed</option>
                             <option value="Processing">Processing</option>
-                        </select>
-
-                        <select
-                            value={sortField}
-                            onChange={(e) =>
-                                setSortField(e.target.value as "time" | "amount" | "status")
-                            }
-                            className="w-full md:w-48 px-4 py-2 border border-gray-300 dark:border-neutral-700 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:text-white transition"
-                            aria-label="Sort field"
-                        >
-                            <option value="time">Sort by Date</option>
-                            <option value="amount">Sort by Amount</option>
-                            <option value="status">Sort by Status</option>
+                            <option value="Failed">Failed</option>
                         </select>
 
                         <button
                             onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
-                            type="button"
-                            aria-label="Toggle sort order"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-medium text-slate-700 dark:text-neutral-300 hover:bg-slate-50 transition"
                         >
-                            {sortOrder === "asc" ? "Asc" : "Desc"}
+                            <span>Date</span>
+                            <span className="text-xs text-slate-400">{sortOrder === "asc" ? "Oldest" : "Newest"}</span>
                         </button>
                     </div>
                 </div>
 
                 {/* Table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left table-auto">
+                    <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="border-b border-gray-200 dark:border-neutral-700">
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Date & Time
-                                </th>
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Description
-                                </th>
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Amount
-                                </th>
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Status
-                                </th>
-                                <th className="p-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Provider
-                                </th>
+                            <tr className="bg-slate-50 dark:bg-neutral-900/50 text-xs uppercase tracking-wider text-slate-500 dark:text-neutral-500 font-semibold border-b border-slate-100 dark:border-neutral-800">
+                                <th className="p-4 pl-6">Description</th>
+                                <th className="p-4">Date</th>
+                                <th className="p-4">Status</th>
+                                <th className="p-4 pr-6 text-right">Amount</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
                             {filteredSortedTransactions.length === 0 ? (
                                 <tr>
-                                    <td
-                                        colSpan={5}
-                                        className="p-6 text-center text-gray-500 dark:text-gray-400 italic"
-                                    >
-                                        No transactions found.
+                                    <td colSpan={4} className="p-12 text-center text-slate-400 dark:text-neutral-500">
+                                        No transactions match your search.
                                     </td>
                                 </tr>
                             ) : (
                                 filteredSortedTransactions.map((tx, idx) => (
                                     <tr
                                         key={`${tx.time.getTime()}-${idx}`}
-                                        className="border-b border-gray-100 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-900/60"
+                                        className="group hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors"
                                     >
-                                        <td className="p-3 whitespace-nowrap">
-                                            {tx.time.toLocaleString()}
+                                        <td className="p-4 pl-6">
+                                            <div className="font-medium text-slate-900 dark:text-white">
+                                                {tx.description}
+                                            </div>
+                                            <div className="text-xs text-slate-500 dark:text-neutral-500">
+                                                {tx.provider}
+                                            </div>
                                         </td>
-                                        <td className="p-3">{tx.description}</td>
-                                        <td
-                                            className={`p-3 font-semibold ${tx.status === "Failed"
-                                                ? "text-red-500"
-                                                : "text-green-600"
-                                                }`}
-                                        >
-                                            ₹{(tx.amount / 100).toLocaleString()}
-                                        </td>
-                                        <td className="p-3">
-                                            <span
-                                                className={`px-2 py-1 text-xs rounded ${tx.status === "Success"
-                                                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                                    : tx.status === "Processing"
-                                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-                                                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                                                    }`}
-                                            >
-                                                {tx.status}
+                                        <td className="p-4 text-sm text-slate-500 dark:text-neutral-400 whitespace-nowrap">
+                                            {tx.time.toLocaleDateString('en-IN', {
+                                                month: 'short', day: 'numeric', year: 'numeric'
+                                            })}
+                                            <span className="text-slate-400 ml-1">
+                                                {tx.time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </td>
-                                        <td className="p-3">{tx.provider}</td>
+                                        <td className="p-4">
+                                            <span className={`
+                                                inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                                                ${tx.displayStatus === 'Success'
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/50'
+                                                    : tx.displayStatus === 'Processing'
+                                                        ? 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/50'
+                                                        : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900/50'
+                                                }
+                                            `}>
+                                                {tx.displayStatus}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 pr-6 text-right font-medium">
+                                            <span className={tx.type === 'OnRamp' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}>
+                                                {tx.type === 'OnRamp' ? '+' : '-'} ₹{(tx.amount / 100).toLocaleString('en-IN')}
+                                            </span>
+                                        </td>
                                     </tr>
                                 ))
                             )}

@@ -1,5 +1,6 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
+import React from "react";
 
 export const SidebarItem = ({ href, title, icon }: { href: string; title: string; icon: React.ReactNode }) => {
     const router = useRouter();
@@ -9,16 +10,27 @@ export const SidebarItem = ({ href, title, icon }: { href: string; title: string
     return (
         <button
             type="button"
-            tabIndex={0}
-            aria-current={selected ? "page" : undefined}
-            aria-label={title}
             onClick={() => router.push(href)}
-            className={`flex items-center w-full px-6 py-2.5 rounded-md text-base font-medium gap-4 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${selected ? "bg-indigo-700 text-white font-bold" : "text-[#c1c7db] hover:bg-[#292e4a] hover:text-white"
-                }`}
-            style={{ minHeight: "44px" }}
+            className={`
+                group flex items-center w-full px-4 py-3 my-1 rounded-xl text-sm font-medium transition-all duration-200 ease-in-out
+                ${selected
+                    ? "bg-slate-900 text-white shadow-md shadow-slate-200 dark:bg-white dark:text-black dark:shadow-none"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+                }
+            `}
         >
-            <span aria-hidden="true">{icon}</span>
-            <span className="flex-1 text-left">{title}</span>
+            <span className={`
+                flex items-center justify-center w-5 h-5 mr-3 transition-colors
+                ${selected ? "text-white dark:text-black" : "text-slate-400 group-hover:text-slate-600 dark:text-neutral-500 dark:group-hover:text-neutral-300"}
+            `}>
+                {icon}
+            </span>
+            <span className="tracking-wide">{title}</span>
+
+            {/* Subtle Active Indicator Dot */}
+            {selected && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-indigo-500 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />
+            )}
         </button>
     );
 };

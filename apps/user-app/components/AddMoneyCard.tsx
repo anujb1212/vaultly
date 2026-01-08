@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@repo/ui/button";
-import { Card } from "@repo/ui/card";
 import { Select } from "@repo/ui/select";
 import { useState } from "react";
 import { TextInput } from "@repo/ui/textinput";
@@ -20,7 +19,6 @@ const SUPPORTED_BANKS = [
 
 export const AddMoney = () => {
     const router = useRouter();
-
     const [provider, setProvider] = useState(SUPPORTED_BANKS[0]?.name || "");
     const [amount, setAmount] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -33,11 +31,11 @@ export const AddMoney = () => {
             alert("Please enter a valid amount.");
             return;
         }
-
         setIsProcessing(true);
         const idempotencyKey = uuidv4();
 
         try {
+            // Optimistic Update
             addOptimistic({
                 id: Date.now(),
                 time: new Date(),
@@ -53,16 +51,13 @@ export const AddMoney = () => {
                 await refreshTransactions();
                 return;
             }
-
             await refreshTransactions();
-
             const qs = new URLSearchParams({
                 token: result.token,
                 amount: String(result.amount),
                 userId: String(result.userId),
                 provider: result.provider,
             });
-
             router.push(`/mock-bank?${qs.toString()}`);
         } catch (error) {
             alert("Failed to create transaction");
@@ -74,28 +69,46 @@ export const AddMoney = () => {
     };
 
     return (
-        <Card title="Add Money">
-            <div className="w-full">
-                <TextInput
-                    label="Amount"
-                    placeholder="Amount"
-                    onChange={(value) => setAmount(Number(value))}
-                />
-                <div className="py-4 text-left font-medium dark:text-gray-300">Bank</div>
-                <Select
-                    onSelect={(value) => setProvider(SUPPORTED_BANKS.find((x) => x.name === value)?.name || "")}
-                    options={SUPPORTED_BANKS.map((x) => ({ key: x.name, value: x.name }))}
-                />
-                <div className="flex justify-center pt-4">
+        <div className="bg-white dark:bg-neutral-900 p-8 rounded-3xl border border-slate-200 dark:border-neutral-800 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Add Money</h2>
+            <div className="space-y-6">
+
+                {/* Amount Input */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2">Amount (₹)</label>
+                    <TextInput
+                        placeholder="e.g. 5000"
+                        label=""
+                        onChange={(value) => setAmount(Number(value))}
+                    // Note: If TextInput from @repo/ui doesn't accept className, this might need a wrapper. 
+                    // Assuming basic functionality here.
+                    />
+                </div>
+
+                {/* Bank Select */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2">Select Bank</label>
+                    <Select
+                        onSelect={(value) => setProvider(SUPPORTED_BANKS.find((x) => x.name === value)?.name || "")}
+                        options={SUPPORTED_BANKS.map((x) => ({ key: x.name, value: x.name }))}
+                    />
+                </div>
+
+                <div className="pt-4">
                     <Button
                         onClick={handleAddMoney}
                         disabled={isProcessing}
-                        className="px-6 py-2 rounded-lg font-semibold"
+                        className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-95
+                            ${isProcessing ? 'bg-slate-300 dark:bg-neutral-700 cursor-not-allowed' : 'bg-slate-900 dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200 shadow-lg'}`
+                        }
                     >
-                        {isProcessing ? "Processing..." : "Add Money"}
+                        {isProcessing ? "Processing..." : "Proceed to Payment"}
                     </Button>
+                    <p className="text-center text-xs text-slate-400 mt-4">
+                        Secure SSL encryption. Redirects to bank gateway.
+                    </p>
                 </div>
             </div>
-        </Card>
+        </div>
     );
 };

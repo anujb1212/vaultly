@@ -1,8 +1,12 @@
 "use client";
+
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "../../components/ThemeToggle";
+import { Button } from "@repo/ui/button";
+import { TextInput } from "@repo/ui/textinput";
+import Link from "next/link";
 
 export default function SigninPage() {
   const [phone, setPhone] = useState("");
@@ -18,59 +22,59 @@ export default function SigninPage() {
     const res = await signIn("credentials", { phone, password, redirect: false });
     setLoading(false);
     if (res?.error) {
-      setError("Invalid credentials");
+      setError("Invalid phone number or password.");
     } else if (res?.ok) {
       router.push("/dashboard");
     }
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4">
-      <div className="absolute top-8 right-8 z-50">
+    <div className="min-h-screen grid place-items-center bg-slate-50 dark:bg-black p-4">
+      <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md bg-white/85 dark:bg-gray-900/80 rounded-2xl shadow-2xl p-8 space-y-6 border border-gray-200 dark:border-neutral-700"
-      >
-        <h2 className="text-2xl font-semibold text-center text-gray-800 dark:text-gray-100">Sign In</h2>
 
-        <div>
-          <label htmlFor="phone" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
-          <input
-            id="phone"
+      <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-neutral-800 p-8">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 bg-slate-900 dark:bg-white rounded-xl mx-auto flex items-center justify-center mb-4">
+            <span className="text-white dark:text-black font-bold text-xl">V</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome back</h2>
+          <p className="text-slate-500 dark:text-neutral-400 text-sm mt-2">Enter your credentials to access your wallet</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <TextInput
+            label="Phone Number"
+            placeholder="1234567890"
+            onChange={(val) => setPhone(val)}
             type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Enter your phone number"
-            required
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-gray-100"
           />
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-          <input
-            id="password"
+          <TextInput
+            label="Password"
+            placeholder="••••••••"
+            onChange={(val) => setPassword(val)}
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            required
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-gray-100"
           />
+
+          <Button type="submit" disabled={loading} className="w-full py-3 mt-2">
+            {loading ? "Verifying..." : "Sign In"}
+          </Button>
+
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm text-center font-medium">
+              {error}
+            </div>
+          )}
+        </form>
+
+        <div className="mt-6 text-center text-sm text-slate-500">
+          Don't have an account?{" "}
+          <Link href="/signup" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+            Sign up
+          </Link>
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-60"
-        >
-          {loading ? "Signing In..." : "Sign In"}
-        </button>
-
-        {error && <div className="text-center text-red-600 font-medium dark:text-red-400">{error}</div>}
-      </form>
+      </div>
     </div>
   );
 }

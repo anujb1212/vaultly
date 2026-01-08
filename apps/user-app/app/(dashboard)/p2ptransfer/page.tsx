@@ -2,15 +2,34 @@ import { SendMoneyCard } from "../../../components/SendMoneyCard";
 
 export default function P2PTransferPage() {
     return (
-        <div className="w-full">
-            <div className="max-w-sm mx-auto bg-white dark:bg-neutral-800 rounded-xl shadow-lg border border-gray-200 dark:border-neutral-700">
-                <div className="px-5 pt-4 pb-2 border-b border-gray-200 dark:border-neutral-700">
-                    <h1 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 text-center">
-                        Peer-to-Peer Transfer
+        <div className="w-full min-h-[calc(100vh-80px)] flex flex-col items-center justify-center p-4 animate-fade-in">
+            <div className="w-full max-w-lg">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                        Send Money
                     </h1>
+                    <p className="text-slate-500 dark:text-neutral-400 mt-2">
+                        Instant peer-to-peer transfers to anyone on Vaultly.
+                    </p>
                 </div>
-                <div className="p-5">
-                    <SendMoneyCard />
+
+                {/* 
+                   Note: Since we refactored @repo/ui/card, the SendMoneyCard 
+                   will automatically look like the new Premium Card design.
+                   We add a shadow/glow effect behind it for depth.
+                */}
+                <div className="relative">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-[2rem] opacity-20 blur-2xl dark:opacity-40"></div>
+                    <div className="relative">
+                        <SendMoneyCard />
+                    </div>
+                </div>
+
+                <div className="mt-8 text-center">
+                    <p className="text-xs text-slate-400 dark:text-neutral-500 flex items-center justify-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Secure 256-bit encrypted transfer
+                    </p>
                 </div>
             </div>
         </div>

@@ -10,7 +10,7 @@ const scenarios: Array<{ key: Scenario; label: string; hint: string }> = [
     { key: "failure", label: "Decline", hint: "Simulate a failed payment." },
     { key: "chaos-slow", label: "Slow", hint: "Delays webhook delivery." },
     { key: "chaos-duplicate", label: "Duplicate", hint: "Sends duplicate webhooks." },
-    { key: "chaos-race", label: "Race", hint: "Concurrent deliveries / ordering issues." },
+    { key: "chaos-race", label: "Race", hint: "Concurrent deliveries." },
 ];
 
 function formatINR(paise: number) {
@@ -39,11 +39,11 @@ export default function MockBankPage() {
     const [result, setResult] = useState<"idle" | "ok" | "error">("idle");
     const [errorMsg, setErrorMsg] = useState<string>("");
 
+    // Ensure this URL is correct in your env
     const gatewayBase = process.env.NEXT_PUBLIC_GATEWAY_URL?.replace(/\/$/, "") || "http://localhost:3004";
 
     async function onAuthorize() {
         if (!isValid || submitting) return;
-
         setSubmitting(true);
         setResult("idle");
         setErrorMsg("");
@@ -66,9 +66,8 @@ export default function MockBankPage() {
             }
 
             setResult("ok");
-
             if (scenario === "chaos-slow") return;
-
+            // Slightly faster feedback loop
             setTimeout(() => router.push(`/dashboard?onramp=1&token=${encodeURIComponent(token)}`), 600);
         } catch (e: any) {
             setResult("error");
@@ -78,151 +77,100 @@ export default function MockBankPage() {
         }
     }
 
-    function onCancel() {
-        router.push("/dashboard");
-    }
-
     if (!isValid) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center px-6">
-                <div className="max-w-md w-full rounded-3xl border border-slate-200 bg-white shadow-sm p-8">
-                    <div className="text-sm text-slate-500 mb-2">Vaultly Bank</div>
-                    <div className="text-xl font-semibold text-slate-900">Invalid payment link</div>
-                    <p className="mt-2 text-sm text-slate-600">
-                        Invalid Request, Please follow through Add Money page
-                    </p>
-                    <button
-                        onClick={() => router.push("/dashboard")}
-                        className="mt-6 w-full rounded-xl bg-slate-900 text-white py-3 text-sm font-medium hover:bg-slate-800 transition"
-                    >
-                        Back to Dashboard
-                    </button>
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
+                <div className="max-w-md w-full rounded-2xl bg-white border border-slate-200 shadow-xl p-8 text-center">
+                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">⚠️</div>
+                    <h2 className="text-xl font-bold text-slate-900">Invalid Request</h2>
+                    <p className="text-slate-500 mt-2 text-sm">Please initiate payment from the app.</p>
+                    <button onClick={() => router.push("/dashboard")} className="mt-6 w-full bg-slate-900 text-white py-3 rounded-xl font-medium">Return to Dashboard</button>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-slate-50 to-white">
-            <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-indigo-200/40 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-28 -right-24 h-96 w-96 rounded-full bg-sky-200/40 blur-3xl" />
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans text-slate-900 selection:bg-indigo-100">
+            {/* Abstract Background */}
+            <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-50 to-transparent"></div>
 
-            <div className="min-h-screen flex items-center justify-center px-6 py-10">
+            <div className="relative min-h-screen flex items-center justify-center p-4">
                 <div className="w-full max-w-lg">
-                    <div className="mb-6 text-center">
-                        <div className="text-xs tracking-wide text-slate-500">Secure bank authorization</div>
-                        <div className="mt-2 text-2xl font-semibold text-slate-900">{provider}</div>
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm mb-4">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Secure Gateway</span>
+                        </div>
+                        <h1 className="text-2xl font-bold text-slate-900">{provider}</h1>
                     </div>
 
-                    <div className="rounded-3xl border border-white/50 bg-white/70 backdrop-blur-xl shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] p-7">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <div className="text-sm text-slate-500">Amount</div>
-                                <div className="mt-1 text-4xl font-semibold text-slate-900 tracking-tight">
-                                    ₹{formatINR(amount)}
-                                </div>
-                                <div className="mt-2 text-xs text-slate-500">
-                                    User ID: <span className="text-slate-700">{userId}</span>
-                                </div>
-                            </div>
+                    {/* Card */}
+                    <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8">
 
-                            <div className="text-right">
-                                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs text-slate-600">
-                                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                                    Verified session
-                                </div>
-                                <div className="mt-2 text-[11px] text-slate-500">
-                                    Ref: <span className="font-mono">{token.slice(0, 10)}…</span>
-                                </div>
+                        {/* Amount Display */}
+                        <div className="text-center border-b border-slate-100 pb-6 mb-6">
+                            <p className="text-slate-500 text-sm mb-1">Total Payable</p>
+                            <div className="text-5xl font-bold tracking-tight text-slate-900">
+                                ₹{formatINR(amount)}
                             </div>
+                            <p className="text-xs text-slate-400 mt-2 font-mono">ID: {userId}</p>
                         </div>
 
-                        <div className="mt-6">
-                            <div className="text-sm font-medium text-slate-800 mb-2">Test scenario</div>
+                        {/* Scenarios */}
+                        <div className="mb-6">
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 block">Simulation Mode</label>
                             <div className="grid grid-cols-2 gap-2">
-                                {scenarios.map((s) => {
-                                    const active = scenario === s.key;
-                                    return (
-                                        <button
-                                            key={s.key}
-                                            type="button"
-                                            onClick={() => setScenario(s.key)}
-                                            className={[
-                                                "text-left rounded-2xl border px-4 py-3 transition",
-                                                active
-                                                    ? "border-slate-900 bg-slate-900 text-white"
-                                                    : "border-slate-200 bg-white/60 text-slate-900 hover:bg-white",
-                                            ].join(" ")}
-                                        >
-                                            <div className="text-sm font-medium">{s.label}</div>
-                                            <div
-                                                className={[
-                                                    "mt-1 text-xs",
-                                                    active ? "text-white/70" : "text-slate-500",
-                                                ].join(" ")}
-                                            >
-                                                {s.hint}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
+                                {scenarios.map((s) => (
+                                    <button
+                                        key={s.key}
+                                        onClick={() => setScenario(s.key)}
+                                        className={`px-3 py-2 rounded-lg text-xs font-medium text-left transition-all border ${scenario === s.key
+                                            ? 'bg-slate-900 text-white border-slate-900'
+                                            : 'bg-slate-50 text-slate-600 border-slate-100 hover:border-slate-300'
+                                            }`}
+                                    >
+                                        {s.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
+                        {/* Feedback */}
                         {result === "error" && (
-                            <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                                {errorMsg || "Something went wrong."}
+                            <div className="mb-6 p-3 bg-rose-50 border border-rose-100 text-rose-600 text-sm rounded-xl flex items-center gap-2">
+                                <span>❌</span> {errorMsg}
                             </div>
                         )}
-
                         {result === "ok" && (
-                            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                                Authorized.
-                                {scenario === "chaos-slow"
-                                    ? " Webhook delivery is delayed. You can go back and refresh transactions."
-                                    : " Redirecting back to Vaultly…"}
+                            <div className="mb-6 p-3 bg-emerald-50 border border-emerald-100 text-emerald-600 text-sm rounded-xl flex items-center gap-2">
+                                <span>✅</span> Payment Authorized. Redirecting...
                             </div>
                         )}
 
-                        <div className="mt-6 flex gap-3">
+                        {/* Actions */}
+                        <div className="flex flex-col gap-3">
                             <button
-                                type="button"
                                 onClick={onAuthorize}
                                 disabled={submitting}
-                                className={[
-                                    "flex-1 rounded-2xl py-3 text-sm font-medium transition",
-                                    submitting ? "bg-slate-200 text-slate-500" : "bg-slate-900 text-white hover:bg-slate-800",
-                                ].join(" ")}
+                                className={`w-full py-4 rounded-xl font-bold text-white shadow-lg shadow-indigo-200 transition-all transform active:scale-95 ${submitting ? 'bg-slate-400 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-700'
+                                    }`}
                             >
-                                {submitting ? "Authorizing…" : "Authorize payment"}
+                                {submitting ? "Processing..." : `Pay ₹${formatINR(amount)}`}
                             </button>
-
                             <button
-                                type="button"
-                                onClick={() => router.push(`/dashboard?onramp=1&token=${encodeURIComponent(token)}`)}
+                                onClick={() => router.push("/dashboard")}
                                 disabled={submitting}
-                                className="rounded-2xl border border-slate-200 bg-white/60 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-white transition"
+                                className="w-full py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition"
                             >
-                                Back
+                                Cancel Transaction
                             </button>
-
-                            <button
-                                type="button"
-                                onClick={onCancel}
-                                disabled={submitting}
-                                className="rounded-2xl border border-slate-200 bg-white/60 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-white transition"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-
-                        <div className="mt-6 text-center text-[11px] text-slate-500">
-                            By continuing, you authorize this transaction. This is a mock bank for testing.
                         </div>
                     </div>
 
-                    <div className="mt-6 text-center text-xs text-slate-500">
-                        Vaultly · Mock Banking Interface
+                    <div className="text-center mt-8 text-xs text-slate-400">
+                        <span className="font-semibold">Vaultly Secure</span> · 256-bit SSL Encrypted
                     </div>
                 </div>
             </div>

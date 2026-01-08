@@ -3,16 +3,20 @@ import { JSX } from "react";
 export function Card({
   title,
   children,
+  className,
 }: {
-  title: string;
+  title?: string;
   children?: React.ReactNode;
+  className?: string;
 }): JSX.Element {
   return (
-    <div className="border border-gray-200 dark:border-neutral-700 p-6 bg-white dark:bg-neutral-800 rounded-2xl shadow-sm">
-      <h1 className="text-lg font-semibold border-b border-gray-200 dark:border-neutral-700 pb-2 text-neutral-800 dark:text-neutral-100">
-        {title}
-      </h1>
-      <div className="pt-4">{children}</div>
+    <div className={`border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 rounded-3xl p-6 ${className || ""}`}>
+      {title && (
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          {title}
+        </h2>
+      )}
+      <div>{children}</div>
     </div>
   );
 }

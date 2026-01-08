@@ -2,69 +2,103 @@
 
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { Button } from "@repo/ui/button"; // Using your shared UI
+import { ArrowRight, Shield, Zap, Globe } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Layered gradients */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-blue-100 to-purple-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800"></div>
-        <div className="absolute inset-0 bg-gradient-radial from-indigo-300/40 via-transparent to-transparent dark:from-indigo-900/40"></div>
-      </div>
-      {/* Theme Toggle */}
-      <div className="absolute top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
-      {/* Hero Card */}
-      <div className="z-10 text-center space-y-6 p-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-xl border border-indigo-100 dark:border-gray-800 max-w-md w-full">
-        <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-8 animate-bounce" width="64" height="64" fill="none" viewBox="0 0 24 24">
-          <rect x="2" y="6" width="20" height="12" rx="3" fill="#6366f1" />
-          <rect x="2" y="10" width="20" height="2" fill="#a5b4fc" />
-          <rect x="6" y="16" width="6" height="2" rx="1" fill="#fff" />
-        </svg>
-        <h1 className="text-5xl font-extrabold text-indigo-700 dark:text-indigo-200 drop-shadow-sm">
-          Vaultly
-        </h1>
-        <h2 className="text-base text-indigo-400 dark:text-indigo-300 font-semibold tracking-wide mb-2">
-          Your Wallet, Reimagined.
-        </h2>
-        <p className="text-lg text-gray-600 dark:text-gray-300">
-          Experience seamless payments and effortless money management.
-        </p>
-        <div className="flex gap-6 justify-center mt-6">
-          <button
-            onClick={() => router.push("/signup")}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 dark:from-indigo-700 dark:to-blue-800 text-white font-semibold rounded-lg shadow-md hover:scale-105 hover:shadow-lg transition-transform duration-200"
-          >
-            Sign Up
-          </button>
-          <button
-            onClick={() => router.push("/signin")}
-            className="px-6 py-3 border-2 border-indigo-500 dark:border-indigo-300 text-indigo-600 dark:text-indigo-200 font-semibold rounded-lg hover:bg-indigo-50 dark:hover:bg-gray-800 hover:scale-105 transition-transform duration-200"
-          >
-            Sign In
-          </button>
-        </div>
-        {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center hover:scale-105 hover:shadow-indigo-300 transition-all duration-300 border border-indigo-50 dark:border-gray-700">
-            <span className="text-2xl mb-2 text-indigo-500 dark:text-indigo-300">⚡</span>
-            <span className="font-semibold text-indigo-700 dark:text-indigo-200 mb-1 text-sm">Instant Payments</span>
+    <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-white selection:bg-indigo-100 dark:selection:bg-indigo-900 overflow-x-hidden">
+
+      {/* Navbar */}
+      <nav className="fixed top-0 w-full z-50 border-b border-slate-200/60 dark:border-neutral-800/60 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
+            <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center text-white dark:text-black">V</div>
+            Vaultly
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center hover:scale-105 hover:shadow-indigo-300 transition-all duration-300 border border-indigo-50 dark:border-gray-700">
-            <span className="text-2xl mb-2 text-indigo-500 dark:text-indigo-300">🔒</span>
-            <span className="font-semibold text-indigo-700 dark:text-indigo-200 mb-1 text-sm">Private & Secure</span>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center hover:scale-105 hover:shadow-indigo-300 transition-all duration-300 border border-indigo-50 dark:border-gray-700">
-            <span className="text-2xl mb-2 text-indigo-500 dark:text-indigo-300">💳</span>
-            <span className="font-semibold text-indigo-700 dark:text-indigo-200 mb-1 text-sm">Multi-Bank Support</span>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
+            <button
+              onClick={() => router.push("/signin")}
+              className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
+            >
+              Sign In
+            </button>
+            <Button onClick={() => router.push("/signup")} className="rounded-full px-6">
+              Get Started
+            </Button>
           </div>
         </div>
-      </div>
+      </nav>
+
+      {/* Hero Section */}
+      <main className="pt-32 pb-16 px-6">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 text-xs font-semibold uppercase tracking-wide border border-indigo-100 dark:border-indigo-800">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+            New: Instant P2P Transfers
+          </div>
+
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+            The money app for <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
+              modern life.
+            </span>
+          </h1>
+
+          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            Send, receive, and manage your money with zero friction.
+            Bank-grade security meets beautiful design.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <button
+              onClick={() => router.push("/signup")}
+              className="h-12 px-8 rounded-full bg-slate-900 dark:bg-white text-white dark:text-black font-semibold hover:scale-105 transition-transform flex items-center gap-2"
+            >
+              Create Free Account <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => router.push("/signin")}
+              className="h-12 px-8 rounded-full bg-white dark:bg-neutral-800 text-slate-900 dark:text-white border border-slate-200 dark:border-neutral-700 font-semibold hover:bg-slate-50 dark:hover:bg-neutral-700 transition"
+            >
+              Log In
+            </button>
+          </div>
+        </div>
+
+        {/* Feature Grid */}
+        <div className="max-w-6xl mx-auto mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { icon: Zap, title: "Lightning Fast", desc: "Transfers settle in seconds, not days. Built on real-time rails." },
+            { icon: Shield, title: "Bank-Grade Security", desc: "256-bit encryption and fraud protection keep your funds safe." },
+            { icon: Globe, title: "Global Scale", desc: "Send money to anyone, anywhere with just a phone number." }
+          ].map((f, i) => (
+            <div key={i} className="p-8 rounded-3xl bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 hover:shadow-xl hover:shadow-indigo-500/5 dark:hover:shadow-none transition-all duration-300">
+              <div className="w-12 h-12 bg-slate-50 dark:bg-neutral-800 rounded-2xl flex items-center justify-center mb-4 text-indigo-600 dark:text-indigo-400">
+                <f.icon className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">{f.title}</h3>
+              <p className="text-slate-500 dark:text-neutral-400 leading-relaxed">
+                {f.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+      </main>
+
       {/* Footer */}
-      <footer className="z-10 absolute bottom-2 left-0 right-0 text-center text-xs text-gray-400 dark:text-gray-500 font-medium">
-        Vaultly is secure & private. © {new Date().getFullYear()}
+      <footer className="py-8 text-center border-t border-slate-200 dark:border-neutral-800 mt-12">
+        <p className="text-sm text-slate-500 dark:text-neutral-500">
+          © {new Date().getFullYear()} Vaultly Inc. Secure Payments.
+        </p>
       </footer>
     </div>
   );
