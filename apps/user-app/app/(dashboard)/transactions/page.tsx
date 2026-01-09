@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTransactions } from "@repo/store";
-import { ArrowUpDown, Search, Filter } from "lucide-react"; // Optional: Use icons if available, else plain text works
+import { ArrowUpDown, Search, Filter } from "lucide-react";
 
 type TxStatus = "Pending" | "Success" | "Failed" | "Processing" | string;
 
@@ -26,7 +26,7 @@ export default function TransactionsPage() {
             description: `Sent to user ${tx.toUser}`,
             provider: "Vaultly P2P",
             type: 'P2P',
-            rawStatus: 'Success', // P2P usually assumes success in this schema
+            rawStatus: 'Success',
             displayStatus: 'Success'
         }));
 
@@ -41,90 +41,53 @@ export default function TransactionsPage() {
 
     const filteredSortedTransactions = useMemo(() => {
         let filtered = combinedTransactions;
-
         if (filterStatus !== "All") {
             filtered = filtered.filter((tx) => tx.displayStatus === filterStatus);
         }
-
         if (searchTerm.trim() !== "") {
             const lowerTerm = searchTerm.toLowerCase();
             filtered = filtered.filter(
-                (tx) =>
-                    (tx.description && tx.description.toLowerCase().includes(lowerTerm)) ||
+                (tx) => (tx.description && tx.description.toLowerCase().includes(lowerTerm)) ||
                     (tx.provider && tx.provider.toLowerCase().includes(lowerTerm))
             );
         }
-
         filtered.sort((a, b) => {
             const dateA = a.time.getTime();
             const dateB = b.time.getTime();
             return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
         });
-
         return filtered;
     }, [combinedTransactions, filterStatus, searchTerm, sortOrder]);
 
-    if (isLoading) {
-        return (
-            <div className="w-full max-w-7xl mx-auto px-4 py-8 animate-pulse">
-                <div className="h-8 w-48 bg-slate-200 dark:bg-neutral-800 rounded mb-8"></div>
-                <div className="space-y-4">
-                    {[1, 2, 3].map(i => <div key={i} className="h-16 w-full bg-slate-100 dark:bg-neutral-900 rounded-xl"></div>)}
-                </div>
-            </div>
-        );
-    }
+    if (isLoading) return <div className="p-12 text-center text-slate-400">Loading history...</div>;
 
     return (
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                    Transactions
-                </h1>
-                <p className="text-slate-500 dark:text-neutral-400 mt-1">
-                    History of your payments and deposits.
-                </p>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Transactions</h1>
             </div>
 
             <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-                {/* Toolbar */}
                 <div className="p-4 border-b border-slate-100 dark:border-neutral-800 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-50/50 dark:bg-neutral-900">
-                    <div className="relative w-full md:w-96">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span className="text-slate-400">🔍</span>
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Search transactions..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 block p-2.5 transition"
-                        />
-                    </div>
-
-                    <div className="flex gap-2 w-full md:w-auto">
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value as TxStatus | "All")}
-                            className="bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-neutral-300 text-sm rounded-xl focus:ring-indigo-500 block p-2.5 cursor-pointer hover:bg-slate-50"
-                        >
-                            <option value="All">All Status</option>
-                            <option value="Success">Success</option>
-                            <option value="Processing">Processing</option>
-                            <option value="Failed">Failed</option>
-                        </select>
-
-                        <button
-                            onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-medium text-slate-700 dark:text-neutral-300 hover:bg-slate-50 transition"
-                        >
-                            <span>Date</span>
-                            <span className="text-xs text-slate-400">{sortOrder === "asc" ? "Oldest" : "Newest"}</span>
-                        </button>
-                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search transactions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full md:w-96 bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 text-slate-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 block p-2.5 transition"
+                    />
+                    <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as TxStatus | "All")}
+                        className="bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-neutral-300 text-sm rounded-xl block p-2.5 cursor-pointer"
+                    >
+                        <option value="All">All Status</option>
+                        <option value="Success">Success</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Failed">Failed</option>
+                    </select>
                 </div>
 
-                {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -136,55 +99,47 @@ export default function TransactionsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
-                            {filteredSortedTransactions.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="p-12 text-center text-slate-400 dark:text-neutral-500">
-                                        No transactions match your search.
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredSortedTransactions.map((tx, idx) => (
-                                    <tr
-                                        key={`${tx.time.getTime()}-${idx}`}
-                                        className="group hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors"
-                                    >
+                            {filteredSortedTransactions.map((tx, idx) => {
+                                // Logic for Styling
+                                const isDebit = tx.type === 'P2P';
+                                const isFailure = tx.displayStatus === 'Failed';
+
+                                // FORCE RED CLASS for P2P transfers
+                                let amountClass = "text-slate-900 dark:text-white"; // Default
+                                if (isFailure) {
+                                    amountClass = "text-rose-500 dark:text-rose-400 line-through opacity-70";
+                                } else if (isDebit) {
+                                    amountClass = "text-rose-600 dark:text-rose-400"; // Red for outgoing
+                                } else {
+                                    amountClass = "text-emerald-600 dark:text-emerald-400"; // Green for incoming
+                                }
+
+                                const sign = isFailure ? '' : (isDebit ? '- ' : '+ ');
+
+                                return (
+                                    <tr key={`${tx.time.getTime()}-${idx}`} className="group hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors">
                                         <td className="p-4 pl-6">
-                                            <div className="font-medium text-slate-900 dark:text-white">
-                                                {tx.description}
-                                            </div>
-                                            <div className="text-xs text-slate-500 dark:text-neutral-500">
-                                                {tx.provider}
-                                            </div>
+                                            <div className="font-medium text-slate-900 dark:text-white">{tx.description}</div>
+                                            <div className="text-xs text-slate-500 dark:text-neutral-500">{tx.provider}</div>
                                         </td>
                                         <td className="p-4 text-sm text-slate-500 dark:text-neutral-400 whitespace-nowrap">
-                                            {tx.time.toLocaleDateString('en-IN', {
-                                                month: 'short', day: 'numeric', year: 'numeric'
-                                            })}
-                                            <span className="text-slate-400 ml-1">
-                                                {tx.time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
+                                            {tx.time.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                                         </td>
                                         <td className="p-4">
-                                            <span className={`
-                                                inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                                                ${tx.displayStatus === 'Success'
-                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/50'
-                                                    : tx.displayStatus === 'Processing'
-                                                        ? 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/50'
-                                                        : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900/50'
-                                                }
-                                            `}>
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                                                ${tx.displayStatus === 'Success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/50' :
+                                                    tx.displayStatus === 'Processing' ? 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/50' :
+                                                        'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900/50'
+                                                }`}>
                                                 {tx.displayStatus}
                                             </span>
                                         </td>
-                                        <td className="p-4 pr-6 text-right font-medium">
-                                            <span className={tx.type === 'OnRamp' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}>
-                                                {tx.type === 'OnRamp' ? '+' : '-'} ₹{(tx.amount / 100).toLocaleString('en-IN')}
-                                            </span>
+                                        <td className={`p-4 pr-6 text-right font-medium ${amountClass}`}>
+                                            {sign} ₹{(tx.amount / 100).toLocaleString('en-IN')}
                                         </td>
                                     </tr>
-                                ))
-                            )}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
