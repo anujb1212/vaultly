@@ -12,12 +12,6 @@ export default function P2PTransferPage() {
                         Instant peer-to-peer transfers to anyone on Vaultly.
                     </p>
                 </div>
-
-                {/* 
-                   Note: Since we refactored @repo/ui/card, the SendMoneyCard 
-                   will automatically look like the new Premium Card design.
-                   We add a shadow/glow effect behind it for depth.
-                */}
                 <div className="relative">
                     <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-[2rem] opacity-20 blur-2xl dark:opacity-40"></div>
                     <div className="relative">

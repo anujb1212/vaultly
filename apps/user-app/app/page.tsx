@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button } from "@repo/ui/button";
 import { ArrowRight, Shield, Zap, Globe, Lock, Smartphone, Laptop } from "lucide-react";
+import Image from "next/image";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -97,7 +98,7 @@ export default function LandingPage() {
             <div className="relative rounded-2xl bg-white dark:bg-[#0A0A0A] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden ring-1 ring-slate-900/5">
 
               {/* Browser Header */}
-              <div className="h-12 bg-slate-50/80 dark:bg-[#0A0A0A] border-b border-slate-200/50 dark:border-white/5 flex items-center px-4 gap-4 backdrop-blur-md">
+              <div className="h-12 bg-slate-50/80 dark:bg-[#0A0A0A] border-b border-slate-200/50 dark:border-white/5 flex items-center px-4 gap-4 backdrop-blur-md z-20 relative">
                 <div className="flex gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
                   <div className="w-3 h-3 rounded-full bg-amber-400/80"></div>
@@ -109,63 +110,33 @@ export default function LandingPage() {
                 <div className="w-16"></div>
               </div>
 
-              {/* Browser Content */}
-              <div className="p-4 md:p-8 bg-slate-50 dark:bg-black relative h-[400px] md:h-[600px] w-full flex gap-8 overflow-hidden pointer-events-none select-none">
+              {/* Image Preview with Mask Gradient */}
+              <div className="relative w-full h-[400px] md:h-[600px] bg-slate-50 dark:bg-black group-hover:scale-[1.005] transition-transform duration-700 ease-out">
+                <Image
+                  src="/dashboard-preview.jpg"
+                  alt="Vaultly Dashboard Preview"
+                  fill
+                  className="min-w-full min-h-full object-cover object-top"
+                  style={{
+                    maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)'
+                  }}
+                  priority
+                />
 
-                <div className="hidden md:flex w-64 flex-col gap-6 pt-2">
-                  <div className="flex items-center gap-3 px-4">
-                    <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-white"></div>
-                    <div className="h-4 w-20 bg-slate-200 dark:bg-neutral-800 rounded-md"></div>
-                  </div>
-                  <div className="space-y-2 mt-4">
-                    {['Dashboard', 'Transfer', 'Transactions'].map((item, i) => (
-                      <div key={item} className={`h-10 w-full rounded-xl flex items-center px-4 ${i === 0 ? 'bg-indigo-50/50 dark:bg-white/5 border border-indigo-100 dark:border-transparent' : ''}`}>
-                        <div className={`h-2.5 rounded-full ${i === 0 ? 'w-24 bg-indigo-400 dark:bg-white' : 'w-16 bg-slate-200 dark:bg-neutral-800'}`}></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex-1 flex flex-col gap-6 opacity-80 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="flex justify-between items-center">
-                    <div className="space-y-2">
-                      <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg"></div>
-                      <div className="h-4 w-48 bg-slate-100 dark:bg-neutral-900 rounded-lg"></div>
-                    </div>
-                    <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-neutral-800"></div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                    <div className="lg:col-span-2 space-y-6">
-                      <div className="h-64 rounded-[2rem] bg-slate-900 dark:bg-neutral-900 relative overflow-hidden p-8 border border-slate-200/10 dark:border-white/5 shadow-2xl">
-                        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/30 blur-[80px] rounded-full -mr-10 -mt-10"></div>
-                        <div className="relative z-10 flex flex-col justify-between h-full">
-                          <div className="space-y-4">
-                            <div className="h-3 w-24 bg-white/20 rounded-full"></div>
-                            <div className="h-12 w-48 bg-white/10 rounded-2xl backdrop-blur-sm"></div>
-                          </div>
-                          <div className="flex gap-4">
-                            <div className="h-12 w-32 bg-white rounded-xl"></div>
-                            <div className="h-12 w-32 bg-indigo-600 rounded-xl"></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="hidden lg:block space-y-6">
-                      <div className="h-56 rounded-[2rem] bg-white dark:bg-neutral-900 border border-slate-200 dark:border-white/5 p-6 relative"></div>
-                    </div>
-                  </div>
+                {/* Overlay Text Button */}
+                <div className="absolute inset-0 z-30 flex items-end justify-center pb-20 pointer-events-none">
+                  <button
+                    onClick={() => router.push("/dashboard")}
+                    className="pointer-events-auto px-8 py-4 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-full shadow-2xl transform hover:scale-105 transition-all opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 duration-500"
+                  >
+                    <span className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      Experience the Interface <ArrowRight className="w-4 h-4" />
+                    </span>
+                  </button>
                 </div>
               </div>
 
-              {/* Overlay Text - Z-Index Fix */}
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/20 dark:bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
-                <button onClick={() => router.push("/dashboard")} className="px-8 py-4 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-full shadow-2xl transform hover:scale-105 transition-all">
-                  <span className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    Experience the Interface <ArrowRight className="w-4 h-4" />
-                  </span>
-                </button>
-              </div>
             </div>
           </div>
         </div>
