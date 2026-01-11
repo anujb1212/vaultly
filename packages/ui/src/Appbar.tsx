@@ -3,9 +3,9 @@ import { Button } from "./button";
 interface AppbarProps {
     user?: {
         name?: string | null;
-    },
-    onSignin: () => void,
-    onSignout: () => void
+    };
+    onSignin: () => void;
+    onSignout: () => void;
 }
 
 export const Appbar = ({
@@ -14,20 +14,35 @@ export const Appbar = ({
     onSignout
 }: AppbarProps) => {
     return (
-        <div className="flex justify-between items-center border-b px-6 py-2 bg-gradient-to-r from-slate-50 via-white to-slate-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 shadow-sm">
-            <div className="text-3xl tracking-wide font-extrabold rounded-lg px-2 py-1 select-none dark:text-indigo-200">
-                VAULTLY
-            </div>
-            <div className="flex items-center gap-2">
-                {user?.name && (
-                    <span className="text-base font-medium text-slate-700 dark:text-gray-200 bg-slate-100 dark:bg-gray-800 rounded-full px-3 py-1 shadow-inner mr-2">
-                        {user.name}
+        <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md">
+            <div className="flex h-16 items-center justify-between px-6 max-w-7xl mx-auto">
+                <div className="flex items-center gap-2 select-none">
+                    <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center">
+                        <span className="text-white dark:text-black font-bold text-lg">V</span>
+                    </div>
+                    <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        Vaultly
                     </span>
-                )}
-                <Button onClick={user ? onSignout : onSignin}>
-                    {user ? "Logout" : "Login"}
-                </Button>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    {user?.name && (
+                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-neutral-800 rounded-full">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-sm font-medium text-slate-600 dark:text-neutral-300">
+                                {user.name}
+                            </span>
+                        </div>
+                    )}
+                    <Button
+                        onClick={user ? onSignout : onSignin}
+                        variant={user ? "outline" : "primary"}
+                        className="px-6"
+                    >
+                        {user ? "Log out" : "Sign in"}
+                    </Button>
+                </div>
             </div>
-        </div>
+        </header>
     );
 };

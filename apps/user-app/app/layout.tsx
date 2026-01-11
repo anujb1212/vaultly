@@ -4,11 +4,15 @@ import { Providers } from "../provider";
 import "./globals.css";
 import { JSX } from "react";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: "Vaultly",
-  description: "Simple payments & wallet app",
+  title: "Vaultly | Modern Payments",
+  description: "Secure, fast, and simple payments.",
 };
 
 export default function RootLayout({
@@ -17,12 +21,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }): JSX.Element {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans min-h-screen bg-slate-50 dark:bg-neutral-950 text-slate-900 dark:text-slate-50 selection:bg-indigo-100 dark:selection:bg-indigo-900`}>
         <Providers>
-          <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-blue-100 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900">
-            {children}
-          </div>
+          {children}
         </Providers>
       </body>
     </html>

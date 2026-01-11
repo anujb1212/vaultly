@@ -6,32 +6,26 @@ import { OnRampTransactions } from "../../../components/OnRampTransactions";
 
 export default function TransferPage() {
     return (
-        <div className="min-h-screen p-8 max-w-6xl mx-auto">
-            <header className="flex items-center justify-between mb-8">
-                <h1 className="text-4xl font-extrabold text-primary-700 dark:text-primary-200 tracking-tight">
-                    Transfer Funds
-                </h1>
-                <span className="inline-flex px-4 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 font-semibold shadow">
-                    Instant & Secure
-                </span>
-            </header>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+            <div className="mb-10">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Add Funds</h1>
+                <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Securely deposit money into your Vaultly wallet.</p>
+            </div>
 
-            <main className="grid md:grid-cols-3 gap-8">
-                {/* Add Money */}
-                <section className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg p-6 flex flex-col">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                {/* Left Column: Input Action */}
+                <div className="xl:col-span-7 space-y-8">
                     <AddMoney />
-                </section>
+                </div>
 
-                {/* Balance + Transactions - Now Dynamic */}
-                <section className="md:col-span-2 flex flex-col gap-6">
-                    <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg p-6">
-                        <BalanceCard />
-                    </div>
-                    <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg p-6">
+                {/* Right Column: Information & History */}
+                <div className="xl:col-span-5 space-y-8 sticky top-8">
+                    <BalanceCard />
+                    <div className="min-h-[400px]">
                         <OnRampTransactions />
                     </div>
-                </section>
-            </main>
+                </div>
+            </div>
         </div>
     );
 }
