@@ -4,12 +4,22 @@ import prisma, { auditLogger, idempotencyManager } from "@repo/db/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import { revalidatePath } from "next/cache";
+import { rateLimit } from "../rateLimit";
+
+type P2PTransferResult =
+    | { success: true; message: string }
+    | {
+        success: false;
+        message: string;
+        retryAfterSec?: number;
+        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "UNKNOWN";
+    };
 
 export async function p2pTransfer(
     to: string,
     amount: number,
     idempotencyKey: string
-) {
+): Promise<P2PTransferResult> {
     const session = await getServerSession(authOptions);
     const sender = session?.user?.id;
 
@@ -21,6 +31,21 @@ export async function p2pTransfer(
     }
 
     const senderId = Number(sender)
+
+    const rl = await rateLimit({
+        key: `rl:p2p:create:user:${senderId}`,
+        limit: 10,
+        windowSec: 60,
+    });
+
+    if (!rl.allowed) {
+        return {
+            success: false,
+            message: `Too many requests. Try again in ${rl.ttl}s`,
+            retryAfterSec: rl.ttl,
+            errorCode: "RATE_LIMITED",
+        };
+    }
 
     const idempotencyCheck = await idempotencyManager.checkAndStore(
         idempotencyKey,
@@ -175,9 +200,10 @@ export async function p2pTransfer(
         return result;
     } catch (error: any) {
         console.error("P2P transfer error:", error);
-        const errorResult = {
+        const errorResult: P2PTransferResult = {
             success: false,
             message: error.message || "Transfer failed",
+            errorCode: "UNKNOWN"
         };
 
         try {

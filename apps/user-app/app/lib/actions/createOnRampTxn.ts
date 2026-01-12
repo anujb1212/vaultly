@@ -3,6 +3,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import prisma, { auditLogger, idempotencyManager } from "@repo/db/client";
+import { revalidatePath } from "next/cache";
+import { rateLimit } from "../rateLimit";
 
 type CreateOnRampTxnResult =
     | {
@@ -11,14 +13,14 @@ type CreateOnRampTxnResult =
         token: string;
         userId: number;
         amount: number;
-        provider: string;
+        provider: string
     }
     | {
         success: false;
         message: string;
+        retryAfterSec?: number;
+        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "UNKNOWN"
     };
-
-import { revalidatePath } from "next/cache";
 
 export async function createOnRampTxn(
     amount: number,
@@ -30,10 +32,26 @@ export async function createOnRampTxn(
         return {
             success: false,
             message: "Unauthenticated request",
+            errorCode: "UNAUTHENTICATED"
         };
     }
 
     const userId = Number(session.user.id);
+
+    const rl = await rateLimit({
+        key: `rl:onramp:create:user:${userId}`,
+        limit: 5,
+        windowSec: 60,
+    });
+
+    if (!rl.allowed) {
+        return {
+            success: false,
+            message: `Too many requests. Retry after ${rl.ttl}s`,
+            retryAfterSec: rl.ttl,
+            errorCode: "RATE_LIMITED"
+        };
+    }
 
     const idempotencyCheck = await idempotencyManager.checkAndStore(
         idempotencyKey,
@@ -100,6 +118,7 @@ export async function createOnRampTxn(
         const errorResullt: CreateOnRampTxnResult = {
             success: false,
             message: "Failed to create transaction",
+            errorCode: "UNKNOWN"
         };
 
         try {

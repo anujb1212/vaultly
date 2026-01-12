@@ -1,9 +1,7 @@
 import { withAuth } from "next-auth/middleware";
 
 export default withAuth({
-  pages: {
-    signIn: "/signin",
-  },
+  pages: { signIn: "/signin" },
   secret: process.env.JWT_SECRET || "secret",
 });
 
@@ -12,6 +10,6 @@ export const config = {
     "/dashboard/:path*",
     "/transfer/:path*",
     "/transactions/:path*",
-    "/p2ptransfer/:path*"
+    "/p2ptransfer/:path*",
   ],
 };
