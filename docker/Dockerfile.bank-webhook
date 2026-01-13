@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json turbo.json tsconfig.json ./
-COPY apps/user-app/package.json ./apps/user-app/package.json
-COPY packages ./packages
+COPY apps/bank-webhook/package.json ./apps/bank-webhook/package.json
+COPY packages/db/package.json ./packages/db/package.json
 
 RUN npm ci
 
@@ -18,17 +18,16 @@ COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
 RUN npm run db:generate
-RUN npm run build
+RUN npm --workspace apps/bank-webhook run build
 
 FROM node:20-bookworm-slim AS runner
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
 
-COPY --from=builder /usr/src/app/package.json ./package.json
-COPY --from=builder /usr/src/app/package-lock.json ./package-lock.json
+COPY --from=builder /usr/src/app/apps/bank-webhook/dist ./dist
+COPY --from=builder /usr/src/app/apps/bank-webhook/package.json ./package.json
 COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/apps/user-app ./apps/user-app
 COPY --from=builder /usr/src/app/packages ./packages
 
-EXPOSE 3001
-CMD ["npm", "run", "start-user-app"]
+EXPOSE 3003
+CMD ["node", "dist/index.js"]

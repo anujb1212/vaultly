@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  user-app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.user
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mock-payment-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gateway
+    ports:
+      - "3004:3004"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - WEBHOOK_URL=http://bank-webhook:3003/bankWebhook
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - CORS_ORIGIN=http://localhost:3001
+    depends_on:
+      redis:
+        condition: service_healthy
+      bank-webhook:
+        condition: service_started
+    restart: unless-stopped
+
+  bank-webhook:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bank-webhook
+    ports:
+      - "3003:3003"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+    restart: unless-stopped

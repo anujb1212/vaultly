@@ -8,7 +8,7 @@ app.use(express.json());
 
 app.use(
     cors({
-        origin: "http://localhost:3001",
+        origin: process.env.CORS_ORIGIN ?? "http://localhost:3001",
         methods: ["GET", "POST"],
         allowedHeaders: ["Content-Type"]
     })

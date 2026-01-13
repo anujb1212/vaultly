@@ -34,7 +34,6 @@ function computeSignature(rawBody: Buffer, secret: string) {
     return crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
 }
 
-// Zod v4: nativeEnum deprecated; enum() supports enum-like input now. [web:120]
 const webhookBodySchema = zod.object({
     token: zod.string().min(1),
     user_identifier: zod.string().min(1),
@@ -79,19 +78,15 @@ app.post("/bankWebhook", async (req: any, res) => {
 
             if (!txn) return { kind: "not_found" as const };
 
-
-            // Don’t trust user_identifier blindly: must match token’s owner
             if (txn.userId !== userIdFromBody) {
                 return { kind: "user_mismatch" as const };
             }
 
-            // Fast path: already terminal
             if (txn.status === "Success" || txn.status === "Failure") {
                 return { kind: "already_processed" as const };
             }
 
             const prevMeta = asJsonObject(txn.metadata)
-            // Atomic claim: only ONE worker can flip Processing -> Terminal
             if (body.status === "Failure") {
                 const claimed = await tx.onRampTransaction.updateMany({
                     where: {
@@ -136,7 +131,6 @@ app.post("/bankWebhook", async (req: any, res) => {
                 return { kind: "processed" as const };
             }
 
-            // Treat everything else as Success (since schema restricts status)
             const claimed = await tx.onRampTransaction.updateMany({
                 where: {
                     token: body.token,
