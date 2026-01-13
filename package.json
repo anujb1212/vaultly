@@ -2,7 +2,9 @@
   "name": "week-18",
   "private": true,
   "scripts": {
-    "build": "turbo build",
+    "build:user-app": "turbo run build --filter=user-app...",
+    "build:bank-webhook": "turbo run build --filter=bank-webhook...",
+    "build:gateway": "turbo run build --filter=mock-payment-gateway...",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",

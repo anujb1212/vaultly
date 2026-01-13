@@ -18,7 +18,7 @@ COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
 RUN npm run db:generate
-RUN npm run build
+RUN npm run build:user-app
 
 FROM node:20-bookworm-slim AS runner
 WORKDIR /usr/src/app

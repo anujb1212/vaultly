@@ -18,7 +18,7 @@ COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
 RUN npm run db:generate
-RUN npm --workspace apps/bank-webhook run build
+RUN npm --workspace apps/bank-webhook run build:bank-webhook
 
 FROM node:20-bookworm-slim AS runner
 WORKDIR /usr/src/app

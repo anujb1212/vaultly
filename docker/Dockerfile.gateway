@@ -16,7 +16,7 @@ WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-RUN npm --workspace apps/mock-payment-gateway run build
+RUN npm --workspace apps/mock-payment-gateway run build:gateway
 
 FROM node:20-bookworm-slim AS runner
 WORKDIR /usr/src/app
