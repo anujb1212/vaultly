@@ -69,7 +69,7 @@ export function AppbarClient() {
                     {session?.user?.name || "Vaultly User"}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-neutral-500 truncate mt-0.5 font-medium">
-                    {session?.user?.email || "user@vaultly.com"}
+                    {session?.user?.email || "user@repo.com"}
                   </p>
                 </div>
 

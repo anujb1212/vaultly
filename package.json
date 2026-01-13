@@ -1,7 +1,8 @@
 {
-  "name": "week-18",
+  "name": "vaultly",
   "private": true,
   "scripts": {
+    "build": "turbo run build",
     "build:user-app": "turbo run build --filter=user-app...",
     "build:bank-webhook": "turbo run build --filter=bank-webhook...",
     "build:gateway": "turbo run build --filter=mock-payment-gateway...",
