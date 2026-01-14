@@ -1,6 +1,9 @@
 {
   "name": "vaultly",
   "private": true,
+  "overrides": {
+    "tmp": "0.2.4"
+  },
   "scripts": {
     "build": "turbo run build",
     "build:user-app": "turbo run build --filter=user-app...",
@@ -21,7 +24,8 @@
     "postcss": "^8.5.6",
     "prettier": "^3.2.5",
     "tailwindcss": "^3.4.18",
-    "turbo": "latest"
+    "turbo": "latest",
+    "eslint": "8.57.1"
   },
   "engines": {
     "node": ">=18"
