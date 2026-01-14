@@ -2,11 +2,15 @@ FROM node:20-bookworm-slim AS deps
 WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ ca-certificates openssl \
-    && rm -rf /var/lib/apt/lists/*
+  python3 make g++ ca-certificates openssl \
+  && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json turbo.json tsconfig.json ./
+COPY package.json package-lock.json ./
+
+COPY turbo.json tsconfig.json ./
 COPY apps/user-app/package.json ./apps/user-app/package.json
+COPY apps/mock-payment-gateway/package.json ./apps/mock-payment-gateway/package.json
+COPY apps/bank-webhook/package.json ./apps/bank-webhook/package.json
 COPY packages ./packages
 
 RUN npm ci
