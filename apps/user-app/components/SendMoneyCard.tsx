@@ -8,20 +8,20 @@ import { useRouter } from "next/navigation";
 import { p2pTransfer } from "../app/lib/actions/p2pTransfer";
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
-import { Send, Smartphone, IndianRupee, CheckCircle2, AlertCircle } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle } from "lucide-react";
 
 export function SendMoneyCard() {
     const [number, setNumber] = useState("");
     const [amount, setAmount] = useState("");
     const [status, setStatus] = useState<"idle" | "processing" | "success">("idle");
-    const [error, setError] = useState<string | null>(null); // New Error State
+    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     const { balance, refresh: refreshBalance } = useBalance();
     const { refresh: refreshTransactions } = useTransactions();
 
     async function handleSend() {
-        setError(null); // Clear previous errors
+        setError(null);
         if (!number.trim() || !amount || Number(amount) <= 0) {
             setError("Please enter a valid number and amount.");
             return;
@@ -29,7 +29,7 @@ export function SendMoneyCard() {
 
         const amountInPaise = Number(amount) * 100;
         if (balance.amount < amountInPaise) {
-            setError("Insufficient wallet balance."); // Meaningful inline error
+            setError("Insufficient wallet balance.");
             return;
         }
 
@@ -61,7 +61,6 @@ export function SendMoneyCard() {
     if (status === "success") {
         return (
             <div className="w-full max-w-md mx-auto">
-                {/* Explicit height container to prevent layout shift */}
                 <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border border-slate-200 dark:border-neutral-800 shadow-sm min-h-[420px] flex flex-col items-center justify-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
                     <div className="text-center animate-in zoom-in-95 duration-300">

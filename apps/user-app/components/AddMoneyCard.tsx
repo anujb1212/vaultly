@@ -8,7 +8,7 @@ import { createOnRampTxn } from "../app/lib/actions/createOnRampTxn";
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
-import { Building2, ShieldCheck, ArrowRight, Banknote } from "lucide-react";
+import { ShieldCheck, ArrowRight, Banknote } from "lucide-react";
 
 const SUPPORTED_BANKS = [
     { name: "HDFC Bank" },
