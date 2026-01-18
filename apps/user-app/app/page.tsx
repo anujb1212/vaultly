@@ -40,7 +40,7 @@ export default function LandingPage() {
               >
                 Log In
               </button>
-              <Button onClick={() => router.push("/signup")} className="rounded-full px-6 py-5 text-sm font-bold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-105 transition-all duration-300">
+              <Button onClick={() => router.push("/signup")} className="rounded-full px-6 py-3 text-sm font-bold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-105 transition-all duration-300">
                 Get Started
               </Button>
             </div>
@@ -92,7 +92,7 @@ export default function LandingPage() {
           </div>
 
           {/* --- UI PREVIEW --- */}
-          <div className="mt-24 relative mx-auto max-w-6xl animate-in fade-in zoom-in-95 duration-1000 delay-300 group">
+          <div className="mt-24 relative mx-auto max-w-7xl animate-in fade-in zoom-in-95 duration-1000 delay-300 group">
             <div className="absolute -inset-10 bg-gradient-to-t from-indigo-500/20 via-purple-500/20 to-transparent rounded-[3rem] blur-3xl opacity-50 dark:opacity-40 pointer-events-none"></div>
 
             <div className="relative rounded-2xl bg-white dark:bg-[#0A0A0A] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden ring-1 ring-slate-900/5">
@@ -110,22 +110,29 @@ export default function LandingPage() {
                 <div className="w-16"></div>
               </div>
 
-              {/* Image Preview with Mask Gradient */}
-              <div className="relative w-full h-[400px] md:h-[600px] bg-slate-50 dark:bg-black group-hover:scale-[1.005] transition-transform duration-700 ease-out">
-                <Image
-                  src="/dashboard-preview.jpg"
-                  alt="Vaultly Dashboard Preview"
-                  fill
-                  className="min-w-full min-h-full object-cover object-top"
-                  style={{
-                    maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)'
-                  }}
-                  priority
-                />
+              {/* Image Container - Swaps based on dark mode class */}
+              <div className="relative w-full bg-slate-50 dark:bg-black group-hover:scale-[1.005] transition-transform duration-700 ease-out overflow-hidden">
 
-                {/* Overlay Text Button */}
-                <div className="absolute inset-0 z-30 flex items-end justify-center pb-20 pointer-events-none">
+                {/* Light Mode Image*/}
+                <div className="block dark:hidden">
+                  <img
+                    src="/dashboard-preview-light.jpg"
+                    alt="Vaultly Dashboard Light"
+                    className="w-full h-auto object-cover object-top"
+                  />
+                </div>
+
+                {/* Dark Mode Image*/}
+                <div className="hidden dark:block">
+                  <img
+                    src="/dashboard-preview-dark.jpg"
+                    alt="Vaultly Dashboard Dark"
+                    className="w-full h-auto object-cover object-top"
+                  />
+                </div>
+
+                {/* Overlay Text Button*/}
+                <div className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-center pb-12 pointer-events-none bg-gradient-to-t from-white/80 via-white/20 to-transparent dark:from-black/80 dark:via-black/20">
                   <button
                     onClick={() => router.push("/dashboard")}
                     className="pointer-events-auto px-8 py-4 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-full shadow-2xl transform hover:scale-105 transition-all opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 duration-500"
