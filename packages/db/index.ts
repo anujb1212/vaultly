@@ -48,9 +48,10 @@ const db = new Proxy(
 
 export default db;
 
-export const getAuditLogger = () => new AuditLogger(getPrisma());
-export { AuditLogger } from "./src/utils/auditLogger";
-export type { AuditLogEntry, AuditMetadata } from "./src/utils/auditLogger";
+export const auditLogger = new AuditLogger(getPrisma());
+export { AuditLogger } from './src/utils/auditLogger';
+export type { AuditLogEntry, AuditMetadata } from './src/utils/auditLogger';
 
-export const getIdempotencyManager = () => new IdempotencyManager(getPrisma());
-export { IdempotencyManager } from "./src/utils/idempotency";
+
+export const idempotencyManager = new IdempotencyManager(getPrisma());
+export { IdempotencyManager } from './src/utils/idempotency';
