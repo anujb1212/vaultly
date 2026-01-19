@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button } from "@repo/ui/button";
 import { ArrowRight, Shield, Zap, Globe, Lock, Smartphone, Laptop } from "lucide-react";
-import Image from "next/image";
 
 export default function LandingPage() {
   const router = useRouter();

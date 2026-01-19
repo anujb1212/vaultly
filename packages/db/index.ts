@@ -1,35 +1,56 @@
-import { PrismaClient } from '@prisma/client'
-import { IdempotencyManager } from './src/utils/idempotency'
-import { AuditLogger } from './src/utils/auditLogger'
+import { PrismaClient } from "@prisma/client";
+import { IdempotencyManager } from "./src/utils/idempotency";
+import { AuditLogger } from "./src/utils/auditLogger";
 
 const prismaClientSingleton = () => {
-  return new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
+    return new Proxy(
+      {},
+      {
+        get() {
+          throw new Error("Missing DATABASE_URL (set it in runtime env / docker-compose .env)");
+        },
       }
-    },
+    ) as unknown as PrismaClient;
+  }
+
+  return new PrismaClient({
+    datasources: { db: { url } },
     log: [
-      { emit: 'event', level: 'query' },
-      { emit: 'stdout', level: 'error' },
-      { emit: 'stdout', level: 'warn' }
-    ]
-  })
-}
+      { emit: "event", level: "query" },
+      { emit: "stdout", level: "error" },
+      { emit: "stdout", level: "warn" },
+    ],
+  });
+};
 
 declare global {
-  var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>
+  var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
-const prisma: ReturnType<typeof prismaClientSingleton> = globalThis.prismaGlobal ?? prismaClientSingleton()
+function getPrisma() {
+  const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
+  if (process.env.NODE_ENV !== "production") globalThis.prismaGlobal = prisma;
+  return prisma;
+}
 
-export default prisma
+const db = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      const prisma = getPrisma();
+      return (prisma as any)[prop];
+    },
+  }
+) as unknown as PrismaClient;
 
-if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma
+export default db;
 
-export const auditLogger = new AuditLogger(prisma);
-export { AuditLogger } from './src/utils/auditLogger';
-export type { AuditLogEntry, AuditMetadata } from './src/utils/auditLogger';
+export const getAuditLogger = () => new AuditLogger(getPrisma());
+export { AuditLogger } from "./src/utils/auditLogger";
+export type { AuditLogEntry, AuditMetadata } from "./src/utils/auditLogger";
 
-export const idempotencyManager = new IdempotencyManager(prisma);
-export { IdempotencyManager } from './src/utils/idempotency';
+export const getIdempotencyManager = () => new IdempotencyManager(getPrisma());
+export { IdempotencyManager } from "./src/utils/idempotency";
