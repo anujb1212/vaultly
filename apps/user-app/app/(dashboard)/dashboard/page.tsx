@@ -255,7 +255,10 @@ export default function Dashboard() {
                                 <p className="text-sm text-slate-500 dark:text-neutral-400 leading-relaxed mb-6">
                                     Your data is secured with banking-grade encryption.
                                 </p>
-                                <button className="w-full py-4 px-4 bg-slate-50 dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 rounded-2xl text-sm font-bold text-slate-900 dark:text-white transition-colors border border-slate-100 dark:border-neutral-700">
+                                <button
+                                    onClick={() => router.push("/settings/security")}
+                                    className="w-full py-4 px-4 bg-slate-50 dark:bg-neutral-800 hover:bg-slate-100 dark:hover:bg-neutral-700 rounded-2xl text-sm font-bold text-slate-900 dark:text-white transition-colors border border-slate-100 dark:border-neutral-700"
+                                >
                                     Security Settings
                                 </button>
                             </div>
