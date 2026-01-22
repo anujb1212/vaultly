@@ -144,35 +144,40 @@ export default function SecuritySettingsPage() {
 
                 {/* --- RIGHT COLUMN --- */}
                 <div className="space-y-8">
-                    <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-neutral-800 shadow-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 opacity-[0.03] dark:opacity-[0.05]">
-                            <ShieldCheck className="w-40 h-40 rotate-12" />
-                        </div>
 
-                        <div className="relative z-10">
-                            <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6">
-                                <Activity className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    {/* Security Health Score Widget */}
+                    <div className="bg-slate-900 dark:bg-neutral-900 rounded-[2.5rem] p-8 border border-slate-800 dark:border-neutral-800 shadow-2xl relative overflow-hidden group text-white">
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-transparent opacity-50" />
+                        <div className="relative z-10 flex flex-col items-center text-center">
+                            <div className="relative w-32 h-32 flex items-center justify-center mb-6">
+                                <svg className="w-full h-full transform -rotate-90">
+                                    <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800 dark:text-neutral-800" />
+                                    <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="377" strokeDashoffset="282" className="text-emerald-500 transition-all duration-1000 ease-out" strokeLinecap="round" />
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className="text-4xl font-bold">25%</span>
+                                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Secure</span>
+                                </div>
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Recent Activity</h3>
-                            <p className="text-sm text-slate-500 dark:text-neutral-400 leading-relaxed mb-6">
-                                Audit log of sensitive actions.
+
+                            <h3 className="text-xl font-bold mb-2">Account Protection</h3>
+                            <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                                Your account is vulnerable. Enable 2FA and set a PIN to reach 100%.
                             </p>
 
-                            <div className="space-y-0 relative">
-                                {/* Timeline Line */}
-                                <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-slate-100 dark:bg-neutral-800" />
-
-                                {[
-                                    { action: "Security Check", time: "Just now" },
-                                    { action: "Session Started", time: "2 hours ago" },
-                                    { action: "Settings Updated", time: "Yesterday" },
-                                ].map((e, i) => (
-                                    <div key={i} className="relative pl-10 py-2">
-                                        <div className="absolute left-3 top-3.5 w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-neutral-700 ring-4 ring-white dark:ring-neutral-900" />
-                                        <div className="text-sm font-semibold text-slate-900 dark:text-white">{e.action}</div>
-                                        <div className="text-xs text-slate-400 font-medium">{e.time}</div>
-                                    </div>
-                                ))}
+                            <div className="w-full space-y-3 text-left">
+                                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10">
+                                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">✓</div>
+                                    <span className="text-slate-200">Strong Password</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
+                                    <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
+                                    <span className="text-slate-400">Two-Factor Auth</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
+                                    <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
+                                    <span className="text-slate-400">Transaction PIN</span>
+                                </div>
                             </div>
                         </div>
                     </div>

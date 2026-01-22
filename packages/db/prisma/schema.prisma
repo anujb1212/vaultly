@@ -8,12 +8,23 @@ datasource db {
 }
 
 model User {
-  id                Int                 @id @default(autoincrement())
-  email             String?             @unique
-  name              String?
-  number            String              @unique
-  password          String
-  createdAt         DateTime            @default(now())
+  id        Int      @id @default(autoincrement())
+  email     String?  @unique
+  name      String?
+  number    String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  pendingEmail    String?
+  emailVerified   DateTime?
+  sessionVersion  Int                      @default(1)
+  securityProfile UserSecurity?
+  transactionPin  TransactionPin?
+  backupCodes     BackupCode[]
+  emailTokens     EmailVerificationToken[]
+  userSessions    UserSession[]
+  securityLogs    SecurityLog[]
+
   OnRampTransaction OnRampTransaction[]
   Balance           Balance[]
   sentTransfers     p2pTransfer[]       @relation(name: "SenderRelation")
@@ -110,17 +121,110 @@ model AuditLog {
   @@index([action, timestamp])
 }
 
-model RateLimit {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  action      String
-  count       Int      @default(1)
-  windowStart DateTime
-  windowEnd   DateTime
+model UserSecurity {
+  userId Int  @id
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, action, windowStart])
-  @@index([userId, action])
-  @@index([windowEnd])
+  totpStatus TotpStatus @default(DISABLED)
+
+  totpSecretCiphertext String?
+  totpSecretIv         String?
+  totpSecretTag        String?
+  totpKeyVersion       Int     @default(1)
+
+  totpLastUsedStep   Int?
+  totpFailedAttempts Int       @default(0)
+  totpLockedUntil    DateTime?
+
+  totpEnabledAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model BackupCode {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  codeHash   String    @unique
+  createdAt  DateTime  @default(now())
+  consumedAt DateTime?
+
+  @@index([userId, consumedAt])
+}
+
+model EmailVerificationToken {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  email      String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, email])
+  @@index([expiresAt])
+}
+
+model TransactionPin {
+  userId Int  @id
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pinHash   String
+  algo      String   @default("bcrypt")
+  version   Int      @default(1)
+  changedAt DateTime @default(now())
+
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  lastFailedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserSession {
+  id     String @id @default(cuid())
+  userId Int
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime?
+  expiresAt  DateTime?
+
+  ip          String?
+  userAgent   String?
+  deviceId    String?
+  deviceLabel String?
+
+  revokedAt DateTime?
+  sudoUntil DateTime?
+
+  @@index([userId, createdAt])
+  @@index([userId, revokedAt])
+  @@index([userId, lastSeenAt])
+}
+
+model SecurityLog {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  actorUserId Int?
+  actorUser   User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  action  String
+  success Boolean @default(true)
+
+  sessionId String?
+  requestId String?
+  ip        String?
+  userAgent String?
+  metadata  Json?
+
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
 }
 
 enum AuthType {
@@ -138,4 +242,10 @@ enum P2PStatus {
   SUCCESS
   FAILED
   REVERSED
+}
+
+enum TotpStatus {
+  DISABLED
+  PENDING
+  ENABLED
 }

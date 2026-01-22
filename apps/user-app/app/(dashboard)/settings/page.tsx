@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Copy, ChevronRight, ShieldCheck, Bell, User, LogOut } from "lucide-react";
+import { Copy, ShieldCheck, Bell, User, LogOut, CheckCircle2, ShieldAlert, Globe, Camera } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 
 function maskEmail(email?: string | null) {
@@ -16,9 +16,8 @@ export default function SettingsPage() {
     const router = useRouter();
     const { data: session } = useSession();
 
-    const displayName = session?.user?.name || "Vaultly User";
+    const displayName = session?.user?.name || "Vaultly User"
     const email = session?.user?.email || null;
-    // TODO: Fetch from DB
     const publicId = session?.user?.id || "6386101131";
 
     return (
@@ -42,52 +41,53 @@ export default function SettingsPage() {
 
                     {/* Profile Card */}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-                        <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-neutral-800 flex items-center justify-center border border-slate-200 dark:border-neutral-700">
-                                    <User className="w-6 h-6 text-slate-600 dark:text-neutral-300" />
+                                <div className="relative group cursor-pointer">
+                                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-neutral-800 flex items-center justify-center border border-slate-200 dark:border-neutral-700 overflow-hidden">
+                                        <User className="w-7 h-7 text-slate-600 dark:text-neutral-300 group-hover:opacity-50 transition" />
+                                    </div>
+                                    <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition backdrop-blur-[1px]">
+                                        <Camera className="w-5 h-5 text-white" />
+                                    </div>
                                 </div>
                                 <div>
-                                    <div className="font-bold text-lg text-slate-900 dark:text-white">Profile</div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400">Basic account info</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="font-bold text-xl text-slate-900 dark:text-white">{displayName}</div>
+                                        <CheckCircle2 className="w-5 h-5 text-blue-500 fill-blue-500/10" />
+                                    </div>
+                                    <div className="text-sm text-slate-500 dark:text-neutral-400 font-medium">Verified Account</div>
                                 </div>
                             </div>
                             <button
-                                onClick={() => router.push("/settings/security")}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-slate-900 text-white dark:bg-white dark:text-black hover:opacity-90 transition shadow-lg shadow-slate-900/10 dark:shadow-white/5"
+                                className="hidden sm:inline-flex px-4 py-2 rounded-xl border border-slate-200 dark:border-neutral-700 text-sm font-bold hover:bg-slate-50 dark:hover:bg-neutral-800 transition"
                             >
-                                Security Center <ChevronRight className="w-4 h-4" />
+                                Edit Profile
                             </button>
                         </div>
 
                         <div className="p-8 space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition border border-transparent hover:border-slate-100 dark:hover:border-neutral-800">
-                                <div>
-                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500">Name</div>
-                                    <div className="mt-1 font-semibold text-slate-900 dark:text-white text-lg">{displayName}</div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800">
+                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500 mb-1">Email Address</div>
+                                    <div className="font-semibold text-slate-900 dark:text-white">{maskEmail(email)}</div>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800">
+                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500 mb-1">Phone</div>
+                                    <div className="font-semibold text-slate-900 dark:text-white">+91 98**** **21</div>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition border border-transparent hover:border-slate-100 dark:hover:border-neutral-800">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900 dark:bg-black text-white shadow-lg shadow-slate-900/10">
                                 <div>
-                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500">Email</div>
-                                    <div className="mt-1 font-semibold text-slate-900 dark:text-white text-lg">{maskEmail(email)}</div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-neutral-950 border border-slate-100 dark:border-neutral-800">
-                                <div>
-                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500">Public ID</div>
-                                    <div className="mt-1 font-mono font-medium text-slate-900 dark:text-white">{publicId}</div>
+                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Your Public ID</div>
+                                    <div className="font-mono font-medium text-lg tracking-wide">{publicId}</div>
                                 </div>
                                 <button
-                                    onClick={async () => {
-                                        await navigator.clipboard.writeText(publicId);
-                                        // Optional: Toast notification here
-                                    }}
-                                    className="h-10 px-4 rounded-xl bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 text-slate-700 dark:text-neutral-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-neutral-700 transition inline-flex items-center gap-2 shadow-sm"
+                                    onClick={async () => { await navigator.clipboard.writeText(publicId); }}
+                                    className="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs transition inline-flex items-center gap-2"
                                 >
-                                    <Copy className="w-3.5 h-3.5" /> Copy ID
+                                    <Copy className="w-3.5 h-3.5" /> Copy
                                 </button>
                             </div>
                         </div>
@@ -105,37 +105,49 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
-                        <div className="p-8 space-y-4">
+                        <div className="p-6 space-y-1">
                             {[
-                                { title: "Transaction alerts", subtitle: "Get notified when money moves", enabled: true },
-                                { title: "Marketing updates", subtitle: "Product news and tips", enabled: false }
+                                { title: "Transaction alerts", subtitle: "Push notifications for money movement", enabled: true, icon: Bell },
+                                { title: "Default Currency", subtitle: "Indian Rupee (INR)", enabled: null, icon: Globe }
                             ].map((pref, i) => (
-                                <div key={i} className="flex items-center justify-between rounded-2xl border border-slate-200 dark:border-neutral-800 p-5 hover:bg-slate-50 dark:hover:bg-neutral-800/30 transition">
-                                    <div>
-                                        <div className="font-semibold text-slate-900 dark:text-white">{pref.title}</div>
-                                        <div className="text-sm text-slate-500 dark:text-neutral-400">{pref.subtitle}</div>
+                                <div key={i} className="flex items-center justify-between rounded-2xl p-4 hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition cursor-pointer group">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-neutral-800 flex items-center justify-center text-slate-500 dark:text-neutral-400 group-hover:bg-white dark:group-hover:bg-neutral-700 transition">
+                                            <pref.icon className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-slate-900 dark:text-white">{pref.title}</div>
+                                            <div className="text-sm text-slate-500 dark:text-neutral-400">{pref.subtitle}</div>
+                                        </div>
                                     </div>
-                                    {/* Placeholder Toggle */}
-                                    <button className={`h-7 w-12 rounded-full relative transition-colors ${pref.enabled ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-neutral-700'}`}>
-                                        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform ${pref.enabled ? 'left-6' : 'left-1'}`} />
-                                    </button>
+
+                                    {pref.enabled !== null ? (
+                                        <div className={`w-12 h-7 rounded-full relative transition-colors duration-200 ease-in-out ${pref.enabled ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-neutral-700'}`}>
+                                            <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${pref.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </div>
+                                    ) : (
+                                        <div className="text-xs font-bold text-slate-400 dark:text-neutral-500 uppercase">Change</div>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Danger Zone */}
-                    <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-rose-100 dark:border-rose-900/20 shadow-sm overflow-hidden">
-                        <div className="p-8 border-b border-rose-100 dark:border-rose-900/20">
-                            <div className="font-bold text-lg text-rose-600 dark:text-rose-400">Danger Zone</div>
-                            <div className="text-sm text-slate-500 dark:text-neutral-400 mt-1">
-                                Irreversible account actions.
+                    <div className="rounded-[2.5rem] border border-rose-200 dark:border-rose-900/30 overflow-hidden bg-rose-50/30 dark:bg-rose-900/5">
+                        <div className="p-8 border-b border-rose-200/50 dark:border-rose-900/20 flex items-center gap-3">
+                            <ShieldAlert className="w-6 h-6 text-rose-600" />
+                            <div>
+                                <div className="font-bold text-lg text-rose-700 dark:text-rose-400">Danger Zone</div>
+                                <div className="text-sm text-rose-600/80 dark:text-rose-400/60">
+                                    Irreversible account actions
+                                </div>
                             </div>
                         </div>
 
                         <div className="p-8 flex flex-col sm:flex-row gap-4">
                             <button
-                                className="flex-1 h-12 rounded-2xl border border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 font-bold hover:bg-rose-50 dark:hover:bg-rose-900/10 transition"
+                                className="flex-1 h-12 rounded-2xl border border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-300 font-bold bg-white/50 dark:bg-transparent hover:bg-rose-100/50 dark:hover:bg-rose-900/20 transition"
                             >
                                 Sign out all devices
                             </button>

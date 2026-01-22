@@ -9,6 +9,7 @@ import Link from "next/link";
 
 export default function SignupPage() {
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -22,7 +23,7 @@ export default function SignupPage() {
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password, name }),
+        body: JSON.stringify({ phone, password, name, email: email || undefined })
       });
       const data = await res.json();
       if (!data.success) {
@@ -61,6 +62,12 @@ export default function SignupPage() {
             placeholder="1234567890"
             onChange={(val) => setPhone(val)}
             type="tel"
+          />
+          <TextInput
+            label="Email (optional)"
+            placeholder="you@example.com"
+            onChange={(val) => setEmail(val)}
+            type="email"
           />
           <TextInput
             label="Password"

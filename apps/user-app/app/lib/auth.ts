@@ -38,7 +38,9 @@ export const authOptions: NextAuthOptions = {
                         return {
                             id: existingUser.id.toString(),
                             name: existingUser.name,
-                            email: existingUser.number,
+                            email: existingUser.email ?? null,
+                            phone: existingUser.number,
+                            emailVerified: false
                         };
                     }
                     return null;
@@ -57,7 +59,9 @@ export const authOptions: NextAuthOptions = {
                     return {
                         id: user.id.toString(),
                         name: user.name,
-                        email: user.number,
+                        email: user.email ?? null,
+                        phone: user.number,
+                        emailVerified: false,
                     };
                 } catch (e) {
                     console.error(e);
@@ -71,29 +75,23 @@ export const authOptions: NextAuthOptions = {
         signIn: "/signin",
     },
     callbacks: {
-        async jwt({
-            token,
-            user,
-        }: {
-            token: JWT;
-            user?: User | null;
-        }): Promise<JWT> {
+        async jwt({ token, user }) {
             if (user) {
                 token.id = user.id as string;
+                token.phone = (user as any).phone ?? null;
+                token.email = user.email ?? null;
+                token.emailVerified = (user as any).emailVerified ?? false;
             }
             return token;
         },
-        async session({
-            session,
-            token,
-        }: {
-            session: Session;
-            token: JWT;
-        }): Promise<Session> {
+        async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
+                session.user.phone = (token as any).phone ?? null;
+                session.user.email = (token as any).email ?? null;
+                session.user.emailVerified = (token as any).emailVerified ?? false;
             }
             return session;
-        },
+        }
     },
 };
