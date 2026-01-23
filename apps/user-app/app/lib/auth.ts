@@ -1,8 +1,8 @@
 import db from "@repo/db/client";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
-import { NextAuthOptions, User, Session } from "next-auth";
-import { JWT } from "next-auth/jwt";
+import { NextAuthOptions, User } from "next-auth";
+import "server-only";
 
 export const authOptions: NextAuthOptions = {
     providers: [

@@ -5,6 +5,8 @@ import { authOptions } from "../auth";
 import prisma, { auditLogger, idempotencyManager } from "@repo/db/client";
 import { revalidatePath } from "next/cache";
 import { rateLimit } from "../rateLimit";
+import crypto from "crypto";
+import { verifyMpinOrThrow, VerifyMpinError } from "../security/verifyMpin";
 
 type CreateOnRampTxnResult =
     | {
@@ -19,13 +21,14 @@ type CreateOnRampTxnResult =
         success: false;
         message: string;
         retryAfterSec?: number;
-        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "UNKNOWN"
+        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "PIN_REQUIRED" | "PIN_NOT_SET" | "PIN_LOCKED" | "PIN_INVALID" | "UNKNOWN"
     };
 
 export async function createOnRampTxn(
     amount: number,
     provider: string,
-    idempotencyKey: string
+    idempotencyKey: string,
+    mpin?: string
 ): Promise<CreateOnRampTxnResult> {
     const session = await getServerSession(authOptions);
     if (!session?.user || !session.user?.id) {
@@ -51,6 +54,15 @@ export async function createOnRampTxn(
             retryAfterSec: rl.ttl,
             errorCode: "RATE_LIMITED"
         };
+    }
+
+    try {
+        await verifyMpinOrThrow({ userId, mpin, context: { action: "ONRAMP_CREATE" } });
+    } catch (e) {
+        if (e instanceof VerifyMpinError) {
+            return { success: false, message: e.message, retryAfterSec: e.retryAfterSec, errorCode: e.code };
+        }
+        return { success: false, message: "PIN verification failed", errorCode: "UNKNOWN" };
     }
 
     const idempotencyCheck = await idempotencyManager.checkAndStore(

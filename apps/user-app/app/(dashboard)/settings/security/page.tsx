@@ -1,9 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ShieldCheck, KeyRound, Smartphone, Monitor, Activity, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+    ArrowLeft,
+    KeyRound,
+    Smartphone,
+    Monitor,
+    CheckCircle2,
+    AlertCircle,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { getTransactionPinStatus } from "../../../lib/actions/getTransactionPinStatus";
+import { setTransactionPin } from "../../../lib/actions/setTransactionPin";
 
-// Helper for status badges
 function StatusBadge({ enabled }: { enabled: boolean }) {
     if (enabled) {
         return (
@@ -22,6 +31,36 @@ function StatusBadge({ enabled }: { enabled: boolean }) {
 export default function SecuritySettingsPage() {
     const router = useRouter();
 
+    const [pinLoaded, setPinLoaded] = useState(false);
+    const [pinIsSet, setPinIsSet] = useState(false);
+    const [pinLockedUntil, setPinLockedUntil] = useState<string | null>(null);
+
+    const [pinDialogOpen, setPinDialogOpen] = useState(false);
+    const [pinInput, setPinInput] = useState("");
+    const [pinSaving, setPinSaving] = useState(false);
+    const [pinError, setPinError] = useState<string | null>(null);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await getTransactionPinStatus();
+                if (res.success) {
+                    setPinIsSet(res.isSet);
+                    setPinLockedUntil(res.lockedUntil);
+                }
+            } finally {
+                setPinLoaded(true);
+            }
+        })();
+    }, []);
+
+    const pinLockedMsg = useMemo(() => {
+        if (!pinLockedUntil) return null;
+        const dt = new Date(pinLockedUntil);
+        if (Number.isNaN(dt.getTime())) return null;
+        return `Locked until ${dt.toLocaleString()}`;
+    }, [pinLockedUntil]);
+
     return (
         <div className="w-full relative">
             {/* Background Effect */}
@@ -39,7 +78,9 @@ export default function SecuritySettingsPage() {
 
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Security Center</h1>
+                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            Security Center
+                        </h1>
                         <p className="text-slate-500 dark:text-neutral-400 mt-2 font-medium">
                             Manage 2FA, transaction PIN, and active sessions.
                         </p>
@@ -48,10 +89,8 @@ export default function SecuritySettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
                 {/* --- LEFT COLUMN --- */}
                 <div className="lg:col-span-2 space-y-8">
-
                     {/* 2FA Card */}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
                         <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-start justify-between gap-4">
@@ -60,8 +99,12 @@ export default function SecuritySettingsPage() {
                                     <Smartphone className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-lg text-slate-900 dark:text-white">Two‑Factor Authentication</div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400">TOTP (Google Authenticator)</div>
+                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                        Two‑Factor Authentication
+                                    </div>
+                                    <div className="text-sm text-slate-500 dark:text-neutral-400">
+                                        TOTP (Google Authenticator)
+                                    </div>
                                 </div>
                             </div>
                             <StatusBadge enabled={false} />
@@ -69,11 +112,10 @@ export default function SecuritySettingsPage() {
 
                         <div className="p-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
                             <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
-                                Add an extra layer of security. We’ll ask for a code from your authenticator app when you sign in from a new device.
+                                Add an extra layer of security. We’ll ask for a code from your
+                                authenticator app when you sign in from a new device.
                             </p>
-                            <button
-                                className="h-12 px-8 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-black font-bold hover:opacity-90 transition shadow-lg"
-                            >
+                            <button className="h-12 px-8 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-black font-bold hover:opacity-90 transition shadow-lg">
                                 Enable 2FA
                             </button>
                         </div>
@@ -87,47 +129,167 @@ export default function SecuritySettingsPage() {
                                     <KeyRound className="w-6 h-6 text-slate-700 dark:text-neutral-200" />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-lg text-slate-900 dark:text-white">Transaction PIN</div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400">Required for money movement</div>
+                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                        Transaction PIN
+                                    </div>
+                                    <div className="text-sm text-slate-500 dark:text-neutral-400">
+                                        Required for money movement
+                                    </div>
                                 </div>
                             </div>
-                            <StatusBadge enabled={false} />
+                            <StatusBadge enabled={pinLoaded ? pinIsSet : false} />
                         </div>
 
                         <div className="p-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
-                            <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
-                                A 4-digit PIN required to authorize transfers. This protects your funds even if your account is logged in.
-                            </p>
-                            <button className="h-12 px-8 rounded-2xl bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 font-bold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-neutral-800 transition">
-                                Set PIN
+                            <div className="flex-1">
+                                <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
+                                    A 6-digit PIN required to authorize transfers. This protects
+                                    your funds even if your account is logged in.
+                                </p>
+                                {pinLockedMsg && (
+                                    <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 mt-3">
+                                        {pinLockedMsg}
+                                    </div>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    if (pinIsSet) return;
+                                    setPinError(null);
+                                    setPinInput("");
+                                    setPinDialogOpen(true);
+                                }}
+                                disabled={pinSaving || pinIsSet}
+                                className="h-12 px-8 rounded-2xl bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 font-bold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-neutral-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {pinIsSet ? "PIN Set" : "Set PIN"}
                             </button>
                         </div>
+
+                        {pinDialogOpen && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                <div
+                                    className="absolute inset-0 bg-black/40"
+                                    onClick={() => (!pinSaving ? setPinDialogOpen(false) : null)}
+                                />
+                                <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 shadow-xl p-6">
+                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                        Set Transaction PIN
+                                    </div>
+                                    <div className="text-sm text-slate-500 dark:text-neutral-400 mt-1">
+                                        Enter a 6-digit PIN. It will be required for transfers.
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500">
+                                            6-digit PIN
+                                        </label>
+                                        <input
+                                            value={pinInput}
+                                            onChange={(e) => {
+                                                const next = e.target.value
+                                                    .replace(/\D/g, "")
+                                                    .slice(0, 6);
+                                                setPinInput(next);
+                                            }}
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            maxLength={6}
+                                            className="mt-2 w-full h-12 rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-4 text-slate-900 dark:text-white font-semibold outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                            placeholder="••••••"
+                                            type="password"
+                                            disabled={pinSaving}
+                                        />
+                                    </div>
+
+                                    {pinError && (
+                                        <div className="mt-3 p-3 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-sm font-semibold">
+                                            {pinError}
+                                        </div>
+                                    )}
+
+                                    <div className="mt-5 flex gap-3 justify-end">
+                                        <button
+                                            onClick={() => setPinDialogOpen(false)}
+                                            disabled={pinSaving}
+                                            className="h-11 px-5 rounded-2xl border border-slate-200 dark:border-neutral-800 font-bold text-slate-700 dark:text-neutral-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition"
+                                        >
+                                            Cancel
+                                        </button>
+
+                                        <button
+                                            onClick={async () => {
+                                                setPinError(null);
+                                                setPinSaving(true);
+                                                try {
+                                                    const res = await setTransactionPin(pinInput);
+                                                    if (!res.success) {
+                                                        setPinError(res.message);
+                                                        return;
+                                                    }
+
+                                                    const status = await getTransactionPinStatus();
+                                                    if (status.success) {
+                                                        setPinIsSet(status.isSet);
+                                                        setPinLockedUntil(status.lockedUntil);
+                                                    }
+
+                                                    setPinDialogOpen(false);
+                                                } finally {
+                                                    setPinSaving(false);
+                                                }
+                                            }}
+                                            disabled={pinSaving}
+                                            className="h-11 px-5 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-black font-bold hover:opacity-90 transition"
+                                        >
+                                            {pinSaving ? "Saving..." : "Save PIN"}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Active Sessions */}
+                    {/* Active Sessions (placeholder for PR-4) */}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
                         <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-center gap-4">
                             <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center">
                                 <Monitor className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                             </div>
                             <div>
-                                <div className="font-bold text-lg text-slate-900 dark:text-white">Active Sessions</div>
-                                <div className="text-sm text-slate-500 dark:text-neutral-400">Devices currently logged in</div>
+                                <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                    Active Sessions
+                                </div>
+                                <div className="text-sm text-slate-500 dark:text-neutral-400">
+                                    Devices currently logged in
+                                </div>
                             </div>
                         </div>
 
                         <div className="p-6 space-y-3">
-                            {/* Dynamic List Placeholder */}
                             {[
                                 { browser: "Chrome on macOS", location: "Lucknow, IN", current: true },
                                 { browser: "Safari on iPhone", location: "Mumbai, IN", current: false },
                             ].map((s, i) => (
-                                <div key={i} className="p-5 rounded-3xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800 flex items-center justify-between gap-4">
+                                <div
+                                    key={i}
+                                    className="p-5 rounded-3xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800 flex items-center justify-between gap-4"
+                                >
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-2 h-2 rounded-full ${s.current ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300 dark:bg-neutral-700'}`} />
+                                        <div
+                                            className={`w-2 h-2 rounded-full ${s.current
+                                                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                                                : "bg-slate-300 dark:bg-neutral-700"
+                                                }`}
+                                        />
                                         <div>
-                                            <div className="font-bold text-slate-900 dark:text-white text-sm">{s.browser}</div>
-                                            <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">{s.location} • {s.current ? 'Active Now' : 'Last seen 2h ago'}</div>
+                                            <div className="font-bold text-slate-900 dark:text-white text-sm">
+                                                {s.browser}
+                                            </div>
+                                            <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
+                                                {s.location} • {s.current ? "Active Now" : "Last seen 2h ago"}
+                                            </div>
                                         </div>
                                     </div>
                                     {!s.current && (
@@ -139,12 +301,10 @@ export default function SecuritySettingsPage() {
                             ))}
                         </div>
                     </div>
-
                 </div>
 
-                {/* --- RIGHT COLUMN --- */}
+                {/* --- RIGHT COLUMN (unchanged) --- */}
                 <div className="space-y-8">
-
                     {/* Security Health Score Widget */}
                     <div className="bg-slate-900 dark:bg-neutral-900 rounded-[2.5rem] p-8 border border-slate-800 dark:border-neutral-800 shadow-2xl relative overflow-hidden group text-white">
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-transparent opacity-50" />
@@ -160,10 +320,12 @@ export default function SecuritySettingsPage() {
                                 </div>
                             </div>
 
+
                             <h3 className="text-xl font-bold mb-2">Account Protection</h3>
                             <p className="text-slate-400 text-sm mb-6 leading-relaxed">
                                 Your account is vulnerable. Enable 2FA and set a PIN to reach 100%.
                             </p>
+
 
                             <div className="w-full space-y-3 text-left">
                                 <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10">
@@ -182,7 +344,6 @@ export default function SecuritySettingsPage() {
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );

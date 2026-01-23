@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import { revalidatePath } from "next/cache";
 import { rateLimit } from "../rateLimit";
+import { verifyMpinOrThrow, VerifyMpinError } from "../security/verifyMpin";
 
 type P2PTransferResult =
     | { success: true; message: string }
@@ -12,13 +13,14 @@ type P2PTransferResult =
         success: false;
         message: string;
         retryAfterSec?: number;
-        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "UNKNOWN";
+        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "PIN_REQUIRED" | "PIN_NOT_SET" | "PIN_LOCKED" | "PIN_INVALID" | "UNKNOWN";
     };
 
 export async function p2pTransfer(
     to: string,
     amount: number,
-    idempotencyKey: string
+    idempotencyKey: string,
+    mpin?: string
 ): Promise<P2PTransferResult> {
     const session = await getServerSession(authOptions);
     const sender = session?.user?.id;
@@ -45,6 +47,20 @@ export async function p2pTransfer(
             retryAfterSec: rl.ttl,
             errorCode: "RATE_LIMITED",
         };
+    }
+
+    try {
+        await verifyMpinOrThrow({ userId: senderId, mpin, context: { action: "P2P_TRANSFER" } });
+    } catch (e) {
+        if (e instanceof VerifyMpinError) {
+            return {
+                success: false,
+                message: e.message,
+                retryAfterSec: e.retryAfterSec,
+                errorCode: e.code,
+            };
+        }
+        return { success: false, message: "PIN verification failed", errorCode: "UNKNOWN" };
     }
 
     const idempotencyCheck = await idempotencyManager.checkAndStore(
