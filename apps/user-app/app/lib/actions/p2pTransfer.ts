@@ -29,10 +29,33 @@ export async function p2pTransfer(
         return {
             success: false,
             message: "Error while sending",
+            errorCode: "UNAUTHENTICATED"
         };
     }
 
     const senderId = Number(sender)
+    if (!Number.isFinite(senderId) || senderId <= 0) {
+        return {
+            success: false,
+            message: "Unauthenticated request",
+            errorCode: "UNAUTHENTICATED",
+        };
+    }
+
+    if (typeof to !== "string" || !/^\d{10}$/.test(to)) {
+        return {
+            success: false,
+            message: "Invalid receiver number",
+            errorCode: "UNKNOWN",
+        };
+    }
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
+        return {
+            success: false,
+            message: "Invalid amount",
+            errorCode: "UNKNOWN",
+        };
+    }
 
     const rl = await rateLimit({
         key: `rl:p2p:create:user:${senderId}`,
@@ -70,10 +93,7 @@ export async function p2pTransfer(
     )
 
     if (idempotencyCheck?.exists) {
-        return idempotencyCheck.response as {
-            success: boolean;
-            message: string;
-        }
+        return idempotencyCheck.response as P2PTransferResult
     }
 
     const receiver = await prisma.user.findFirst({
@@ -83,9 +103,10 @@ export async function p2pTransfer(
     });
 
     if (!receiver) {
-        const errorResult = {
+        const errorResult: P2PTransferResult = {
             success: false,
             message: "User not found",
+            errorCode: "UNKNOWN"
         };
 
         await idempotencyManager.updateResponse(idempotencyKey, errorResult);
@@ -93,9 +114,10 @@ export async function p2pTransfer(
     }
 
     if (receiver.id === senderId) {
-        const errorResult = {
+        const errorResult: P2PTransferResult = {
             success: false,
             message: "Cannot transfer to self",
+            errorCode: "UNKNOWN"
         };
 
         await idempotencyManager.updateResponse(idempotencyKey, errorResult);

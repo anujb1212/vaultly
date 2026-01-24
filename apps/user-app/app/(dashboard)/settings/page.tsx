@@ -18,7 +18,7 @@ export default function SettingsPage() {
 
     const displayName = session?.user?.name || "Vaultly User"
     const email = session?.user?.email || null;
-    const publicId = session?.user?.id || "6386101131";
+    const publicId = session?.user?.id || "-";
 
     return (
         <div className="w-full relative">

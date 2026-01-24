@@ -144,13 +144,35 @@ export const AddMoney = () => {
 
                         if (!result.success) {
                             if (result.errorCode === "PIN_NOT_SET") {
+                                setPinOpen(false);
+                                setPendingOnramp(null);
                                 router.push("/settings/security");
                                 throw new Error("Please set your Transaction PIN in Security Center first.");
                             }
 
                             if (result.errorCode === "UNAUTHENTICATED") {
+                                setPinOpen(false);
+                                setPendingOnramp(null);
                                 router.push("/signin");
                                 return;
+                            }
+
+                            if (result.errorCode === "PIN_LOCKED") {
+                                const retry = result.retryAfterSec ? ` Try again in ~${result.retryAfterSec}s.` : "";
+                                throw new Error(`PIN locked due to repeated failures.${retry}`);
+                            }
+
+                            if (result.errorCode === "RATE_LIMITED") {
+                                const retry = result.retryAfterSec ? ` Retry after ~${result.retryAfterSec}s.` : "";
+                                throw new Error(`Too many attempts.${retry}`);
+                            }
+
+                            if (result.errorCode === "PIN_REQUIRED") {
+                                throw new Error("Transaction PIN is required.");
+                            }
+
+                            if (result.errorCode === "PIN_INVALID") {
+                                throw new Error("Invalid transaction PIN.");
                             }
 
                             throw new Error(result.message || "Transaction failed");

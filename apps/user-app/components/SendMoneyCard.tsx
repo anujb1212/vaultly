@@ -32,12 +32,19 @@ export function SendMoneyCard() {
     async function handleSend() {
         setError(null);
 
-        if (!number.trim() || !amount || Number(amount) <= 0) {
-            setError("Please enter a valid number and amount.");
+        const to = number.trim();
+        if (!/^\d{10}$/.test(to)) {
+            setError("Please enter a valid 10-digit mobile number.");
             return;
         }
 
-        const amountInPaise = Number(amount) * 100;
+        const amountNum = Number(amount);
+        if (!Number.isFinite(amountNum) || amountNum <= 0) {
+            setError("Please enter a valid amount.");
+            return;
+        }
+
+        const amountInPaise = Math.round(amountNum * 100);
         if (!Number.isFinite(amountInPaise) || amountInPaise <= 0) {
             setError("Please enter a valid amount.");
             return;
@@ -49,7 +56,7 @@ export function SendMoneyCard() {
         }
 
         const idempotencyKey = uuidv4();
-        setPendingSend({ to: number, amountPaise: amountInPaise, idempotencyKey });
+        setPendingSend({ to, amountPaise: amountInPaise, idempotencyKey });
         setPinOpen(true);
     }
 
@@ -159,46 +166,67 @@ export function SendMoneyCard() {
 
                     setStatus("processing");
 
-                    const result = await p2pTransfer(
-                        pendingSend.to,
-                        pendingSend.amountPaise,
-                        pendingSend.idempotencyKey,
-                        pin
-                    );
+                    try {
+                        const result = await p2pTransfer(
+                            pendingSend.to,
+                            pendingSend.amountPaise,
+                            pendingSend.idempotencyKey,
+                            pin
+                        );
 
-                    if (result.success) {
-                        await Promise.all([refreshBalance(), refreshTransactions()]);
-                        setStatus("success");
-                        setPinOpen(false);
-                        setPendingSend(null);
-                        setTimeout(() => {
-                            setNumber("");
-                            setAmount("");
-                            setStatus("idle");
-                            router.push("/dashboard");
-                        }, 2000);
-                        return;
+                        if (result.success) {
+                            await Promise.all([refreshBalance(), refreshTransactions()]);
+                            setStatus("success");
+                            setPinOpen(false);
+                            setPendingSend(null);
+
+                            setTimeout(() => {
+                                setNumber("");
+                                setAmount("");
+                                setStatus("idle");
+                                router.push("/dashboard");
+                            }, 2000);
+
+                            return;
+                        }
+
+                        if (result.errorCode === "PIN_NOT_SET") {
+                            setPinOpen(false);
+                            setPendingSend(null);
+                            setError("Please set your Transaction PIN in Security Center first.");
+                            router.push("/settings/security");
+                            return;
+                        }
+
+                        if (result.errorCode === "UNAUTHENTICATED") {
+                            setPinOpen(false);
+                            setPendingSend(null);
+                            router.push("/signin");
+                            return;
+                        }
+
+                        if (result.errorCode === "PIN_LOCKED") {
+                            const retry = result.retryAfterSec ? ` Try again in ~${result.retryAfterSec}s.` : "";
+                            throw new Error(`PIN locked due to repeated failures.${retry}`);
+                        }
+
+                        if (result.errorCode === "RATE_LIMITED") {
+                            const retry = result.retryAfterSec ? ` Retry after ~${result.retryAfterSec}s.` : "";
+                            throw new Error(`Too many attempts.${retry}`);
+                        }
+
+                        if (result.errorCode === "PIN_REQUIRED") {
+                            throw new Error("Transaction PIN is required.");
+                        }
+
+                        if (result.errorCode === "PIN_INVALID") {
+                            throw new Error("Invalid transaction PIN.");
+                        }
+
+                        throw new Error(result.message || "Transfer failed");
+                    } finally {
+                        setStatus((s) => (s === "success" ? s : "idle"));
                     }
-
-                    if (result.errorCode === "PIN_NOT_SET") {
-                        setPinOpen(false);
-                        setPendingSend(null);
-                        setStatus("idle");
-                        setError("Please set your Transaction PIN in Security Center first.");
-                        router.push("/settings/security");
-                        return;
-                    }
-
-                    if (result.errorCode === "UNAUTHENTICATED") {
-                        setPinOpen(false);
-                        setPendingSend(null);
-                        setStatus("idle");
-                        router.push("/signin");
-                        return;
-                    }
-
-                    setStatus("idle");
-                    throw new Error(result.message || "Transfer failed");
                 }}
             />
         </>

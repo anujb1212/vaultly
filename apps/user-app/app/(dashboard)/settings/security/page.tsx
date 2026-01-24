@@ -12,6 +12,9 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { getTransactionPinStatus } from "../../../lib/actions/getTransactionPinStatus";
 import { setTransactionPin } from "../../../lib/actions/setTransactionPin";
+import { listUserSessions } from "../../../lib/actions/listUserSessions";
+import { revokeUserSession } from "../../../lib/actions/revokeUserSession";
+import { revokeOtherUserSessions } from "../../../lib/actions/revokeOtherUserSessions";
 
 function StatusBadge({ enabled }: { enabled: boolean }) {
     if (enabled) {
@@ -39,6 +42,25 @@ export default function SecuritySettingsPage() {
     const [pinInput, setPinInput] = useState("");
     const [pinSaving, setPinSaving] = useState(false);
     const [pinError, setPinError] = useState<string | null>(null);
+    const [sessionsLoaded, setSessionsLoaded] = useState(false);
+    const [sessions, setSessions] = useState<any[]>([]);
+    const [sessionsError, setSessionsError] = useState<string | null>(null);
+
+    async function refreshSessions() {
+        setSessionsError(null);
+        const res = await listUserSessions();
+        if (!res.success) {
+            setSessionsLoaded(true);
+            setSessionsError(res.message || "Failed to load sessions");
+            return;
+        }
+        setSessions(res.sessions);
+        setSessionsLoaded(true);
+    }
+
+    useEffect(() => {
+        refreshSessions();
+    }, []);
 
     useEffect(() => {
         (async () => {
@@ -251,59 +273,98 @@ export default function SecuritySettingsPage() {
                         )}
                     </div>
 
-                    {/* Active Sessions (placeholder for PR-4) */}
+                    {/* Active Sessions*/}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-                        <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-center gap-4">
-                            <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center">
-                                <Monitor className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                            </div>
-                            <div>
-                                <div className="font-bold text-lg text-slate-900 dark:text-white">
-                                    Active Sessions
+                        <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center">
+                                    <Monitor className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                                 </div>
-                                <div className="text-sm text-slate-500 dark:text-neutral-400">
-                                    Devices currently logged in
+                                <div>
+                                    <div className="font-bold text-lg text-slate-900 dark:text-white">Active Sessions</div>
+                                    <div className="text-sm text-slate-500 dark:text-neutral-400">Devices currently logged in</div>
                                 </div>
                             </div>
+
+                            <button
+                                onClick={async () => {
+                                    const res = await revokeOtherUserSessions();
+                                    if (!res.success) {
+                                        setSessionsError(res.message || "Failed to revoke sessions");
+                                        return;
+                                    }
+                                    await refreshSessions();
+                                }}
+                                className="h-10 px-4 rounded-2xl border border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-neutral-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-neutral-800 transition"
+                            >
+                                Revoke all other sessions
+                            </button>
                         </div>
 
                         <div className="p-6 space-y-3">
-                            {[
-                                { browser: "Chrome on macOS", location: "Lucknow, IN", current: true },
-                                { browser: "Safari on iPhone", location: "Mumbai, IN", current: false },
-                            ].map((s, i) => (
-                                <div
-                                    key={i}
-                                    className="p-5 rounded-3xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800 flex items-center justify-between gap-4"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div
-                                            className={`w-2 h-2 rounded-full ${s.current
-                                                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                                                : "bg-slate-300 dark:bg-neutral-700"
-                                                }`}
-                                        />
-                                        <div>
-                                            <div className="font-bold text-slate-900 dark:text-white text-sm">
-                                                {s.browser}
-                                            </div>
-                                            <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-                                                {s.location} • {s.current ? "Active Now" : "Last seen 2h ago"}
+                            {sessionsError && (
+                                <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-sm font-semibold">
+                                    {sessionsError}
+                                </div>
+                            )}
+
+                            {!sessionsLoaded ? (
+                                <div className="p-5 rounded-3xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800 text-sm text-slate-500 dark:text-neutral-400">
+                                    Loading sessions…
+                                </div>
+                            ) : sessions.length === 0 ? (
+                                <div className="p-5 rounded-3xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800 text-sm text-slate-500 dark:text-neutral-400">
+                                    No sessions found.
+                                </div>
+                            ) : (
+                                sessions.map((s) => (
+                                    <div
+                                        key={s.id}
+                                        className="p-5 rounded-3xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800 flex items-center justify-between gap-4"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div
+                                                className={`w-2 h-2 rounded-full ${s.isCurrent
+                                                    ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                                                    : s.revokedAt
+                                                        ? "bg-slate-300 dark:bg-neutral-700"
+                                                        : "bg-indigo-500"
+                                                    }`}
+                                            />
+                                            <div>
+                                                <div className="font-bold text-slate-900 dark:text-white text-sm">
+                                                    {s.deviceLabel || (s.userAgent ? "Browser Session" : "Session")}
+                                                </div>
+                                                <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
+                                                    {s.isCurrent ? "This device" : s.revokedAt ? "Revoked" : "Active"} •{" "}
+                                                    {s.lastSeenAt ? new Date(s.lastSeenAt).toLocaleString() : "Last seen unknown"}
+                                                </div>
                                             </div>
                                         </div>
+
+                                        {!s.isCurrent && !s.revokedAt && (
+                                            <button
+                                                onClick={async () => {
+                                                    const res = await revokeUserSession(s.id);
+                                                    if (!res.success) {
+                                                        setSessionsError(res.message || "Failed to revoke session");
+                                                        return;
+                                                    }
+                                                    await refreshSessions();
+                                                }}
+                                                className="h-9 px-4 rounded-xl border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-400 font-bold text-xs hover:bg-white dark:hover:bg-neutral-800 transition"
+                                            >
+                                                Revoke
+                                            </button>
+                                        )}
                                     </div>
-                                    {!s.current && (
-                                        <button className="h-9 px-4 rounded-xl border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-400 font-bold text-xs hover:bg-white dark:hover:bg-neutral-800 transition">
-                                            Revoke
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* --- RIGHT COLUMN (unchanged) --- */}
+                {/* --- RIGHT COLUMN --- */}
                 <div className="space-y-8">
                     {/* Security Health Score Widget */}
                     <div className="bg-slate-900 dark:bg-neutral-900 rounded-[2.5rem] p-8 border border-slate-800 dark:border-neutral-800 shadow-2xl relative overflow-hidden group text-white">

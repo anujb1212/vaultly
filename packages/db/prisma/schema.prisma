@@ -191,7 +191,7 @@ model UserSession {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt  DateTime  @default(now())
-  lastSeenAt DateTime?
+  lastSeenAt DateTime? @default(now())
   expiresAt  DateTime?
 
   ip          String?
