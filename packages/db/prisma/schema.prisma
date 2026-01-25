@@ -15,13 +15,14 @@ model User {
   password  String
   createdAt DateTime @default(now())
 
-  pendingEmail    String?
-  emailVerified   DateTime?
-  sessionVersion  Int                      @default(1)
+  pendingEmail            String?
+  emailVerified           Boolean                  @default(false)
+  emailVerificationTokens EmailVerificationToken[]
+
+  sessionVersion  Int             @default(1)
   securityProfile UserSecurity?
   transactionPin  TransactionPin?
   backupCodes     BackupCode[]
-  emailTokens     EmailVerificationToken[]
   userSessions    UserSession[]
   securityLogs    SecurityLog[]
 

@@ -3,8 +3,9 @@ import "server-only";
 import db, { auditLogger } from "@repo/db/client";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
-import { NextAuthOptions, User } from "next-auth";
+import type { NextAuthOptions, User } from "next-auth";
 
+const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60;
 const LAST_SEEN_SYNC_SEC = 5 * 60;
 
 export const authOptions: NextAuthOptions = {
@@ -20,52 +21,32 @@ export const authOptions: NextAuthOptions = {
                 },
                 password: { label: "Password", type: "password", required: true },
             },
+
             async authorize(
                 credentials: Record<"phone" | "password", string> | undefined
             ): Promise<User | null> {
-                if (!credentials) return null;
+                if (!credentials?.phone || !credentials?.password) return null;
 
                 const existingUser = await db.user.findFirst({
                     where: { number: credentials.phone },
                 });
 
-                if (existingUser) {
-                    const passwordValidation = await bcrypt.compare(
-                        credentials.password,
-                        existingUser.password
-                    );
+                if (!existingUser) return null;
 
-                    if (!passwordValidation) return null;
+                const passwordValidation = await bcrypt.compare(
+                    credentials.password,
+                    existingUser.password
+                );
 
-                    return {
-                        id: existingUser.id.toString(),
-                        name: existingUser.name,
-                        email: existingUser.email ?? null,
-                        phone: existingUser.number,
-                        emailVerified: false,
-                    } as any;
-                }
+                if (!passwordValidation) return null;
 
-                try {
-                    const hashedPassword = await bcrypt.hash(credentials.password, 10);
-                    const user = await db.user.create({
-                        data: {
-                            number: credentials.phone,
-                            password: hashedPassword,
-                        },
-                    });
-
-                    return {
-                        id: user.id.toString(),
-                        name: user.name,
-                        email: user.email ?? null,
-                        phone: user.number,
-                        emailVerified: false,
-                    } as any;
-                } catch (e) {
-                    console.error(e);
-                    return null;
-                }
+                return {
+                    id: existingUser.id.toString(),
+                    name: existingUser.name,
+                    email: existingUser.email ?? null,
+                    phone: existingUser.number,
+                    emailVerified: false
+                } as any;
             },
         }),
     ],
@@ -73,31 +54,41 @@ export const authOptions: NextAuthOptions = {
     secret: process.env.JWT_SECRET || "secret",
     pages: { signIn: "/signin" },
 
-    session: { strategy: "jwt" },
+    session: {
+        strategy: "jwt",
+        maxAge: SESSION_MAX_AGE_SEC
+    },
 
     callbacks: {
         async jwt({ token, user }) {
+            const now = new Date();
+            const nowSec = Math.floor(Date.now() / 1000);
+
             if (user?.id) {
-                (token as any).userId = user.id;
+                const userId = String(user.id);
+
+                (token as any).userId = userId;
                 (token as any).phone = (user as any).phone ?? null;
                 (token as any).email = (user as any).email ?? null;
                 (token as any).emailVerified = (user as any).emailVerified ?? false;
 
                 const created = await db.userSession.create({
                     data: {
-                        userId: Number(user.id),
-                        lastSeenAt: new Date(),
+                        userId: Number(userId),
+                        createdAt: now,
+                        lastSeenAt: now,
+                        expiresAt: new Date(now.getTime() + SESSION_MAX_AGE_SEC * 1000)
                     },
                     select: { id: true },
                 });
 
                 (token as any).sessionId = created.id;
-                (token as any).lastSeenSyncAt = Math.floor(Date.now() / 1000);
+                (token as any).lastSeenSyncAt = nowSec;
 
                 await auditLogger.createAuditLog({
-                    userId: Number(user.id),
+                    userId: Number(userId),
                     action: "SESSION_CREATED",
-                    entityType: "UserSession",
+                    entityType: "User Session",
                     newValue: { sessionId: created.id },
                     metadata: { sessionId: created.id },
                 });
@@ -108,34 +99,47 @@ export const authOptions: NextAuthOptions = {
             const userIdRaw = (token as any).userId;
             const sessionIdRaw = (token as any).sessionId;
 
-            if (userIdRaw && sessionIdRaw) {
-                const userId = Number(userIdRaw);
-                const sessionId = String(sessionIdRaw);
+            if (!userIdRaw || !sessionIdRaw) return token;
 
-                const s = await db.userSession.findFirst({
-                    where: { id: sessionId, userId },
-                    select: { revokedAt: true, expiresAt: true },
+            const userIdNum = Number(userIdRaw);
+            const sessionId = String(sessionIdRaw);
+
+            if (!Number.isFinite(userIdNum)) {
+                delete (token as any).userId;
+                delete (token as any).sessionId;
+                delete (token as any).phone;
+                delete (token as any).email;
+                delete (token as any).emailVerified;
+                delete (token as any).lastSeenSyncAt;
+                return token;
+            }
+
+            const s = await db.userSession.findFirst({
+                where: { id: sessionId, userId: userIdNum },
+                select: { revokedAt: true, expiresAt: true },
+            });
+
+            if (!s || s.revokedAt || (s.expiresAt && s.expiresAt <= now)) {
+                delete (token as any).userId;
+                delete (token as any).sessionId;
+                delete (token as any).phone;
+                delete (token as any).email;
+                delete (token as any).emailVerified;
+                delete (token as any).lastSeenSyncAt;
+                return token;
+            }
+
+            const lastSync =
+                typeof (token as any).lastSeenSyncAt === "number"
+                    ? (token as any).lastSeenSyncAt
+                    : 0;
+
+            if (nowSec - lastSync >= LAST_SEEN_SYNC_SEC) {
+                await db.userSession.update({
+                    where: { id: sessionId },
+                    data: { lastSeenAt: now },
                 });
-
-                const now = new Date();
-
-                if (!s || s.revokedAt || (s.expiresAt && s.expiresAt <= now)) {
-                    delete (token as any).userId;
-                    delete (token as any).sessionId;
-                    return token;
-                }
-
-                const nowSec = Math.floor(Date.now() / 1000);
-                const lastSync =
-                    typeof (token as any).lastSeenSyncAt === "number" ? (token as any).lastSeenSyncAt : 0;
-
-                if (nowSec - lastSync >= LAST_SEEN_SYNC_SEC) {
-                    await db.userSession.update({
-                        where: { id: sessionId },
-                        data: { lastSeenAt: new Date() },
-                    });
-                    (token as any).lastSeenSyncAt = nowSec;
-                }
+                (token as any).lastSeenSyncAt = nowSec;
             }
 
             return token;
@@ -146,11 +150,11 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).id = ((token as any).userId as string) ?? undefined;
                 (session.user as any).phone = (token as any).phone ?? null;
                 (session.user as any).email = (token as any).email ?? null;
-                (session.user as any).emailVerified = (token as any).emailVerified ?? false;
+                (session.user as any).emailVerified =
+                    (token as any).emailVerified ?? false;
             }
 
             (session as any).sessionId = (token as any).sessionId ?? null;
-
             return session;
         },
     },

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
     KeyRound,
-    Smartphone,
     Monitor,
     CheckCircle2,
     AlertCircle,
@@ -15,6 +14,9 @@ import { setTransactionPin } from "../../../lib/actions/setTransactionPin";
 import { listUserSessions } from "../../../lib/actions/listUserSessions";
 import { revokeUserSession } from "../../../lib/actions/revokeUserSession";
 import { revokeOtherUserSessions } from "../../../lib/actions/revokeOtherUserSessions";
+import { EmailVerificationDialog } from "../../../../components/EmailVerificationDialog";
+import { sendEmailVerification } from "../../../lib/actions/sendEmailVerification";
+import { getEmailVerificationStatus } from "../../../lib/actions/getEmailVerificationStatus";
 
 function StatusBadge({ enabled }: { enabled: boolean }) {
     if (enabled) {
@@ -45,6 +47,43 @@ export default function SecuritySettingsPage() {
     const [sessionsLoaded, setSessionsLoaded] = useState(false);
     const [sessions, setSessions] = useState<any[]>([]);
     const [sessionsError, setSessionsError] = useState<string | null>(null);
+
+    const [email, setEmail] = useState<string | null>(null);
+    const [emailVerified, setEmailVerified] = useState(false);
+    const [emailLoading, setEmailLoading] = useState(true);
+    const [emailError, setEmailError] = useState<string | null>(null);
+    const [showEmailDialog, setShowEmailDialog] = useState(false);
+
+    useEffect(() => {
+        (async () => {
+            setEmailLoading(true);
+            setEmailError(null);
+            const res = await getEmailVerificationStatus();
+            if (!res.success) {
+                setEmail(null);
+                setEmailVerified(false);
+                setEmailError(res.message);
+                setEmailLoading(false);
+                return;
+            }
+            setEmail(res.email);
+            setEmailVerified(res.isVerified);
+            setEmailLoading(false);
+        })();
+    }, []);
+
+    async function handleSendVerification(emailInput: string) {
+        const res = await sendEmailVerification(emailInput);
+
+        if (!res.success) {
+            const retryHint =
+                typeof res.retryAfterSec === "number" && res.retryAfterSec > 0
+                    ? ` Try again in ${res.retryAfterSec}s.`
+                    : "";
+
+            throw new Error(`${res.message}${retryHint}`);
+        }
+    }
 
     async function refreshSessions() {
         setSessionsError(null);
@@ -83,6 +122,21 @@ export default function SecuritySettingsPage() {
         return `Locked until ${dt.toLocaleString()}`;
     }, [pinLockedUntil]);
 
+    const strongPassword = true;
+
+    const securityEnabledCount = useMemo(() => {
+        return [strongPassword, emailVerified, pinIsSet].filter(Boolean).length;
+    }, [strongPassword, emailVerified, pinIsSet]);
+
+    const securityScore = useMemo(() => {
+        return Math.round((securityEnabledCount / 3) * 100);
+    }, [securityEnabledCount]);
+
+    const circleDasharray = 377;
+    const circleDashoffset = useMemo(() => {
+        return Math.round(circleDasharray * (1 - securityScore / 100));
+    }, [securityScore]);
+
     return (
         <div className="w-full relative">
             {/* Background Effect */}
@@ -114,34 +168,52 @@ export default function SecuritySettingsPage() {
                 {/* --- LEFT COLUMN --- */}
                 <div className="lg:col-span-2 space-y-8">
                     {/* 2FA Card */}
+                    {/* Email verification */}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
                         <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-start justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center">
-                                    <Smartphone className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                            <div>
+                                <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                    Email verification
                                 </div>
-                                <div>
-                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
-                                        Two‑Factor Authentication
-                                    </div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400">
-                                        TOTP (Google Authenticator)
-                                    </div>
+                                <div className="text-sm text-slate-500 dark:text-neutral-400">
+                                    Status: {emailLoading ? "Loading…" : emailVerified ? "Verified" : "Not verified"}
                                 </div>
+                                {email ? (
+                                    <div className="text-xs text-slate-500 dark:text-neutral-400 mt-1">
+                                        Email: {email}
+                                    </div>
+                                ) : null}
                             </div>
-                            <StatusBadge enabled={false} />
-                        </div>
 
-                        <div className="p-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
-                            <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
-                                Add an extra layer of security. We’ll ask for a code from your
-                                authenticator app when you sign in from a new device.
-                            </p>
-                            <button className="h-12 px-8 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-black font-bold hover:opacity-90 transition shadow-lg">
-                                Enable 2FA
+                            <button
+                                onClick={() => setShowEmailDialog(true)}
+                                disabled={emailLoading || emailVerified}
+                                className="h-12 px-8 rounded-2xl bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 font-bold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-neutral-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {emailVerified ? "Verified" : "Send verification email"}
                             </button>
                         </div>
+
+                        <div className="p-6">
+                            {emailError ? (
+                                <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-sm font-semibold">
+                                    {emailError}
+                                </div>
+                            ) : (
+                                <div className="text-sm text-slate-500 dark:text-neutral-400">
+                                    We’ll send a verification link to your inbox.
+                                </div>
+                            )}
+                        </div>
                     </div>
+
+                    {showEmailDialog ? (
+                        <EmailVerificationDialog
+                            initialEmail={email}
+                            onSend={handleSendVerification}
+                            onClose={() => setShowEmailDialog(false)}
+                        />
+                    ) : null}
 
                     {/* Transaction PIN Card */}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
@@ -192,7 +264,7 @@ export default function SecuritySettingsPage() {
                         {pinDialogOpen && (
                             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                                 <div
-                                    className="absolute inset-0 bg-black/40"
+                                    className="absolute inset-0 bg-black/50 backdrop-blur-md"
                                     onClick={() => (!pinSaving ? setPinDialogOpen(false) : null)}
                                 />
                                 <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 shadow-xl p-6">
@@ -367,40 +439,89 @@ export default function SecuritySettingsPage() {
                 {/* --- RIGHT COLUMN --- */}
                 <div className="space-y-8">
                     {/* Security Health Score Widget */}
-                    <div className="bg-slate-900 dark:bg-neutral-900 rounded-[2.5rem] p-8 border border-slate-800 dark:border-neutral-800 shadow-2xl relative overflow-hidden group text-white">
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-transparent opacity-50" />
-                        <div className="relative z-10 flex flex-col items-center text-center">
-                            <div className="relative w-32 h-32 flex items-center justify-center mb-6">
-                                <svg className="w-full h-full transform -rotate-90">
-                                    <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800 dark:text-neutral-800" />
-                                    <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="377" strokeDashoffset="282" className="text-emerald-500 transition-all duration-1000 ease-out" strokeLinecap="round" />
-                                </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-4xl font-bold">25%</span>
-                                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Secure</span>
-                                </div>
+                    {/* Security Health Score Widget */}
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                        <div className="relative w-32 h-32 flex items-center justify-center mb-6">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 128 128">
+                                {/* Track */}
+                                <circle
+                                    cx="64"
+                                    cy="64"
+                                    r="60"
+                                    stroke="currentColor"
+                                    strokeWidth="8"
+                                    fill="transparent"
+                                    className="text-slate-800 dark:text-neutral-800"
+                                />
+                                {/* Progress */}
+                                <circle
+                                    cx="64"
+                                    cy="64"
+                                    r="60"
+                                    stroke="currentColor"
+                                    strokeWidth="8"
+                                    fill="transparent"
+                                    strokeDasharray={circleDasharray}
+                                    strokeDashoffset={circleDashoffset}
+                                    className="text-emerald-500 transition-all duration-700 ease-out"
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-4xl font-bold">{securityScore}%</span>
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">
+                                    Secure
+                                </span>
+                            </div>
+                        </div>
+
+                        <h3 className="text-xl font-bold mb-2">Account Protection</h3>
+                        <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                            Improve your security by verifying email and enabling transaction PIN.
+                        </p>
+
+                        <div className="w-full space-y-3 text-left">
+                            <div
+                                className={`flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10 ${strongPassword ? "" : "opacity-50"
+                                    }`}
+                            >
+                                {strongPassword ? (
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                ) : (
+                                    <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
+                                )}
+                                <span className={strongPassword ? "text-slate-200" : "text-slate-400"}>
+                                    Strong Password
+                                </span>
                             </div>
 
-
-                            <h3 className="text-xl font-bold mb-2">Account Protection</h3>
-                            <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                                Your account is vulnerable. Enable 2FA and set a PIN to reach 100%.
-                            </p>
-
-
-                            <div className="w-full space-y-3 text-left">
-                                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10">
-                                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">✓</div>
-                                    <span className="text-slate-200">Strong Password</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
+                            <div
+                                className={`flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10 ${emailVerified ? "" : "opacity-50"
+                                    }`}
+                            >
+                                {emailVerified ? (
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                ) : (
                                     <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
-                                    <span className="text-slate-400">Two-Factor Auth</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10 opacity-50">
+                                )}
+                                <span className={emailVerified ? "text-slate-200" : "text-slate-400"}>
+                                    Email Verified
+                                </span>
+                            </div>
+
+                            <div
+                                className={`flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10 ${pinIsSet ? "" : "opacity-50"
+                                    }`}
+                            >
+                                {pinIsSet ? (
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                ) : (
                                     <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
-                                    <span className="text-slate-400">Transaction PIN</span>
-                                </div>
+                                )}
+                                <span className={pinIsSet ? "text-slate-200" : "text-slate-400"}>
+                                    Transaction PIN
+                                </span>
                             </div>
                         </div>
                     </div>

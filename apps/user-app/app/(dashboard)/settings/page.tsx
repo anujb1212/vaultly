@@ -8,6 +8,7 @@ function maskEmail(email?: string | null) {
     if (!email) return "—";
     const [name, domain] = email.split("@");
     if (!domain) return email;
+    if (!name) return email;
     const maskedName = name.length <= 2 ? `${name[0] ?? ""}*` : `${name.slice(0, 2)}***`;
     return `${maskedName}@${domain}`;
 }
