@@ -6,6 +6,7 @@ declare module "next-auth" {
     phone?: string | null;
     email?: string | null;
     emailVerified?: boolean;
+    pinIsSet?: boolean;
   }
 
   interface Session {
@@ -15,6 +16,7 @@ declare module "next-auth" {
       email?: string | null;
       phone?: string | null;
       emailVerified?: boolean;
+      pinIsSet?: boolean;
       image?: string | null;
     } & DefaultSession["user"];
 
@@ -28,6 +30,7 @@ declare module "next-auth/jwt" {
     phone?: string | null;
     email?: string | null;
     emailVerified?: boolean;
+    pinIsSet?: boolean;
     sessionId?: string;
     lastSeenSyncAt?: number;
   }

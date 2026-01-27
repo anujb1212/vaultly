@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, KeyRound, Monitor, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, KeyRound, Monitor, CheckCircle2, AlertCircle, Mail } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 
 import { getTransactionPinStatus } from "../../../lib/actions/getTransactionPinStatus";
-import { setTransactionPin } from "../../../lib/actions/setTransactionPin";
 import { listUserSessions } from "../../../lib/actions/listUserSessions";
 import { revokeUserSession } from "../../../lib/actions/revokeUserSession";
 import { revokeOtherUserSessions } from "../../../lib/actions/revokeOtherUserSessions";
@@ -24,7 +24,7 @@ function StatusBadge({ enabled }: { enabled: boolean }) {
     }
     return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-slate-50 text-slate-600 border-slate-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700">
-            <AlertCircle className="w-3.5 h-3.5" /> Not Set
+            <AlertCircle className="w-3.5 h-3.5" /> Not set
         </span>
     );
 }
@@ -32,15 +32,11 @@ function StatusBadge({ enabled }: { enabled: boolean }) {
 export default function SecuritySettingsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { update } = useSession();
 
     const [pinLoaded, setPinLoaded] = useState(false);
     const [pinIsSet, setPinIsSet] = useState(false);
     const [pinLockedUntil, setPinLockedUntil] = useState<string | null>(null);
-
-    const [pinDialogOpen, setPinDialogOpen] = useState(false);
-    const [pinInput, setPinInput] = useState("");
-    const [pinSaving, setPinSaving] = useState(false);
-    const [pinError, setPinError] = useState<string | null>(null);
 
     const [sessionsLoaded, setSessionsLoaded] = useState(false);
     const [sessions, setSessions] = useState<any[]>([]);
@@ -85,7 +81,10 @@ export default function SecuritySettingsPage() {
     useEffect(() => {
         const flag = searchParams.get("emailVerified");
         if (flag === "1" || flag === "0") {
-            refreshEmailStatus();
+            (async () => {
+                await refreshEmailStatus();
+                await update();
+            })();
         }
     }, [searchParams]);
 
@@ -186,12 +185,12 @@ export default function SecuritySettingsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* --- LEFT COLUMN --- */}
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Email verification*/}
+                    {/* Email verification */}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
                         <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-start justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-slate-50 dark:bg-neutral-800 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-neutral-700">
-                                    <CheckCircle2 className="w-6 h-6 text-slate-700 dark:text-neutral-200" />
+                                    <Mail className="w-6 h-6 text-slate-700 dark:text-neutral-200" />
                                 </div>
 
                                 <div>
@@ -203,6 +202,7 @@ export default function SecuritySettingsPage() {
                                     </div>
                                 </div>
                             </div>
+
                             <span
                                 className={
                                     emailLoading
@@ -233,7 +233,6 @@ export default function SecuritySettingsPage() {
                                         {emailSentMsg}
                                     </div>
                                 ) : null}
-
 
                                 {emailError ? (
                                     <div className="mt-3 p-3 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-sm font-semibold">
@@ -276,6 +275,7 @@ export default function SecuritySettingsPage() {
                                     </div>
                                 </div>
                             </div>
+
                             <StatusBadge enabled={pinLoaded ? pinIsSet : false} />
                         </div>
 
@@ -284,6 +284,7 @@ export default function SecuritySettingsPage() {
                                 <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
                                     A 6-digit PIN required to authorize transfers. This protects your funds even if your account is logged in.
                                 </p>
+
                                 {pinLockedMsg ? (
                                     <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 mt-3">
                                         {pinLockedMsg}
@@ -292,102 +293,16 @@ export default function SecuritySettingsPage() {
                             </div>
 
                             <button
-                                onClick={() => {
-                                    if (pinIsSet) return;
-                                    setPinError(null);
-                                    setPinInput("");
-                                    setPinDialogOpen(true);
-                                }}
-                                disabled={pinSaving || pinIsSet}
+                                onClick={() => router.push("/settings")}
+                                disabled={!pinLoaded}
                                 className="h-12 px-8 rounded-2xl bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 font-bold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-neutral-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                                {pinIsSet ? "PIN Set" : "Set PIN"}
+                                Manage in Settings
                             </button>
                         </div>
-
-                        {pinDialogOpen ? (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                                <div
-                                    className="absolute inset-0 bg-black/50 backdrop-blur-md"
-                                    onClick={() => (!pinSaving ? setPinDialogOpen(false) : null)}
-                                />
-                                <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 shadow-xl p-6">
-                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
-                                        Set Transaction PIN
-                                    </div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400 mt-1">
-                                        Enter a 6-digit PIN. It will be required for transfers.
-                                    </div>
-
-                                    <div className="mt-4">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500">
-                                            6-digit PIN
-                                        </label>
-                                        <input
-                                            value={pinInput}
-                                            onChange={(e) => {
-                                                const next = e.target.value.replace(/\D/g, "").slice(0, 6);
-                                                setPinInput(next);
-                                            }}
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            maxLength={6}
-                                            className="mt-2 w-full h-12 rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-4 text-slate-900 dark:text-white font-semibold outline-none focus:ring-2 focus:ring-indigo-500/40"
-                                            placeholder="••••••"
-                                            type="password"
-                                            disabled={pinSaving}
-                                        />
-                                    </div>
-
-                                    {pinError ? (
-                                        <div className="mt-3 p-3 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-sm font-semibold">
-                                            {pinError}
-                                        </div>
-                                    ) : null}
-
-                                    <div className="mt-5 flex gap-3 justify-end">
-                                        <button
-                                            onClick={() => setPinDialogOpen(false)}
-                                            disabled={pinSaving}
-                                            className="h-11 px-5 rounded-2xl border border-slate-200 dark:border-neutral-800 font-bold text-slate-700 dark:text-neutral-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition"
-                                        >
-                                            Cancel
-                                        </button>
-
-                                        <button
-                                            onClick={async () => {
-                                                setPinError(null);
-                                                setPinSaving(true);
-                                                try {
-                                                    const res = await setTransactionPin(pinInput);
-                                                    if (!res.success) {
-                                                        setPinError(res.message);
-                                                        return;
-                                                    }
-
-                                                    const status = await getTransactionPinStatus();
-                                                    if (status.success) {
-                                                        setPinIsSet(status.isSet);
-                                                        setPinLockedUntil(status.lockedUntil);
-                                                    }
-
-                                                    setPinDialogOpen(false);
-                                                } finally {
-                                                    setPinSaving(false);
-                                                }
-                                            }}
-                                            disabled={pinSaving}
-                                            className="h-11 px-5 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-black font-bold hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                                        >
-                                            {pinSaving ? "Saving..." : "Save PIN"}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : null}
                     </div>
 
-                    {/* Active Sessions*/}
+                    {/* Active Sessions */}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
                         <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
@@ -454,8 +369,7 @@ export default function SecuritySettingsPage() {
                                                     {s.deviceLabel || (s.userAgent ? "Browser Session" : "Session")}
                                                 </div>
                                                 <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-                                                    {s.isCurrent ? "This device" : s.revokedAt ? "Revoked" : "Active"}{" "}
-                                                    {"•"}{" "}
+                                                    {s.isCurrent ? "This device" : s.revokedAt ? "Revoked" : "Active"}{" - "}
                                                     {s.lastSeenAt
                                                         ? new Date(s.lastSeenAt).toLocaleString()
                                                         : "Last seen unknown"}

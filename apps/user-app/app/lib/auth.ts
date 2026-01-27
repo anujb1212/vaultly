@@ -29,6 +29,15 @@ export const authOptions: NextAuthOptions = {
 
                 const existingUser = await db.user.findFirst({
                     where: { number: credentials.phone },
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        number: true,
+                        password: true,
+                        emailVerified: true,
+                        transactionPin: { select: { userId: true } },
+                    },
                 });
 
                 if (!existingUser) return null;
@@ -37,7 +46,6 @@ export const authOptions: NextAuthOptions = {
                     credentials.password,
                     existingUser.password
                 );
-
                 if (!passwordValidation) return null;
 
                 return {
@@ -45,7 +53,8 @@ export const authOptions: NextAuthOptions = {
                     name: existingUser.name,
                     email: existingUser.email ?? null,
                     phone: existingUser.number,
-                    emailVerified: false
+                    emailVerified: Boolean(existingUser.emailVerified),
+                    pinIsSet: Boolean(existingUser.transactionPin?.userId),
                 } as any;
             },
         }),
@@ -56,11 +65,11 @@ export const authOptions: NextAuthOptions = {
 
     session: {
         strategy: "jwt",
-        maxAge: SESSION_MAX_AGE_SEC
+        maxAge: SESSION_MAX_AGE_SEC,
     },
 
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger }) {
             const now = new Date();
             const nowSec = Math.floor(Date.now() / 1000);
 
@@ -71,13 +80,14 @@ export const authOptions: NextAuthOptions = {
                 (token as any).phone = (user as any).phone ?? null;
                 (token as any).email = (user as any).email ?? null;
                 (token as any).emailVerified = (user as any).emailVerified ?? false;
+                (token as any).pinIsSet = (user as any).pinIsSet ?? false;
 
                 const created = await db.userSession.create({
                     data: {
                         userId: Number(userId),
                         createdAt: now,
                         lastSeenAt: now,
-                        expiresAt: new Date(now.getTime() + SESSION_MAX_AGE_SEC * 1000)
+                        expiresAt: new Date(now.getTime() + SESSION_MAX_AGE_SEC * 1000),
                     },
                     select: { id: true },
                 });
@@ -110,6 +120,7 @@ export const authOptions: NextAuthOptions = {
                 delete (token as any).phone;
                 delete (token as any).email;
                 delete (token as any).emailVerified;
+                delete (token as any).pinIsSet;
                 delete (token as any).lastSeenSyncAt;
                 return token;
             }
@@ -125,6 +136,7 @@ export const authOptions: NextAuthOptions = {
                 delete (token as any).phone;
                 delete (token as any).email;
                 delete (token as any).emailVerified;
+                delete (token as any).pinIsSet;
                 delete (token as any).lastSeenSyncAt;
                 return token;
             }
@@ -142,6 +154,21 @@ export const authOptions: NextAuthOptions = {
                 (token as any).lastSeenSyncAt = nowSec;
             }
 
+            if (trigger === "update") {
+                const fresh = await db.user.findUnique({
+                    where: { id: userIdNum },
+                    select: {
+                        email: true,
+                        emailVerified: true,
+                        transactionPin: { select: { userId: true } },
+                    },
+                });
+
+                (token as any).email = fresh?.email ?? (token as any).email ?? null;
+                (token as any).emailVerified = Boolean(fresh?.emailVerified);
+                (token as any).pinIsSet = Boolean(fresh?.transactionPin?.userId);
+            }
+
             return token;
         },
 
@@ -150,8 +177,8 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).id = ((token as any).userId as string) ?? undefined;
                 (session.user as any).phone = (token as any).phone ?? null;
                 (session.user as any).email = (token as any).email ?? null;
-                (session.user as any).emailVerified =
-                    (token as any).emailVerified ?? false;
+                (session.user as any).emailVerified = (token as any).emailVerified ?? false;
+                (session.user as any).pinIsSet = (token as any).pinIsSet ?? false;
             }
 
             (session as any).sessionId = (token as any).sessionId ?? null;

@@ -136,7 +136,7 @@ export function SendMoneyCard() {
                             onClick={handleSend}
                             disabled={status === "processing"}
                             className={`w-full py-4 text-base shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2
-                ${status === "processing" ? "opacity-70 cursor-wait" : "hover:-translate-y-0.5"}`}
+              ${status === "processing" ? "opacity-70 cursor-wait" : "hover:-translate-y-0.5"}`}
                         >
                             {status === "processing" ? (
                                 "Processing..."
@@ -154,18 +154,16 @@ export function SendMoneyCard() {
                 open={pinOpen}
                 title="Enter Transaction PIN"
                 subtitle="Required to complete this transfer."
-                confirmText="Confirm Transfer"
                 onClose={() => {
                     if (status !== "processing") {
                         setPinOpen(false);
                         setPendingSend(null);
                     }
                 }}
-                onConfirm={async (pin) => {
+                onVerify={async (pin) => {
                     if (!pendingSend) return;
 
                     setStatus("processing");
-
                     try {
                         const result = await p2pTransfer(
                             pendingSend.to,
@@ -215,13 +213,8 @@ export function SendMoneyCard() {
                             throw new Error(`Too many attempts.${retry}`);
                         }
 
-                        if (result.errorCode === "PIN_REQUIRED") {
-                            throw new Error("Transaction PIN is required.");
-                        }
-
-                        if (result.errorCode === "PIN_INVALID") {
-                            throw new Error("Invalid transaction PIN.");
-                        }
+                        if (result.errorCode === "PIN_REQUIRED") throw new Error("Transaction PIN is required.");
+                        if (result.errorCode === "PIN_INVALID") throw new Error("Invalid transaction PIN.");
 
                         throw new Error(result.message || "Transfer failed");
                     } finally {

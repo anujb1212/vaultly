@@ -1,7 +1,7 @@
 import db, { auditLogger } from "@repo/db/client";
 import bcrypt from "bcrypt";
 import { rateLimit } from "../rateLimit";
-import "server-only"
+import "server-only";
 
 export type VerifyMpinErrorCode =
     | "PIN_REQUIRED"
@@ -30,7 +30,7 @@ const LOCK_MINUTES = 15;
 export async function verifyMpinOrThrow(opts: {
     userId: number;
     mpin: string | undefined;
-    context: { action: "P2P_TRANSFER" | "ONRAMP_CREATE" };
+    context: { action: "P2P_TRANSFER" | "ONRAMP_CREATE" | "MPIN_CHANGE" };
 }) {
     const { userId, mpin, context } = opts;
 

@@ -3,6 +3,14 @@
 import { useRouter } from "next/navigation";
 import { Copy, ShieldCheck, Bell, User, LogOut, CheckCircle2, ShieldAlert, Globe, Camera } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { KeyRound, LockKeyhole } from "lucide-react";
+import { TransactionPinDialog } from "../../../components/TransactionPinDialog";
+import { ChangePasswordDialog } from "../../../components/ChangePasswordDialog";
+
+import { setTransactionPin, changeTransactionPin } from "../../lib/actions/setTransactionPin";
+import { changePassword } from "../../lib/actions/changePassword";
+
 
 function maskEmail(email?: string | null) {
     if (!email) return "—";
@@ -15,11 +23,20 @@ function maskEmail(email?: string | null) {
 
 export default function SettingsPage() {
     const router = useRouter();
-    const { data: session } = useSession();
+    const { data: session, update } = useSession();
 
     const displayName = session?.user?.name || "Vaultly User"
     const email = session?.user?.email || null;
     const publicId = session?.user?.id || "-";
+
+    const emailVerified = session?.user?.emailVerified === true;
+    const pinIsSetFromSession = session?.user?.pinIsSet === true;
+
+    const [pinDialogOpen, setPinDialogOpen] = useState(false);
+    const [pwdDialogOpen, setPwdDialogOpen] = useState(false);
+
+    const [pinIsSet, setPinIsSet] = useState(pinIsSetFromSession);
+    useEffect(() => setPinIsSet(pinIsSetFromSession), [pinIsSetFromSession]);
 
     return (
         <div className="w-full relative">
@@ -55,9 +72,14 @@ export default function SettingsPage() {
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <div className="font-bold text-xl text-slate-900 dark:text-white">{displayName}</div>
-                                        <CheckCircle2 className="w-5 h-5 text-blue-500 fill-blue-500/10" />
+                                        {emailVerified ? (
+                                            <CheckCircle2 className="w-5 h-5 text-blue-500 fill-blue-500/10" />
+                                        ) : null}
                                     </div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400 font-medium">Verified Account</div>
+
+                                    <div className="text-sm text-slate-500 dark:text-neutral-400 font-medium">
+                                        {emailVerified ? "Verified Account" : "Email not verified"}
+                                    </div>
                                 </div>
                             </div>
                             <button
@@ -68,28 +90,61 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="p-8 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800">
-                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500 mb-1">Email Address</div>
-                                    <div className="font-semibold text-slate-900 dark:text-white">{maskEmail(email)}</div>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-neutral-950/50 border border-slate-100 dark:border-neutral-800">
-                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-500 mb-1">Phone</div>
-                                    <div className="font-semibold text-slate-900 dark:text-white">+91 98**** **21</div>
-                                </div>
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-5 rounded-2xl border border-slate-100 dark:border-neutral-800 bg-slate-50/50 dark:bg-neutral-950/50">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 flex items-center justify-center">
+                                                <KeyRound className="w-5 h-5 text-slate-700 dark:text-neutral-200" />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900 dark:text-white">Password</div>
+                                                <div className="text-sm text-slate-500 dark:text-neutral-400">Update your login password</div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900 dark:bg-black text-white shadow-lg shadow-slate-900/10">
-                                <div>
-                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Your Public ID</div>
-                                    <div className="font-mono font-medium text-lg tracking-wide">{publicId}</div>
+                                    <div className="mt-4 flex items-center justify-end">
+                                        <button
+                                            onClick={() => setPwdDialogOpen(true)}
+                                            className="h-11 px-5 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-black font-bold hover:opacity-90 transition"
+                                        >
+                                            Change password
+                                        </button>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={async () => { await navigator.clipboard.writeText(publicId); }}
-                                    className="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs transition inline-flex items-center gap-2"
-                                >
-                                    <Copy className="w-3.5 h-3.5" /> Copy
-                                </button>
+
+                                <div className="p-5 rounded-2xl border border-slate-100 dark:border-neutral-800 bg-slate-50/50 dark:bg-neutral-950/50">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 flex items-center justify-center">
+                                                <LockKeyhole className="w-5 h-5 text-slate-700 dark:text-neutral-200" />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900 dark:text-white">Transaction PIN</div>
+                                                <div className="text-sm text-slate-500 dark:text-neutral-400">Required for sensitive actions</div>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold border ${pinIsSet
+                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-900/40"
+                                                : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-neutral-900 dark:text-neutral-300 dark:border-neutral-800"
+                                                }`}
+                                        >
+                                            {pinIsSet ? "Enabled" : "Not set"}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 flex items-center justify-end">
+                                        <button
+                                            onClick={() => setPinDialogOpen(true)}
+                                            className="h-11 px-5 rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-black font-bold hover:opacity-90 transition"
+                                        >
+                                            {pinIsSet ? "Change PIN" : "Set PIN"}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -189,6 +244,38 @@ export default function SettingsPage() {
                 </div>
 
             </div>
+            <ChangePasswordDialog
+                open={pwdDialogOpen}
+                onClose={() => setPwdDialogOpen(false)}
+                onConfirm={async (payload) => {
+                    const res = await changePassword(payload);
+                    if (!res.success) throw new Error(res.message);
+                    setPwdDialogOpen(false);
+                    await update();
+                }}
+            />
+
+            <TransactionPinDialog
+                open={pinDialogOpen}
+                pinIsSet={pinIsSet}
+                title={pinIsSet ? "Change Transaction PIN" : "Set Transaction PIN"}
+                subtitle={pinIsSet ? "Enter current PIN, then choose a new PIN." : "Set a 6-digit PIN for sensitive actions."}
+                onClose={() => setPinDialogOpen(false)}
+                onSetFirstPin={async (newPin) => {
+                    const res = await setTransactionPin(newPin);
+                    if (!res.success) throw new Error(res.message);
+                    setPinDialogOpen(false);
+                    setPinIsSet(true);
+                    await update();
+                }}
+                onChangePin={async ({ currentPin, newPin, confirmPin }) => {
+                    const res = await changeTransactionPin({ currentPin, newPin, confirmPin });
+                    if (!res.success) throw new Error(res.message);
+                    setPinDialogOpen(false);
+                    setPinIsSet(true);
+                    await update();
+                }}
+            />
         </div>
     );
 }

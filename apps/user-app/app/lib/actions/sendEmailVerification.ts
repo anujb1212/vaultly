@@ -117,45 +117,45 @@ export async function sendEmailVerification(inputEmail?: string): Promise<SendEm
             to: [email],
             subject: "Verify your email for Vaultly",
             html: `
-    <div style="font-family:Arial,Helvetica,sans-serif;background:#0b0b0f;padding:24px;">
-      <div style="max-width:560px;margin:0 auto;background:#111827;border:1px solid #1f2937;border-radius:14px;padding:20px;">
-        <div style="font-size:14px;font-weight:700;color:#ffffff;letter-spacing:0.2px;">
-          ${appName}
-        </div>
+            <div style="font-family:Arial,Helvetica,sans-serif;background:#0b0b0f;padding:24px;">
+            <div style="max-width:560px;margin:0 auto;background:#111827;border:1px solid #1f2937;border-radius:14px;padding:20px;">
+                <div style="font-size:14px;font-weight:700;color:#ffffff;letter-spacing:0.2px;">
+                ${appName}
+                </div>
 
-        <div style="margin-top:14px;font-size:16px;font-weight:700;color:#ffffff;">
-          Verify your email
-        </div>
+                <div style="margin-top:14px;font-size:16px;font-weight:700;color:#ffffff;">
+                Verify your email
+                </div>
 
-        <div style="margin-top:8px;font-size:13px;line-height:18px;color:#d1d5db;">
-          Click the button below to verify your email address. This link expires in 24 hours.
-        </div>
+                <div style="margin-top:8px;font-size:13px;line-height:18px;color:#d1d5db;">
+                Click the button below to verify your email address. This link expires in 24 hours.
+                </div>
 
-        <table cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
-          <tr>
-            <td bgcolor="#22c55e" style="border-radius:10px;">
-              <a href="${verifyUrl}" target="_blank"
-                style="display:inline-block;padding:10px 14px;border:1px solid #22c55e;border-radius:10px;font-size:13px;font-weight:700;color:#0b0b0f;text-decoration:none;">
-                Verify email
-              </a>
-            </td>
-          </tr>
-        </table>
+                <table cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
+                <tr>
+                    <td bgcolor="#22c55e" style="border-radius:10px;">
+                    <a href="${verifyUrl}" target="_blank"
+                        style="display:inline-block;padding:10px 14px;border:1px solid #22c55e;border-radius:10px;font-size:13px;font-weight:700;color:#0b0b0f;text-decoration:none;">
+                        Verify email
+                    </a>
+                    </td>
+                </tr>
+                </table>
 
-        <div style="margin-top:14px;font-size:12px;line-height:18px;color:#9ca3af;">
-          If the button does not work, copy and paste this link into your browser:
-        </div>
+                <div style="margin-top:14px;font-size:12px;line-height:18px;color:#9ca3af;">
+                If the button does not work, copy and paste this link into your browser:
+                </div>
 
-        <div style="margin-top:6px;font-size:12px;line-height:18px;color:#93c5fd;word-break:break-all;">
-          ${verifyUrl}
-        </div>
+                <div style="margin-top:6px;font-size:12px;line-height:18px;color:#93c5fd;word-break:break-all;">
+                ${verifyUrl}
+                </div>
 
-        <div style="margin-top:16px;font-size:12px;line-height:18px;color:#9ca3af;">
-          If you did not request this, you can ignore this email.
-        </div>
-      </div>
-    </div>
-  `,
+                <div style="margin-top:16px;font-size:12px;line-height:18px;color:#9ca3af;">
+                If you did not request this, you can ignore this email.
+                </div>
+            </div>
+            </div>
+        `,
         });
 
         if (error) return { success: false, errorCode: "INTERNAL_ERROR", message: "Failed to send email." };

@@ -48,7 +48,6 @@ export const AddMoney = () => {
         }
 
         const idempotencyKey = uuidv4();
-
         setPendingOnramp({ amountPaise, provider, idempotencyKey });
         setPinOpen(true);
     };
@@ -97,7 +96,7 @@ export const AddMoney = () => {
                             onClick={handleAddMoney}
                             disabled={isProcessing}
                             className={`w-full py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 shadow-xl
-                ${isProcessing
+              ${isProcessing
                                     ? "bg-slate-100 text-slate-400 dark:bg-neutral-800 dark:text-neutral-600 cursor-not-allowed shadow-none"
                                     : "bg-slate-900 dark:bg-white text-white dark:text-black hover:scale-[1.02] active:scale-[0.98] shadow-slate-200 dark:shadow-none"
                                 }`}
@@ -123,14 +122,13 @@ export const AddMoney = () => {
                 open={pinOpen}
                 title="Enter Transaction PIN"
                 subtitle="Required to create this deposit request."
-                confirmText="Proceed"
                 onClose={() => {
                     if (!isProcessing) {
                         setPinOpen(false);
                         setPendingOnramp(null);
                     }
                 }}
-                onConfirm={async (pin) => {
+                onVerify={async (pin) => {
                     if (!pendingOnramp) return;
 
                     setIsProcessing(true);
@@ -167,13 +165,8 @@ export const AddMoney = () => {
                                 throw new Error(`Too many attempts.${retry}`);
                             }
 
-                            if (result.errorCode === "PIN_REQUIRED") {
-                                throw new Error("Transaction PIN is required.");
-                            }
-
-                            if (result.errorCode === "PIN_INVALID") {
-                                throw new Error("Invalid transaction PIN.");
-                            }
+                            if (result.errorCode === "PIN_REQUIRED") throw new Error("Transaction PIN is required.");
+                            if (result.errorCode === "PIN_INVALID") throw new Error("Invalid transaction PIN.");
 
                             throw new Error(result.message || "Transaction failed");
                         }
