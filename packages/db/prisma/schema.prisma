@@ -19,18 +19,16 @@ model User {
   emailVerified           Boolean                  @default(false)
   emailVerificationTokens EmailVerificationToken[]
 
-  sessionVersion  Int             @default(1)
-  securityProfile UserSecurity?
-  transactionPin  TransactionPin?
-  backupCodes     BackupCode[]
-  userSessions    UserSession[]
-  securityLogs    SecurityLog[]
+  sessionVersion Int             @default(1)
+  transactionPin TransactionPin?
+  userSessions   UserSession[]
 
   OnRampTransaction OnRampTransaction[]
   Balance           Balance[]
   sentTransfers     p2pTransfer[]       @relation(name: "SenderRelation")
   receivedTransfers p2pTransfer[]       @relation(name: "ReceiverRelation")
   AuditLog          AuditLog[]
+  ledgerAccounts    LedgerAccount[]
 
   @@index([number])
 }
@@ -122,38 +120,6 @@ model AuditLog {
   @@index([action, timestamp])
 }
 
-model UserSecurity {
-  userId Int  @id
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  totpStatus TotpStatus @default(DISABLED)
-
-  totpSecretCiphertext String?
-  totpSecretIv         String?
-  totpSecretTag        String?
-  totpKeyVersion       Int     @default(1)
-
-  totpLastUsedStep   Int?
-  totpFailedAttempts Int       @default(0)
-  totpLockedUntil    DateTime?
-
-  totpEnabledAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
-model BackupCode {
-  id     Int  @id @default(autoincrement())
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  codeHash   String    @unique
-  createdAt  DateTime  @default(now())
-  consumedAt DateTime?
-
-  @@index([userId, consumedAt])
-}
-
 model EmailVerificationToken {
   id     Int  @id @default(autoincrement())
   userId Int
@@ -208,24 +174,47 @@ model UserSession {
   @@index([userId, lastSeenAt])
 }
 
-model SecurityLog {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+model LedgerAccount {
+  id     Int   @id @default(autoincrement())
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  actorUserId Int?
-  actorUser   User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  accountType   LedgerAccountType
+  currency      String
+  createdAt     DateTime          @default(now())
+  ledgerEntries LedgerEntry[]
 
-  action  String
-  success Boolean @default(true)
+  @@index([userId, accountType])
+  @@index([accountType, currency])
+}
 
-  sessionId String?
-  requestId String?
-  ip        String?
-  userAgent String?
-  metadata  Json?
+model LedgerTransaction {
+  id          Int           @id @default(autoincrement())
+  type        LedgerTxnType
+  externalRef String        @unique
+  metadata    Json?
+  createdAt   DateTime      @default(now())
 
-  @@index([actorUserId, createdAt])
-  @@index([action, createdAt])
+  entries LedgerEntry[]
+
+  @@index([type, createdAt])
+}
+
+model LedgerEntry {
+  id            Int               @id @default(autoincrement())
+  transactionId Int
+  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  accountId Int
+  account   LedgerAccount @relation(fields: [accountId], references: [id])
+
+  direction LedgerEntryDirection
+  amount    BigInt
+  currency  String
+  createdAt DateTime             @default(now())
+
+  @@index([transactionId])
+  @@index([accountId, createdAt])
 }
 
 enum AuthType {
@@ -249,4 +238,20 @@ enum TotpStatus {
   DISABLED
   PENDING
   ENABLED
+}
+
+enum LedgerAccountType {
+  USER_CASH
+  PLATFORM_CLEARING
+}
+
+enum LedgerTxnType {
+  P2P_TRANSFER
+  ONRAMP
+  REVERSAL
+}
+
+enum LedgerEntryDirection {
+  DEBIT
+  CREDIT
 }
