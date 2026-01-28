@@ -9,12 +9,21 @@ import { p2pTransfer } from "../app/lib/actions/p2pTransfer";
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
+import { TransactionPinDialog } from "./TransactionPinDialog";
 
 export function SendMoneyCard() {
     const [number, setNumber] = useState("");
     const [amount, setAmount] = useState("");
     const [status, setStatus] = useState<"idle" | "processing" | "success">("idle");
     const [error, setError] = useState<string | null>(null);
+
+    const [pinOpen, setPinOpen] = useState(false);
+    const [pendingSend, setPendingSend] = useState<{
+        to: string;
+        amountPaise: number;
+        idempotencyKey: string;
+    } | null>(null);
+
     const router = useRouter();
 
     const { balance, refresh: refreshBalance } = useBalance();
@@ -22,40 +31,33 @@ export function SendMoneyCard() {
 
     async function handleSend() {
         setError(null);
-        if (!number.trim() || !amount || Number(amount) <= 0) {
-            setError("Please enter a valid number and amount.");
+
+        const to = number.trim();
+        if (!/^\d{10}$/.test(to)) {
+            setError("Please enter a valid 10-digit mobile number.");
             return;
         }
 
-        const amountInPaise = Number(amount) * 100;
+        const amountNum = Number(amount);
+        if (!Number.isFinite(amountNum) || amountNum <= 0) {
+            setError("Please enter a valid amount.");
+            return;
+        }
+
+        const amountInPaise = Math.round(amountNum * 100);
+        if (!Number.isFinite(amountInPaise) || amountInPaise <= 0) {
+            setError("Please enter a valid amount.");
+            return;
+        }
+
         if (balance.amount < amountInPaise) {
             setError("Insufficient wallet balance.");
             return;
         }
 
-        setStatus("processing");
         const idempotencyKey = uuidv4();
-
-        try {
-            const result = await p2pTransfer(number, amountInPaise, idempotencyKey);
-
-            if (result.success) {
-                await Promise.all([refreshBalance(), refreshTransactions()]);
-                setStatus("success");
-                setTimeout(() => {
-                    setNumber("");
-                    setAmount("");
-                    setStatus("idle");
-                    router.push("/dashboard");
-                }, 2000);
-            } else {
-                setError(result.message || "Transfer failed");
-                setStatus("idle");
-            }
-        } catch (error) {
-            setError("Network error. Please try again.");
-            setStatus("idle");
-        }
+        setPendingSend({ to, amountPaise: amountInPaise, idempotencyKey });
+        setPinOpen(true);
     }
 
     if (status === "success") {
@@ -67,7 +69,9 @@ export function SendMoneyCard() {
                         <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
                             <CheckCircle2 className="w-8 h-8" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Transfer Successful!</h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+                            Transfer Successful!
+                        </h3>
                         <p className="text-slate-500 dark:text-neutral-400 text-sm">
                             ₹{Number(amount).toLocaleString()} sent to {number}
                         </p>
@@ -78,65 +82,146 @@ export function SendMoneyCard() {
     }
 
     return (
-        <Card title="Send Money" className="w-full relative overflow-hidden min-h-[420px]">
-            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <>
+            <Card title="Send Money" className="w-full relative overflow-hidden min-h-[420px]">
+                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
-            <div className="space-y-6 relative z-10">
-                <div className="bg-slate-50 dark:bg-neutral-800/50 rounded-xl p-4 flex justify-between items-center border border-slate-100 dark:border-neutral-800">
-                    <span className="text-sm font-medium text-slate-500 dark:text-neutral-400">Available Balance</span>
-                    <span className="text-lg font-bold text-slate-900 dark:text-white">
-                        ₹{(balance.amount / 100).toLocaleString('en-IN')}
-                    </span>
+                <div className="space-y-6 relative z-10">
+                    <div className="bg-slate-50 dark:bg-neutral-800/50 rounded-xl p-4 flex justify-between items-center border border-slate-100 dark:border-neutral-800">
+                        <span className="text-sm font-medium text-slate-500 dark:text-neutral-400">
+                            Available Balance
+                        </span>
+                        <span className="text-lg font-bold text-slate-900 dark:text-white">
+                            ₹{(balance.amount / 100).toLocaleString("en-IN")}
+                        </span>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <TextInput
+                                label="Mobile Number"
+                                placeholder="Enter 10-digit number"
+                                value={number}
+                                onChange={(val) => {
+                                    const cleanVal = val.replace(/\D/g, "").slice(0, 10);
+                                    setNumber(cleanVal);
+                                    setError(null);
+                                }}
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <TextInput
+                                label="Amount (₹)"
+                                placeholder="0.00"
+                                type="number"
+                                value={amount}
+                                onChange={(val) => {
+                                    setAmount(val);
+                                    setError(null);
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="flex items-center gap-2 text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 p-3 rounded-lg animate-in fade-in slide-in-from-top-2">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <div className="pt-2">
+                        <Button
+                            onClick={handleSend}
+                            disabled={status === "processing"}
+                            className={`w-full py-4 text-base shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2
+              ${status === "processing" ? "opacity-70 cursor-wait" : "hover:-translate-y-0.5"}`}
+                        >
+                            {status === "processing" ? (
+                                "Processing..."
+                            ) : (
+                                <>
+                                    Send Securely <Send className="w-4 h-4" />
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
+            </Card>
 
-                <div className="space-y-4">
-                    <div className="space-y-1">
-                        <TextInput
-                            label="Mobile Number"
-                            placeholder="Enter 10-digit number"
-                            value={number}
-                            onChange={(val) => {
-                                const cleanVal = val.replace(/\D/g, "").slice(0, 10);
-                                setNumber(cleanVal);
-                                setError(null); // clear error on type
-                            }}
-                        />
-                    </div>
+            <TransactionPinDialog
+                open={pinOpen}
+                title="Enter Transaction PIN"
+                subtitle="Required to complete this transfer."
+                onClose={() => {
+                    if (status !== "processing") {
+                        setPinOpen(false);
+                        setPendingSend(null);
+                    }
+                }}
+                onVerify={async (pin) => {
+                    if (!pendingSend) return;
 
-                    <div className="space-y-1">
-                        <TextInput
-                            label="Amount (₹)"
-                            placeholder="0.00"
-                            type="number"
-                            value={amount}
-                            onChange={(val) => {
-                                setAmount(val);
-                                setError(null);
-                            }}
-                        />
-                    </div>
-                </div>
+                    setStatus("processing");
+                    try {
+                        const result = await p2pTransfer(
+                            pendingSend.to,
+                            pendingSend.amountPaise,
+                            pendingSend.idempotencyKey,
+                            pin
+                        );
 
-                {/* Inline Error Display */}
-                {error && (
-                    <div className="flex items-center gap-2 text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 p-3 rounded-lg animate-in fade-in slide-in-from-top-2">
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                        <span>{error}</span>
-                    </div>
-                )}
+                        if (result.success) {
+                            await Promise.all([refreshBalance(), refreshTransactions()]);
+                            setStatus("success");
+                            setPinOpen(false);
+                            setPendingSend(null);
 
-                <div className="pt-2">
-                    <Button
-                        onClick={handleSend}
-                        disabled={status === "processing"}
-                        className={`w-full py-4 text-base shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2
-                            ${status === "processing" ? "opacity-70 cursor-wait" : "hover:-translate-y-0.5"}`
+                            setTimeout(() => {
+                                setNumber("");
+                                setAmount("");
+                                setStatus("idle");
+                                router.push("/dashboard");
+                            }, 2000);
+
+                            return;
                         }
-                    >
-                        {status === "processing" ? "Processing..." : <>Send Securely <Send className="w-4 h-4" /></>}
-                    </Button>
-                </div>
-            </div>
-        </Card>
+
+                        if (result.errorCode === "PIN_NOT_SET") {
+                            setPinOpen(false);
+                            setPendingSend(null);
+                            setError("Please set your Transaction PIN in Security Center first.");
+                            router.push("/settings/security");
+                            return;
+                        }
+
+                        if (result.errorCode === "UNAUTHENTICATED") {
+                            setPinOpen(false);
+                            setPendingSend(null);
+                            router.push("/signin");
+                            return;
+                        }
+
+                        if (result.errorCode === "PIN_LOCKED") {
+                            const retry = result.retryAfterSec ? ` Try again in ~${result.retryAfterSec}s.` : "";
+                            throw new Error(`PIN locked due to repeated failures.${retry}`);
+                        }
+
+                        if (result.errorCode === "RATE_LIMITED") {
+                            const retry = result.retryAfterSec ? ` Retry after ~${result.retryAfterSec}s.` : "";
+                            throw new Error(`Too many attempts.${retry}`);
+                        }
+
+                        if (result.errorCode === "PIN_REQUIRED") throw new Error("Transaction PIN is required.");
+                        if (result.errorCode === "PIN_INVALID") throw new Error("Invalid transaction PIN.");
+
+                        throw new Error(result.message || "Transfer failed");
+                    } finally {
+                        setStatus((s) => (s === "success" ? s : "idle"));
+                    }
+                }}
+            />
+        </>
     );
 }

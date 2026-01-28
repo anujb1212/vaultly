@@ -8,17 +8,27 @@ datasource db {
 }
 
 model User {
-  id                Int                 @id @default(autoincrement())
-  email             String?             @unique
-  name              String?
-  number            String              @unique
-  password          String
-  createdAt         DateTime            @default(now())
+  id        Int      @id @default(autoincrement())
+  email     String?  @unique
+  name      String?
+  number    String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  pendingEmail            String?
+  emailVerified           Boolean                  @default(false)
+  emailVerificationTokens EmailVerificationToken[]
+
+  sessionVersion Int             @default(1)
+  transactionPin TransactionPin?
+  userSessions   UserSession[]
+
   OnRampTransaction OnRampTransaction[]
   Balance           Balance[]
   sentTransfers     p2pTransfer[]       @relation(name: "SenderRelation")
   receivedTransfers p2pTransfer[]       @relation(name: "ReceiverRelation")
   AuditLog          AuditLog[]
+  ledgerAccounts    LedgerAccount[]
 
   @@index([number])
 }
@@ -110,17 +120,101 @@ model AuditLog {
   @@index([action, timestamp])
 }
 
-model RateLimit {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  action      String
-  count       Int      @default(1)
-  windowStart DateTime
-  windowEnd   DateTime
+model EmailVerificationToken {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, action, windowStart])
-  @@index([userId, action])
-  @@index([windowEnd])
+  email      String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, email])
+  @@index([expiresAt])
+}
+
+model TransactionPin {
+  userId Int  @id
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pinHash   String
+  algo      String   @default("bcrypt")
+  version   Int      @default(1)
+  changedAt DateTime @default(now())
+
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  lastFailedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserSession {
+  id     String @id @default(cuid())
+  userId Int
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime? @default(now())
+  expiresAt  DateTime?
+
+  ip          String?
+  userAgent   String?
+  deviceId    String?
+  deviceLabel String?
+
+  revokedAt DateTime?
+  sudoUntil DateTime?
+
+  @@index([userId, createdAt])
+  @@index([userId, revokedAt])
+  @@index([userId, lastSeenAt])
+}
+
+model LedgerAccount {
+  id     Int   @id @default(autoincrement())
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountType   LedgerAccountType
+  currency      String
+  createdAt     DateTime          @default(now())
+  ledgerEntries LedgerEntry[]
+
+  @@index([userId, accountType])
+  @@index([accountType, currency])
+}
+
+model LedgerTransaction {
+  id          Int           @id @default(autoincrement())
+  type        LedgerTxnType
+  externalRef String        @unique
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+
+  entries LedgerEntry[]
+
+  @@index([type, createdAt])
+}
+
+model LedgerEntry {
+  id            Int               @id @default(autoincrement())
+  transactionId Int
+  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  accountId Int
+  account   LedgerAccount @relation(fields: [accountId], references: [id])
+
+  direction LedgerEntryDirection
+  amount    BigInt
+  currency  String
+  createdAt DateTime             @default(now())
+
+  @@index([transactionId])
+  @@index([accountId, createdAt])
 }
 
 enum AuthType {
@@ -138,4 +232,26 @@ enum P2PStatus {
   SUCCESS
   FAILED
   REVERSED
+}
+
+enum TotpStatus {
+  DISABLED
+  PENDING
+  ENABLED
+}
+
+enum LedgerAccountType {
+  USER_CASH
+  PLATFORM_CLEARING
+}
+
+enum LedgerTxnType {
+  P2P_TRANSFER
+  ONRAMP
+  REVERSAL
+}
+
+enum LedgerEntryDirection {
+  DEBIT
+  CREDIT
 }

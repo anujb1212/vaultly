@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import { revalidatePath } from "next/cache";
 import { rateLimit } from "../rateLimit";
+import { verifyMpinOrThrow, VerifyMpinError } from "../security/verifyMpin";
 
 type P2PTransferResult =
     | { success: true; message: string }
@@ -12,13 +13,14 @@ type P2PTransferResult =
         success: false;
         message: string;
         retryAfterSec?: number;
-        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "UNKNOWN";
+        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "PIN_REQUIRED" | "PIN_NOT_SET" | "PIN_LOCKED" | "PIN_INVALID" | "UNKNOWN";
     };
 
 export async function p2pTransfer(
     to: string,
     amount: number,
-    idempotencyKey: string
+    idempotencyKey: string,
+    mpin?: string
 ): Promise<P2PTransferResult> {
     const session = await getServerSession(authOptions);
     const sender = session?.user?.id;
@@ -27,10 +29,33 @@ export async function p2pTransfer(
         return {
             success: false,
             message: "Error while sending",
+            errorCode: "UNAUTHENTICATED"
         };
     }
 
     const senderId = Number(sender)
+    if (!Number.isFinite(senderId) || senderId <= 0) {
+        return {
+            success: false,
+            message: "Unauthenticated request",
+            errorCode: "UNAUTHENTICATED",
+        };
+    }
+
+    if (typeof to !== "string" || !/^\d{10}$/.test(to)) {
+        return {
+            success: false,
+            message: "Invalid receiver number",
+            errorCode: "UNKNOWN",
+        };
+    }
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
+        return {
+            success: false,
+            message: "Invalid amount",
+            errorCode: "UNKNOWN",
+        };
+    }
 
     const rl = await rateLimit({
         key: `rl:p2p:create:user:${senderId}`,
@@ -47,6 +72,20 @@ export async function p2pTransfer(
         };
     }
 
+    try {
+        await verifyMpinOrThrow({ userId: senderId, mpin, context: { action: "P2P_TRANSFER" } });
+    } catch (e) {
+        if (e instanceof VerifyMpinError) {
+            return {
+                success: false,
+                message: e.message,
+                retryAfterSec: e.retryAfterSec,
+                errorCode: e.code,
+            };
+        }
+        return { success: false, message: "PIN verification failed", errorCode: "UNKNOWN" };
+    }
+
     const idempotencyCheck = await idempotencyManager.checkAndStore(
         idempotencyKey,
         senderId,
@@ -54,10 +93,7 @@ export async function p2pTransfer(
     )
 
     if (idempotencyCheck?.exists) {
-        return idempotencyCheck.response as {
-            success: boolean;
-            message: string;
-        }
+        return idempotencyCheck.response as P2PTransferResult
     }
 
     const receiver = await prisma.user.findFirst({
@@ -67,9 +103,10 @@ export async function p2pTransfer(
     });
 
     if (!receiver) {
-        const errorResult = {
+        const errorResult: P2PTransferResult = {
             success: false,
             message: "User not found",
+            errorCode: "UNKNOWN"
         };
 
         await idempotencyManager.updateResponse(idempotencyKey, errorResult);
@@ -77,9 +114,10 @@ export async function p2pTransfer(
     }
 
     if (receiver.id === senderId) {
-        const errorResult = {
+        const errorResult: P2PTransferResult = {
             success: false,
             message: "Cannot transfer to self",
+            errorCode: "UNKNOWN"
         };
 
         await idempotencyManager.updateResponse(idempotencyKey, errorResult);
