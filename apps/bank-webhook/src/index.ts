@@ -1,5 +1,5 @@
 import { OnRampStatus, Prisma } from "@prisma/client";
-import db, { auditLogger } from "@repo/db/client";
+import db, { auditLogger, postOnrampLedger } from "@repo/db/client";
 import express from "express";
 import zod from "zod";
 import crypto from "crypto";
@@ -37,13 +37,15 @@ function computeSignature(rawBody: Buffer, secret: string) {
 const webhookBodySchema = zod.object({
     token: zod.string().min(1),
     user_identifier: zod.string().min(1),
-    amount: zod.coerce.number().positive(),
+    amount: zod.coerce.number().int().positive(),
     status: zod.enum(OnRampStatus),
     failureReasonCode: zod.string().optional(),
     failureReasonMessage: zod.string().optional(),
 });
 
 app.post("/bankWebhook", async (req: any, res) => {
+    const webhookEventId = String(req.header("X-Webhook-Id") ?? "");
+
     const signatureHeader = req.header("X-Webhook-Signature");
     const rawBody: Buffer | undefined = req.rawBody;
 
@@ -82,11 +84,16 @@ app.post("/bankWebhook", async (req: any, res) => {
                 return { kind: "user_mismatch" as const };
             }
 
+            if (txn.amount !== body.amount) {
+                return { kind: "amount_mismatch" as const };
+            }
+
             if (txn.status === "Success" || txn.status === "Failure") {
                 return { kind: "already_processed" as const };
             }
 
-            const prevMeta = asJsonObject(txn.metadata)
+            const prevMeta = asJsonObject(txn.metadata);
+
             if (body.status === "Failure") {
                 const claimed = await tx.onRampTransaction.updateMany({
                     where: {
@@ -100,7 +107,7 @@ app.post("/bankWebhook", async (req: any, res) => {
                         failureReasonCode: body.failureReasonCode ?? "UNKNOWN",
                         failureReasonMessage: body.failureReasonMessage,
                         metadata: {
-                            prevMeta,
+                            ...prevMeta,
                             webhookReceivedAt: now.toISOString(),
                             webhookPayload: req.body,
                         },
@@ -141,7 +148,7 @@ app.post("/bankWebhook", async (req: any, res) => {
                     status: "Success",
                     completedAt: now,
                     metadata: {
-                        prevMeta,
+                        ...prevMeta,
                         webhookReceivedAt: now.toISOString(),
                         webhookPayload: req.body,
                     },
@@ -150,13 +157,22 @@ app.post("/bankWebhook", async (req: any, res) => {
 
             if (claimed.count === 0) return { kind: "already_processed" as const };
 
-            const currentBalance = await tx.balance.findUnique({
+            await tx.balance.upsert({
                 where: { userId: txn.userId },
+                update: {},
+                create: { userId: txn.userId, amount: 0, locked: 0 },
             });
 
-            if (!currentBalance) {
-                throw new Error(`Balance record not found for user ${txn.userId}`);
-            }
+            const ledgerTxn = await postOnrampLedger({
+                tx,
+                token: body.token,
+                userId: txn.userId,
+                amount: body.amount,
+                provider: txn.provider,
+                webhookEventId: webhookEventId || undefined,
+            });
+
+            const currentBalance = await tx.balance.findUnique({ where: { userId: txn.userId } });
 
             const updatedBalance = await tx.balance.update({
                 where: { userId: txn.userId },
@@ -165,10 +181,15 @@ app.post("/bankWebhook", async (req: any, res) => {
 
             await auditLogger.logBalanceChange(
                 txn.userId,
-                currentBalance.amount,
+                currentBalance?.amount ?? 0,
                 updatedBalance.amount,
                 "ONRAMP_CREDIT",
-                { token: body.token, provider: txn.provider, onRampTxnId: txn.id },
+                {
+                    token: body.token,
+                    provider: txn.provider,
+                    onRampTxnId: txn.id,
+                    ledgerTransactionId: ledgerTxn.id,
+                },
                 tx
             );
 
@@ -197,6 +218,9 @@ app.post("/bankWebhook", async (req: any, res) => {
         }
         if (outcome.kind === "user_mismatch") {
             return res.status(400).json({ message: "user_identifier mismatch" });
+        }
+        if (outcome.kind === "amount_mismatch") {
+            return res.status(400).json({ message: "amount mismatch" });
         }
 
         return res.status(200).json({ message: "Captured" });

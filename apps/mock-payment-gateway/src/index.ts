@@ -25,7 +25,7 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? 'dev_secret'
 const PaymentRequestSchema = z.object({
     token: z.string().min(1),
     user_identifier: z.string().min(1),
-    amount: z.coerce.number().positive(),
+    amount: z.coerce.number().int().positive(),
     scenario: z.
         enum(['success', 'failure', 'chaos-slow', 'chaos-duplicate', 'chaos-race']).
         optional().

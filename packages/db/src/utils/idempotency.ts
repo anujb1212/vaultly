@@ -10,22 +10,26 @@ export class IdempotencyManager {
         ttlHours: number = 24
     ): Promise<{ exists: boolean; response?: unknown } | void> {
         const existingRecord = await this.prisma.idempotencyKey.findUnique({
-            where: { key }
-        })
+            where: { key },
+        });
 
         if (existingRecord) {
             if (new Date() < existingRecord.expiresAt) {
+                if (existingRecord.response === null) {
+                    return { exists: false };
+                }
+
                 return {
                     exists: true,
-                    response: existingRecord.response
-                }
+                    response: existingRecord.response,
+                };
             } else {
-                await this.prisma.idempotencyKey.delete({ where: { key } })
+                await this.prisma.idempotencyKey.delete({ where: { key } });
             }
         }
 
-        const expiresAt = new Date()
-        expiresAt.setHours(expiresAt.getHours() + ttlHours)
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + ttlHours);
 
         await this.prisma.idempotencyKey.create({
             data: {
@@ -33,33 +37,25 @@ export class IdempotencyManager {
                 userId,
                 action,
                 response: Prisma.JsonNull,
-                expiresAt
-            }
-        })
+                expiresAt,
+            },
+        });
 
-        return {
-            exists: false
-        }
+        return { exists: false };
     }
 
     async updateResponse(key: string, response: unknown): Promise<void> {
         await this.prisma.idempotencyKey.update({
             where: { key },
-            data: {
-                response: response as Prisma.InputJsonValue
-            }
-        })
+            data: { response: response as Prisma.InputJsonValue },
+        });
     }
 
     async cleanup(): Promise<number> {
         const result = await this.prisma.idempotencyKey.deleteMany({
-            where: {
-                expiresAt: {
-                    lt: new Date()
-                }
-            }
-        })
+            where: { expiresAt: { lt: new Date() } },
+        });
 
-        return result.count
+        return result.count;
     }
 }

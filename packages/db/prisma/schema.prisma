@@ -175,15 +175,16 @@ model UserSession {
 }
 
 model LedgerAccount {
-  id     Int   @id @default(autoincrement())
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id            Int               @id @default(autoincrement())
+  userId        Int?
+  user          User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systemKey     String?           @unique
   accountType   LedgerAccountType
   currency      String
   createdAt     DateTime          @default(now())
   ledgerEntries LedgerEntry[]
 
+  @@unique([userId, accountType, currency])
   @@index([userId, accountType])
   @@index([accountType, currency])
 }
@@ -209,7 +210,7 @@ model LedgerEntry {
   account   LedgerAccount @relation(fields: [accountId], references: [id])
 
   direction LedgerEntryDirection
-  amount    BigInt
+  amount    Int
   currency  String
   createdAt DateTime             @default(now())
 

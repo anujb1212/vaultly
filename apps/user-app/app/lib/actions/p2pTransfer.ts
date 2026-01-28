@@ -1,6 +1,6 @@
 "use server";
 
-import prisma, { auditLogger, idempotencyManager } from "@repo/db/client";
+import prisma, { auditLogger, idempotencyManager, postP2PLedger } from "@repo/db/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import { revalidatePath } from "next/cache";
@@ -13,7 +13,14 @@ type P2PTransferResult =
         success: false;
         message: string;
         retryAfterSec?: number;
-        errorCode?: "UNAUTHENTICATED" | "RATE_LIMITED" | "PIN_REQUIRED" | "PIN_NOT_SET" | "PIN_LOCKED" | "PIN_INVALID" | "UNKNOWN";
+        errorCode?:
+        | "UNAUTHENTICATED"
+        | "RATE_LIMITED"
+        | "PIN_REQUIRED"
+        | "PIN_NOT_SET"
+        | "PIN_LOCKED"
+        | "PIN_INVALID"
+        | "UNKNOWN";
     };
 
 export async function p2pTransfer(
@@ -26,35 +33,20 @@ export async function p2pTransfer(
     const sender = session?.user?.id;
 
     if (!sender) {
-        return {
-            success: false,
-            message: "Error while sending",
-            errorCode: "UNAUTHENTICATED"
-        };
+        return { success: false, message: "Error while sending", errorCode: "UNAUTHENTICATED" };
     }
 
-    const senderId = Number(sender)
+    const senderId = Number(sender);
     if (!Number.isFinite(senderId) || senderId <= 0) {
-        return {
-            success: false,
-            message: "Unauthenticated request",
-            errorCode: "UNAUTHENTICATED",
-        };
+        return { success: false, message: "Unauthenticated request", errorCode: "UNAUTHENTICATED" };
     }
 
     if (typeof to !== "string" || !/^\d{10}$/.test(to)) {
-        return {
-            success: false,
-            message: "Invalid receiver number",
-            errorCode: "UNKNOWN",
-        };
+        return { success: false, message: "Invalid receiver number", errorCode: "UNKNOWN" };
     }
+
     if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
-        return {
-            success: false,
-            message: "Invalid amount",
-            errorCode: "UNKNOWN",
-        };
+        return { success: false, message: "Invalid amount", errorCode: "UNKNOWN" };
     }
 
     const rl = await rateLimit({
@@ -86,151 +78,124 @@ export async function p2pTransfer(
         return { success: false, message: "PIN verification failed", errorCode: "UNKNOWN" };
     }
 
-    const idempotencyCheck = await idempotencyManager.checkAndStore(
-        idempotencyKey,
-        senderId,
-        "P2P_TRANSFER"
-    )
+    const idempotencyCheck = await idempotencyManager.checkAndStore(idempotencyKey, senderId, "P2P_TRANSFER");
 
-    if (idempotencyCheck?.exists) {
-        return idempotencyCheck.response as P2PTransferResult
+    if (idempotencyCheck?.exists && idempotencyCheck.response != null) {
+        return idempotencyCheck.response as P2PTransferResult;
     }
 
     const receiver = await prisma.user.findFirst({
-        where: {
-            number: to
-        },
+        where: { number: to },
     });
 
     if (!receiver) {
-        const errorResult: P2PTransferResult = {
-            success: false,
-            message: "User not found",
-            errorCode: "UNKNOWN"
-        };
-
+        const errorResult: P2PTransferResult = { success: false, message: "User not found", errorCode: "UNKNOWN" };
         await idempotencyManager.updateResponse(idempotencyKey, errorResult);
         return errorResult;
     }
 
     if (receiver.id === senderId) {
-        const errorResult: P2PTransferResult = {
-            success: false,
-            message: "Cannot transfer to self",
-            errorCode: "UNKNOWN"
-        };
-
+        const errorResult: P2PTransferResult = { success: false, message: "Cannot transfer to self", errorCode: "UNKNOWN" };
         await idempotencyManager.updateResponse(idempotencyKey, errorResult);
         return errorResult;
     }
 
     try {
-        const result = await prisma.$transaction(async (tx) => {
-            const [firstId, secondId] = [senderId, receiver.id].sort((a, b) => a - b);
-
-            await tx.$queryRaw`
-                SELECT * FROM "Balance" 
-                WHERE "userId" IN (${firstId}, ${secondId}) 
-                FOR UPDATE`
-
-            const fromBalance = await tx.balance.findUnique({
-                where: { userId: senderId },
-            });
-
-            if (!fromBalance || fromBalance.amount < amount) {
-                throw new Error("Insufficient Balance");
-            }
-
-            const toBalance = await tx.balance.findUnique({
-                where: { userId: receiver.id },
-            });
-
-            if (!toBalance) {
-                await tx.balance.create({
-                    data: {
-                        userId: receiver.id,
-                        amount: 0,
-                        locked: 0,
-                    },
+        const result = await prisma.$transaction(
+            async (tx) => {
+                await tx.balance.upsert({
+                    where: { userId: senderId },
+                    update: {},
+                    create: { userId: senderId, amount: 0, locked: 0 },
                 });
-            }
 
-            const updatedSenderBalance = await tx.balance.update({
-                where: { userId: senderId },
-                data: { amount: { decrement: amount } },
-            });
+                await tx.balance.upsert({
+                    where: { userId: receiver.id },
+                    update: {},
+                    create: { userId: receiver.id, amount: 0, locked: 0 },
+                });
 
-            const updatedReceiverBalance = await tx.balance.update({
-                where: { userId: receiver.id },
-                data: { amount: { increment: amount } },
-            });
+                const [firstId, secondId] = [senderId, receiver.id].sort((a, b) => a - b);
 
-            const transferRecord = await tx.p2pTransfer.create({
-                data: {
+                await tx.$queryRaw`
+          SELECT * FROM "Balance"
+          WHERE "userId" IN (${firstId}, ${secondId})
+          FOR UPDATE
+        `;
+
+                const fromBalance = await tx.balance.findUnique({ where: { userId: senderId } });
+                if (!fromBalance || fromBalance.amount < amount) throw new Error("Insufficient Balance");
+
+                const toBalance = await tx.balance.findUnique({ where: { userId: receiver.id } });
+
+                const ledgerTxn = await postP2PLedger({
+                    tx,
+                    idempotencyKey,
                     senderId,
                     receiverId: receiver.id,
                     amount,
-                    timestamp: new Date(),
-                    status: "SUCCESS",
-                    metadata: {
-                        idempotencyKey,
-                        senderBalanceBefore: fromBalance.amount,
-                        senderBalanceAfter: updatedSenderBalance.amount,
-                        receiverBalanceBefore: toBalance?.amount ?? 0,
-                        receiverBalanceAfter: updatedReceiverBalance.amount,
-                    }
-                },
-            });
+                });
 
-            await auditLogger.logBalanceChange(
-                senderId,
-                fromBalance.amount,
-                updatedSenderBalance.amount,
-                "P2P_TRANSFER_DEBIT",
-                {
-                    transferId: transferRecord.id,
-                    receiverId: receiver.id,
-                    receiverNumber: receiver.number,
-                },
-                tx
-            )
+                const updatedSenderBalance = await tx.balance.update({
+                    where: { userId: senderId },
+                    data: { amount: { decrement: amount } },
+                });
 
-            await auditLogger.logBalanceChange(
-                receiver.id,
-                toBalance?.amount ?? 0,
-                updatedReceiverBalance.amount,
-                "P2P_TRANSFER_CREDIT",
-                {
-                    transferId: transferRecord.id,
-                    senderId: senderId,
-                    senderNumber: to,
-                },
-                tx
-            )
+                const updatedReceiverBalance = await tx.balance.update({
+                    where: { userId: receiver.id },
+                    data: { amount: { increment: amount } },
+                });
 
-            await auditLogger.logTransfer(
-                senderId,
-                transferRecord.id,
-                {
-                    amount,
-                    to: receiver.number,
-                },
-                {
-                    idempotencyKey
-                },
-                tx
-            )
+                const transferRecord = await tx.p2pTransfer.create({
+                    data: {
+                        senderId,
+                        receiverId: receiver.id,
+                        amount,
+                        timestamp: new Date(),
+                        status: "SUCCESS",
+                        metadata: {
+                            idempotencyKey,
+                            ledgerTransactionId: ledgerTxn.id,
+                            senderBalanceBefore: fromBalance.amount,
+                            senderBalanceAfter: updatedSenderBalance.amount,
+                            receiverBalanceBefore: toBalance?.amount ?? 0,
+                            receiverBalanceAfter: updatedReceiverBalance.amount,
+                        },
+                    },
+                });
 
-            return {
-                success: true,
-                message: "Transfer successful",
-            };
-        }, {
-            timeout: 10000,
-            maxWait: 5000
-        })
+                await auditLogger.logBalanceChange(
+                    senderId,
+                    fromBalance.amount,
+                    updatedSenderBalance.amount,
+                    "P2P_TRANSFER_DEBIT",
+                    { transferId: transferRecord.id, receiverId: receiver.id, receiverNumber: receiver.number },
+                    tx
+                );
 
-        await idempotencyManager.updateResponse(idempotencyKey, result)
+                await auditLogger.logBalanceChange(
+                    receiver.id,
+                    toBalance?.amount ?? 0,
+                    updatedReceiverBalance.amount,
+                    "P2P_TRANSFER_CREDIT",
+                    { transferId: transferRecord.id, senderId, receiverNumber: receiver.number },
+                    tx
+                );
+
+                await auditLogger.logTransfer(
+                    senderId,
+                    transferRecord.id,
+                    { amount, to: receiver.number },
+                    { idempotencyKey },
+                    tx
+                );
+
+                return { success: true, message: "Transfer successful" } as const;
+            },
+            { timeout: 10000, maxWait: 5000 }
+        );
+
+        await idempotencyManager.updateResponse(idempotencyKey, result);
 
         revalidatePath("/dashboard");
         revalidatePath("/p2ptransfer");
@@ -238,14 +203,15 @@ export async function p2pTransfer(
         return result;
     } catch (error: any) {
         console.error("P2P transfer error:", error);
+
         const errorResult: P2PTransferResult = {
             success: false,
             message: error.message || "Transfer failed",
-            errorCode: "UNKNOWN"
+            errorCode: "UNKNOWN",
         };
 
         try {
-            await idempotencyManager.updateResponse(idempotencyKey, errorResult)
+            await idempotencyManager.updateResponse(idempotencyKey, errorResult);
         } catch (err) {
             console.error("Failed to update idempotency record:", err);
         }
