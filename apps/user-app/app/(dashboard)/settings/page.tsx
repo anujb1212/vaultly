@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Copy, ShieldCheck, Bell, User, LogOut, CheckCircle2, ShieldAlert, Globe, Camera } from "lucide-react";
+import { ShieldCheck, Bell, User, LogOut, CheckCircle2, ShieldAlert, Globe, Camera } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { KeyRound, LockKeyhole } from "lucide-react";
@@ -10,16 +10,6 @@ import { ChangePasswordDialog } from "../../../components/ChangePasswordDialog";
 
 import { setTransactionPin, changeTransactionPin } from "../../lib/actions/setTransactionPin";
 import { changePassword } from "../../lib/actions/changePassword";
-
-
-function maskEmail(email?: string | null) {
-    if (!email) return "—";
-    const [name, domain] = email.split("@");
-    if (!domain) return email;
-    if (!name) return email;
-    const maskedName = name.length <= 2 ? `${name[0] ?? ""}*` : `${name.slice(0, 2)}***`;
-    return `${maskedName}@${domain}`;
-}
 
 export default function SettingsPage() {
     const router = useRouter();

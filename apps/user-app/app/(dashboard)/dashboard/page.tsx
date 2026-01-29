@@ -12,10 +12,11 @@ import {
     TrendingDown,
     Plus,
     Send,
-    Lock
+    Lock,
 } from "lucide-react";
 
-// --- FORMATTER HELPER ---
+import { AISecurityInsightsCard } from "../../../components/AISecurityInsightsCard";
+
 function formatINRPartsFromPaise(paise: number) {
     const safe = Number.isFinite(paise) ? Math.trunc(paise) : 0;
     const rupees = Math.trunc(safe / 100);
@@ -27,8 +28,17 @@ function formatINRPartsFromPaise(paise: number) {
 }
 
 export default function Dashboard() {
-    const { balance, isLoading: balanceLoading, refresh: refreshBalance } = useBalance();
-    const { onRampTransactions, p2pTransactions, isLoading: txnsLoading, refresh: refreshTransactions } = useTransactions();
+    const {
+        balance,
+        isLoading: balanceLoading,
+        refresh: refreshBalance,
+    } = useBalance();
+    const {
+        onRampTransactions,
+        p2pTransactions,
+        isLoading: txnsLoading,
+        refresh: refreshTransactions,
+    } = useTransactions();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -47,49 +57,51 @@ export default function Dashboard() {
             if (!cancelled) router.replace("/dashboard");
         }
         run();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, [searchParams, refreshBalance, refreshTransactions, router]);
 
-    // MERGE TRANSACTIONS LOGIC
     const recentTransactions = useMemo(() => {
-        const onRamps = onRampTransactions.map(t => ({
+        const onRamps = onRampTransactions.map((t) => ({
             ...t,
-            type: 'OnRamp',
+            type: "OnRamp",
             uniqueId: `onramp-${t.id}`,
             title: `Added from ${t.provider}`,
             isDebit: false,
-            timestamp: t.time
+            timestamp: t.time,
         }));
 
-        const p2p = p2pTransactions.map(t => ({
+        const p2p = p2pTransactions.map((t) => ({
             ...t,
-            type: 'P2P',
+            type: "P2P",
             uniqueId: `p2p-${t.id}`,
-            title: t.type === 'sent'
-                ? `Sent to ${t.toUser}`
-                : `Received from ${t.toUser}`,
-            provider: 'P2P Transfer',
-            status: 'Success',
-            isDebit: t.type === 'sent',
-            timestamp: t.time
+            title: t.type === "sent" ? `Sent to ${t.toUser}` : `Received from ${t.toUser}`,
+            provider: "P2P Transfer",
+            status: "Success",
+            isDebit: t.type === "sent",
+            timestamp: t.time,
         }));
 
         return [...onRamps, ...p2p]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .sort(
+                (a, b) =>
+                    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )
             .slice(0, 5);
     }, [onRampTransactions, p2pTransactions]);
 
-    // CALCULATE INFLOW / OUTFLOW
     const stats = useMemo(() => {
-        const inflow = onRampTransactions
-            .filter(t => t.status === 'Success')
-            .reduce((acc, t) => acc + t.amount, 0)
-            + p2pTransactions
-                .filter(t => t.type === 'received')
+        const inflow =
+            onRampTransactions
+                .filter((t) => t.status === "Success")
+                .reduce((acc, t) => acc + t.amount, 0) +
+            p2pTransactions
+                .filter((t) => t.type === "received")
                 .reduce((acc, t) => acc + t.amount, 0);
 
         const outflow = p2pTransactions
-            .filter(t => t.type === 'sent')
+            .filter((t) => t.type === "sent")
             .reduce((acc, t) => acc + t.amount, 0);
 
         return { inflow, outflow };
@@ -102,7 +114,6 @@ export default function Dashboard() {
 
     return (
         <div className="w-full min-h-screen relative bg-neutral-50 dark:bg-black selection:bg-indigo-100 dark:selection:bg-indigo-900 overflow-x-hidden">
-
             {/* --- BACKGROUND EFFECT --- */}
             <div className="fixed inset-0 -z-10 h-full w-full bg-white dark:bg-black bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#111_1px,transparent_1px),linear-gradient(to_bottom,#111_1px,transparent_1px)] bg-[size:6rem_4rem]">
                 <div className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_800px_at_100%_200px,#d5c5ff,transparent)] dark:bg-[radial-gradient(circle_800px_at_100%_200px,#312e81,transparent)] opacity-20 dark:opacity-40"></div>
@@ -112,26 +123,32 @@ export default function Dashboard() {
             <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-white/70 dark:bg-black/70 border-b border-slate-200/50 dark:border-neutral-800/50 transition-all duration-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h1>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            Dashboard
+                        </h1>
                         <p className="text-slate-500 dark:text-neutral-400 text-sm font-medium">
                             <Greeting />, here's your financial overview.
                         </p>
                     </div>
                     <div className="hidden md:block">
-                        <div className="inline-flex items-center px-4 py-2 rounded-full text-xs font-semibold tracking-wide uppercase
-                                bg-white/50 dark:bg-neutral-900/50 text-slate-500 dark:text-neutral-500 border border-slate-200/50 dark:border-neutral-800/50 backdrop-blur-md">
-                            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                        <div
+                            className="inline-flex items-center px-4 py-2 rounded-full text-xs font-semibold tracking-wide uppercase
+                                bg-white/50 dark:bg-neutral-900/50 text-slate-500 dark:text-neutral-500 border border-slate-200/50 dark:border-neutral-800/50 backdrop-blur-md"
+                        >
+                            {new Date().toLocaleDateString("en-US", {
+                                weekday: "long",
+                                month: "long",
+                                day: "numeric",
+                            })}
                         </div>
                     </div>
                 </div>
             </header>
 
             <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in space-y-8">
-
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column: Balance & Transactions */}
                     <div className="lg:col-span-2 space-y-8">
-
                         {/* --- TOTAL BALANCE CARD --- */}
                         <div className="relative overflow-hidden bg-slate-900 dark:bg-neutral-900 rounded-[2.5rem] p-8 md:p-10 shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 group border border-slate-200/10 dark:border-neutral-800">
                             {/* Card Gloss Effect */}
@@ -139,14 +156,18 @@ export default function Dashboard() {
 
                             {/* FORMATTER LOGIC FOR BALANCE */}
                             {(() => {
-                                const { rupeesText, fractionText } = formatINRPartsFromPaise(balance?.amount ?? 0);
+                                const { rupeesText, fractionText } = formatINRPartsFromPaise(
+                                    balance?.amount ?? 0
+                                );
                                 const locked = formatINRPartsFromPaise(balance?.locked ?? 0);
 
                                 return (
                                     <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-8">
                                         {/* Left: Amount */}
                                         <div className="flex-1 min-w-0">
-                                            <h2 className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 opacity-90">Total Balance</h2>
+                                            <h2 className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 opacity-90">
+                                                Total Balance
+                                            </h2>
 
                                             {balanceLoading ? (
                                                 <div className="h-20 w-64 bg-slate-800/50 rounded-2xl animate-pulse" />
@@ -163,7 +184,12 @@ export default function Dashboard() {
 
                                             <div className="mt-5 inline-flex items-center gap-2 text-sm text-slate-400 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
                                                 <Lock className="w-3.5 h-3.5" />
-                                                <span>Locked: <span className="text-white font-medium">₹{locked.rupeesText}.{locked.fractionText}</span></span>
+                                                <span>
+                                                    Locked:{" "}
+                                                    <span className="text-white font-medium">
+                                                        ₹{locked.rupeesText}.{locked.fractionText}
+                                                    </span>
+                                                </span>
                                             </div>
                                         </div>
 
@@ -190,17 +216,22 @@ export default function Dashboard() {
                         {/* --- RECENT ACTIVITY --- */}
                         <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl rounded-[2.5rem] border border-slate-200/60 dark:border-neutral-800/60 overflow-hidden shadow-sm">
                             <div className="p-8 pb-4 flex justify-between items-center border-b border-slate-100 dark:border-neutral-800">
-                                <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Recent Activity</h3>
+                                <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">
+                                    Recent Activity
+                                </h3>
                                 <button
                                     onClick={() => router.push("/transactions")}
                                     className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition flex items-center gap-1 group px-3 py-1 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                                 >
-                                    View all <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                                    View all{" "}
+                                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                                 </button>
                             </div>
 
                             {txnsLoading ? (
-                                <div className="p-12 text-center text-slate-400">Loading activity...</div>
+                                <div className="p-12 text-center text-slate-400">
+                                    Loading activity...
+                                </div>
                             ) : recentTransactions.length === 0 ? (
                                 <div className="p-16 text-center text-slate-400 flex flex-col items-center gap-4">
                                     <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-neutral-800 flex items-center justify-center">
@@ -211,26 +242,50 @@ export default function Dashboard() {
                             ) : (
                                 <div className="p-4 space-y-1">
                                     {recentTransactions.map((tx: any) => (
-                                        <div key={tx.uniqueId} className="p-4 rounded-2xl hover:bg-white dark:hover:bg-neutral-800/80 transition-all flex items-center justify-between group border border-transparent hover:border-slate-100 dark:hover:border-neutral-800 hover:shadow-sm">
+                                        <div
+                                            key={tx.uniqueId}
+                                            className="p-4 rounded-2xl hover:bg-white dark:hover:bg-neutral-800/80 transition-all flex items-center justify-between group border border-transparent hover:border-slate-100 dark:hover:border-neutral-800 hover:shadow-sm"
+                                        >
                                             <div className="flex items-center gap-5">
-                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shadow-sm transition-transform group-hover:scale-105
-                                                    ${tx.status === 'Failure' ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400' :
-                                                        tx.isDebit ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400' :
-                                                            'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'}`}>
-                                                    {tx.status === 'Failure' ? <AlertCircle className="w-5 h-5" /> : (tx.provider?.[0] || "T")}
+                                                <div
+                                                    className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shadow-sm transition-transform group-hover:scale-105
+                                                ${tx.status === "Failure"
+                                                            ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+                                                            : tx.isDebit
+                                                                ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400"
+                                                                : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                                        }`}
+                                                >
+                                                    {tx.status === "Failure" ? (
+                                                        <AlertCircle className="w-5 h-5" />
+                                                    ) : (
+                                                        tx.provider?.[0] || "T"
+                                                    )}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-slate-900 dark:text-white text-base">{tx.title}</div>
+                                                    <div className="font-semibold text-slate-900 dark:text-white text-base">
+                                                        {tx.title}
+                                                    </div>
                                                     <div className="text-xs font-medium text-slate-500 dark:text-neutral-500 mt-1">
-                                                        {new Date(tx.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        {new Date(tx.timestamp).toLocaleDateString("en-US", {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                        })}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className={`font-bold tabular-nums text-base tracking-tight ${tx.status === 'Failure' ? 'text-rose-500 dark:text-rose-400 line-through opacity-60' :
-                                                tx.isDebit ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
-                                                }`}>
-                                                {tx.status !== 'Failure' && (tx.isDebit ? '-' : '+')}
-                                                ₹{(tx.amount / 100).toLocaleString('en-IN')}
+                                            <div
+                                                className={`font-bold tabular-nums text-base tracking-tight ${tx.status === "Failure"
+                                                    ? "text-rose-500 dark:text-rose-400 line-through opacity-60"
+                                                    : tx.isDebit
+                                                        ? "text-rose-600 dark:text-rose-400"
+                                                        : "text-emerald-600 dark:text-emerald-400"
+                                                    }`}
+                                            >
+                                                {tx.status !== "Failure" && (tx.isDebit ? "-" : "+")}₹
+                                                {(tx.amount / 100).toLocaleString("en-IN")}
                                             </div>
                                         </div>
                                     ))}
@@ -241,6 +296,7 @@ export default function Dashboard() {
 
                     {/* Right Column: Widgets */}
                     <div className="space-y-8">
+                        <AISecurityInsightsCard limit={3} />
 
                         {/* --- SECURITY WIDGET --- */}
                         <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-neutral-800 shadow-sm relative overflow-hidden group">
@@ -251,7 +307,9 @@ export default function Dashboard() {
                                 <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6">
                                     <ShieldCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Safe & Encrypted</h3>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
+                                    Safe & Encrypted
+                                </h3>
                                 <p className="text-sm text-slate-500 dark:text-neutral-400 leading-relaxed mb-6">
                                     Your data is secured with banking-grade encryption.
                                 </p>
@@ -266,7 +324,9 @@ export default function Dashboard() {
 
                         {/* --- QUICK ANALYSIS WIDGET --- */}
                         <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-neutral-800 shadow-sm">
-                            <h3 className="font-bold text-slate-900 dark:text-white mb-6 tracking-tight">Quick Analysis</h3>
+                            <h3 className="font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
+                                Quick Analysis
+                            </h3>
                             <div className="space-y-6">
                                 {/* Inflow */}
                                 <div>
@@ -278,7 +338,7 @@ export default function Dashboard() {
                                             Inflow
                                         </span>
                                         <span className="font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">
-                                            + ₹{(stats.inflow / 100).toLocaleString('en-IN')}
+                                            + ₹{(stats.inflow / 100).toLocaleString("en-IN")}
                                         </span>
                                     </div>
                                     <div className="h-2.5 w-full bg-slate-100 dark:bg-neutral-800 rounded-full overflow-hidden">
@@ -296,7 +356,7 @@ export default function Dashboard() {
                                             Outflow
                                         </span>
                                         <span className="font-bold text-rose-600 dark:text-rose-400 tracking-tight">
-                                            - ₹{(stats.outflow / 100).toLocaleString('en-IN')}
+                                            - ₹{(stats.outflow / 100).toLocaleString("en-IN")}
                                         </span>
                                     </div>
                                     <div className="h-2.5 w-full bg-slate-100 dark:bg-neutral-800 rounded-full overflow-hidden">

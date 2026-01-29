@@ -1,5 +1,5 @@
 import { OnRampStatus, Prisma } from "@prisma/client";
-import db, { auditLogger, postOnrampLedger } from "@repo/db/client";
+import db, { auditLogger, postOnrampLedger, emitSecurityEvent, bucketizeAmount } from "@repo/db/client";
 import express from "express";
 import zod from "zod";
 import crypto from "crypto";
@@ -70,6 +70,8 @@ app.post("/bankWebhook", async (req: any, res) => {
         return res.status(400).json({ message: "Invalid user_identifier" });
     }
 
+    const amountBucket = bucketizeAmount(body.amount);
+
     try {
         const now = new Date();
 
@@ -134,6 +136,23 @@ app.post("/bankWebhook", async (req: any, res) => {
                     },
                     tx
                 );
+
+                try {
+                    await emitSecurityEvent(tx as any, {
+                        userId: txn.userId,
+                        type: "ONRAMP_FAILED",
+                        source: "bank-webhook",
+                        sourceId: `onramp:fail:${body.token}`,
+                        metadata: {
+                            provider: txn.provider,
+                            amountBucket,
+                            failureReasonCode: body.failureReasonCode ?? "UNKNOWN",
+                            webhookEventId: webhookEventId || undefined,
+                        },
+                    });
+                } catch {
+                    // ignoring to avoid webhook to break
+                }
 
                 return { kind: "processed" as const };
             }
@@ -209,6 +228,22 @@ app.post("/bankWebhook", async (req: any, res) => {
                 },
                 tx
             );
+
+            try {
+                await emitSecurityEvent(tx as any, {
+                    userId: txn.userId,
+                    type: "ONRAMP_COMPLETED",
+                    source: "bank-webhook",
+                    sourceId: `onramp:success:${body.token}`,
+                    metadata: {
+                        provider: txn.provider,
+                        amountBucket,
+                        webhookEventId: webhookEventId || undefined,
+                    },
+                });
+            } catch {
+                // ignoring to avoid webhook to break
+            }
 
             return { kind: "processed" as const };
         });

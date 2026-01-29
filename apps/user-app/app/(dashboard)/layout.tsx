@@ -7,11 +7,8 @@ import { LayoutDashboard, ArrowRightLeft, Clock, Users, ShieldCheck } from "luci
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-black font-sans text-slate-900 dark:text-slate-50 overflow-hidden">
-
       {/* Fixed Sidebar */}
-      <aside
-        className="hidden md:flex flex-col w-72 shrink-0 h-full border-r border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-50"
-      >
+      <aside className="hidden md:flex flex-col w-72 shrink-0 h-full border-r border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-50">
         <div className="h-16 shrink-0 flex items-center px-8 border-b border-slate-100 dark:border-neutral-800">
           <div className="flex items-center gap-2.5 text-slate-900 dark:text-white">
             <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20 dark:shadow-none">
@@ -45,7 +42,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main Content Area */}
       <div className="flex-1 relative flex flex-col h-full overflow-y-auto overflow-x-hidden scroll-smooth bg-neutral-50 dark:bg-black">
-
         {/* Appbar */}
         <AppbarClient />
 

@@ -1,7 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, KeyRound, Monitor, CheckCircle2, AlertCircle, Mail } from "lucide-react";
+import {
+    ArrowLeft,
+    KeyRound,
+    Monitor,
+    CheckCircle2,
+    AlertCircle,
+    Mail,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
@@ -13,6 +20,9 @@ import { revokeOtherUserSessions } from "../../../lib/actions/revokeOtherUserSes
 import { EmailVerificationDialog } from "../../../../components/EmailVerificationDialog";
 import { sendEmailVerification } from "../../../lib/actions/sendEmailVerification";
 import { getEmailVerificationStatus } from "../../../lib/actions/getEmailVerificationStatus";
+
+import { AISecurityInsightsPanel } from "../../../../components/AISecurityInsightsPanel";
+import { AISecurityInsightsCard } from "../../../../components/AISecurityInsightsCard";
 
 function StatusBadge({ enabled }: { enabled: boolean }) {
     if (enabled) {
@@ -185,6 +195,8 @@ export default function SecuritySettingsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* --- LEFT COLUMN --- */}
                 <div className="lg:col-span-2 space-y-8">
+                    <AISecurityInsightsPanel />
+
                     {/* Email verification */}
                     <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm overflow-hidden">
                         <div className="p-8 border-b border-slate-100 dark:border-neutral-800 flex items-start justify-between gap-4">
@@ -212,14 +224,19 @@ export default function SecuritySettingsPage() {
                                             : "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-slate-50 text-slate-600 border-slate-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700"
                                 }
                             >
-                                {emailLoading ? "Loading..." : emailVerified ? "Verified" : "Not verified"}
+                                {emailLoading
+                                    ? "Loading..."
+                                    : emailVerified
+                                        ? "Verified"
+                                        : "Not verified"}
                             </span>
                         </div>
 
                         <div className="p-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
                             <div className="flex-1">
                                 <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
-                                    We will send a verification link to your inbox. Open the email and click the link to verify.
+                                    We will send a verification link to your inbox. Open the email
+                                    and click the link to verify.
                                 </p>
 
                                 {email ? (
@@ -282,7 +299,8 @@ export default function SecuritySettingsPage() {
                         <div className="p-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
                             <div className="flex-1">
                                 <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
-                                    A 6-digit PIN required to authorize transfers. This protects your funds even if your account is logged in.
+                                    A 6-digit PIN required to authorize transfers. This protects
+                                    your funds even if your account is logged in.
                                 </p>
 
                                 {pinLockedMsg ? (
@@ -366,10 +384,16 @@ export default function SecuritySettingsPage() {
                                             />
                                             <div>
                                                 <div className="font-bold text-slate-900 dark:text-white text-sm">
-                                                    {s.deviceLabel || (s.userAgent ? "Browser Session" : "Session")}
+                                                    {s.deviceLabel ||
+                                                        (s.userAgent ? "Browser Session" : "Session")}
                                                 </div>
                                                 <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-                                                    {s.isCurrent ? "This device" : s.revokedAt ? "Revoked" : "Active"}{" - "}
+                                                    {s.isCurrent
+                                                        ? "This device"
+                                                        : s.revokedAt
+                                                            ? "Revoked"
+                                                            : "Active"}
+                                                    {" - "}
                                                     {s.lastSeenAt
                                                         ? new Date(s.lastSeenAt).toLocaleString()
                                                         : "Last seen unknown"}
@@ -382,7 +406,9 @@ export default function SecuritySettingsPage() {
                                                 onClick={async () => {
                                                     const res = await revokeUserSession(s.id);
                                                     if (!res.success) {
-                                                        setSessionsError(res.message || "Failed to revoke session");
+                                                        setSessionsError(
+                                                            res.message || "Failed to revoke session"
+                                                        );
                                                         return;
                                                     }
                                                     await refreshSessions();
@@ -401,13 +427,18 @@ export default function SecuritySettingsPage() {
 
                 {/* --- RIGHT COLUMN --- */}
                 <div className="space-y-8">
+                    <AISecurityInsightsCard limit={3} />
+
                     {/* Security Health Score Widget */}
                     <div className="bg-slate-900 dark:bg-neutral-900 rounded-[2.5rem] p-8 border border-slate-800 dark:border-neutral-800 shadow-2xl relative overflow-hidden group text-white">
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-transparent opacity-50" />
 
                         <div className="relative z-10 flex flex-col items-center text-center">
                             <div className="relative w-32 h-32 flex items-center justify-center mb-6">
-                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 128 128">
+                                <svg
+                                    className="w-full h-full transform -rotate-90"
+                                    viewBox="0 0 128 128"
+                                >
                                     <circle
                                         cx="64"
                                         cy="64"
@@ -441,7 +472,8 @@ export default function SecuritySettingsPage() {
 
                             <h3 className="text-xl font-bold mb-2">Account Protection</h3>
                             <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                                Improve your security by verifying email and enabling transaction PIN.
+                                Improve your security by verifying email and enabling transaction
+                                PIN.
                             </p>
 
                             <div className="w-full space-y-3 text-left">
@@ -454,7 +486,9 @@ export default function SecuritySettingsPage() {
                                     ) : (
                                         <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
                                     )}
-                                    <span className={strongPassword ? "text-slate-200" : "text-slate-400"}>
+                                    <span
+                                        className={strongPassword ? "text-slate-200" : "text-slate-400"}
+                                    >
                                         Strong Password
                                     </span>
                                 </div>
@@ -468,7 +502,9 @@ export default function SecuritySettingsPage() {
                                     ) : (
                                         <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
                                     )}
-                                    <span className={emailVerified ? "text-slate-200" : "text-slate-400"}>
+                                    <span
+                                        className={emailVerified ? "text-slate-200" : "text-slate-400"}
+                                    >
                                         Email Verified
                                     </span>
                                 </div>
@@ -482,7 +518,9 @@ export default function SecuritySettingsPage() {
                                     ) : (
                                         <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
                                     )}
-                                    <span className={pinIsSet ? "text-slate-200" : "text-slate-400"}>
+                                    <span
+                                        className={pinIsSet ? "text-slate-200" : "text-slate-400"}
+                                    >
                                         Transaction PIN
                                     </span>
                                 </div>

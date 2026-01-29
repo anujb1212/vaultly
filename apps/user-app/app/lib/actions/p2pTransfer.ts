@@ -1,6 +1,12 @@
 "use server";
 
-import prisma, { auditLogger, idempotencyManager, postP2PLedger } from "@repo/db/client";
+import prisma, {
+    auditLogger,
+    idempotencyManager,
+    postP2PLedger,
+    emitSecurityEvent,
+    bucketizeAmount,
+} from "@repo/db/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import { revalidatePath } from "next/cache";
@@ -100,6 +106,30 @@ export async function p2pTransfer(
         return errorResult;
     }
 
+    const amountBucket = bucketizeAmount(amount);
+
+    const priorTransfer = await prisma.p2pTransfer.findFirst({
+        where: { senderId, receiverId: receiver.id },
+        select: { id: true },
+    });
+
+    const firstTimeRecipient = !priorTransfer;
+
+    try {
+        await emitSecurityEvent(prisma as any, {
+            userId: senderId,
+            type: "P2P_INITIATED",
+            source: "user-app",
+            sourceId: `p2p:init:${idempotencyKey}`,
+            metadata: {
+                amountBucket,
+                firstTimeRecipient,
+            },
+        });
+    } catch {
+        // ignore
+    }
+
     try {
         const result = await prisma.$transaction(
             async (tx) => {
@@ -190,9 +220,24 @@ export async function p2pTransfer(
                     tx
                 );
 
+                try {
+                    await emitSecurityEvent(tx as any, {
+                        userId: senderId,
+                        type: "P2P_COMPLETED",
+                        source: "user-app",
+                        sourceId: `p2p:success:${transferRecord.id}`,
+                        metadata: {
+                            amountBucket,
+                            firstTimeRecipient,
+                        },
+                    });
+                } catch {
+                    // ignore
+                }
+
                 return { success: true, message: "Transfer successful" } as const;
             },
-            { timeout: 10000, maxWait: 5000 }
+            { timeout: 20000, maxWait: 10000 }
         );
 
         await idempotencyManager.updateResponse(idempotencyKey, result);
@@ -204,9 +249,25 @@ export async function p2pTransfer(
     } catch (error: any) {
         console.error("P2P transfer error:", error);
 
+        try {
+            await emitSecurityEvent(prisma as any, {
+                userId: senderId,
+                type: "P2P_FAILED",
+                source: "user-app",
+                sourceId: `p2p:fail:${idempotencyKey}`,
+                metadata: {
+                    amountBucket,
+                    firstTimeRecipient,
+                    reason: "tx_failed",
+                },
+            });
+        } catch {
+            // ignore
+        }
+
         const errorResult: P2PTransferResult = {
             success: false,
-            message: error.message || "Transfer failed",
+            message: error?.message || "Transfer failed",
             errorCode: "UNKNOWN",
         };
 

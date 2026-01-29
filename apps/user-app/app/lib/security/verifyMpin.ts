@@ -1,4 +1,4 @@
-import db, { auditLogger } from "@repo/db/client";
+import db, { auditLogger, emitSecurityEvent } from "@repo/db/client";
 import bcrypt from "bcrypt";
 import { rateLimit } from "../rateLimit";
 import "server-only";
@@ -26,6 +26,15 @@ function isSixDigitPin(pin: string): boolean {
 
 const MAX_DB_FAILS = 5;
 const LOCK_MINUTES = 15;
+
+function failCountBucket(n: number) {
+    if (n <= 0) return "0";
+    if (n === 1) return "1";
+    if (n === 2) return "2";
+    if (n === 3) return "3";
+    if (n === 4) return "4";
+    return "5+";
+}
 
 export async function verifyMpinOrThrow(opts: {
     userId: number;
@@ -72,6 +81,20 @@ export async function verifyMpinOrThrow(opts: {
         }
 
         if (pin.lockedUntil && pin.lockedUntil > now) {
+            try {
+                await emitSecurityEvent(tx as any, {
+                    userId,
+                    type: "PIN_LOCKED",
+                    source: "user-app",
+                    metadata: {
+                        action: context.action,
+                        reason: "attempt_while_locked",
+                    },
+                });
+            } catch {
+                // No blocking
+            }
+
             const retryAfterSec = Math.max(
                 1,
                 Math.floor((pin.lockedUntil.getTime() - now.getTime()) / 1000)
@@ -100,8 +123,9 @@ export async function verifyMpinOrThrow(opts: {
                     entityType: "TransactionPin",
                     newValue: { action: context.action, version: pin.version },
                 },
-                tx
+                tx as any
             );
+
             return;
         }
 
@@ -120,6 +144,36 @@ export async function verifyMpinOrThrow(opts: {
             },
         });
 
+        try {
+            await emitSecurityEvent(tx as any, {
+                userId,
+                type: "PIN_VERIFY_FAILED",
+                source: "user-app",
+                metadata: {
+                    action: context.action,
+                    failCountBucket: failCountBucket(nextFails),
+                },
+            });
+        } catch {
+            // No blocking
+        }
+
+        if (shouldLock) {
+            try {
+                await emitSecurityEvent(tx as any, {
+                    userId,
+                    type: "PIN_LOCKED",
+                    source: "user-app",
+                    metadata: {
+                        action: context.action,
+                        lockedMinutes: LOCK_MINUTES,
+                    },
+                });
+            } catch {
+                // No blocking
+            }
+        }
+
         await auditLogger.createAuditLog(
             {
                 userId,
@@ -131,7 +185,7 @@ export async function verifyMpinOrThrow(opts: {
                     lockedUntil: lockedUntil ? lockedUntil.toISOString() : null,
                 },
             },
-            tx
+            tx as any
         );
 
         throw new VerifyMpinError("PIN_INVALID", "Invalid transaction PIN");
