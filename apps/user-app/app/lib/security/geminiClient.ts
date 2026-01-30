@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isAICircuitOpen, openAICircuit } from "./aiQuota";
+import { isAICircuitOpen, openAICircuit, closeAICircuit } from "./aiQuota";
 
 const AISecurityInsightSchema = z.object({
     title: z.string().min(3).max(80),
@@ -37,7 +37,7 @@ export async function generateAISecurityInsightWithGemini(opts: {
     userId: number;
     signalPayload: object;
 }) {
-    const circuitOpen = await isAICircuitOpen("gemini");
+    const circuitOpen = await isAICircuitOpen("gemini", { probeWindowSec: 30 });
     if (circuitOpen) {
         return {
             ok: false as const,
@@ -89,7 +89,7 @@ export async function generateAISecurityInsightWithGemini(opts: {
     if (res.status === 429 || res.status >= 500) {
         await openAICircuit({
             provider: "gemini",
-            ttlSec: 20 * 60,
+            ttlSec: 3 * 60,
             reason: `HTTP_${res.status}`,
         });
     }
@@ -105,6 +105,10 @@ export async function generateAISecurityInsightWithGemini(opts: {
             promptVersion: PROMPT_VERSION,
             detail: text.slice(0, 200),
         };
+    }
+
+    if (res.ok) {
+        await closeAICircuit("gemini");
     }
 
     const data = await res.json().catch(() => null);

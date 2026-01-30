@@ -1,5 +1,10 @@
 import { OnRampStatus, Prisma } from "@prisma/client";
-import db, { auditLogger, postOnrampLedger, emitSecurityEvent, bucketizeAmount } from "@repo/db/client";
+import db, {
+    auditLogger,
+    postOnrampLedger,
+    emitSecurityEvent,
+    bucketizeAmount,
+} from "@repo/db/client";
 import express from "express";
 import zod from "zod";
 import crypto from "crypto";
@@ -7,6 +12,9 @@ import crypto from "crypto";
 const app = express();
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? "dev_secret";
+
+const TX_MAX_WAIT_MS = Number(process.env.PRISMA_TX_MAX_WAIT_MS ?? 20_000);
+const TX_TIMEOUT_MS = Number(process.env.PRISMA_TX_TIMEOUT_MS ?? 30_000);
 
 app.use(
     express.json({
@@ -16,7 +24,9 @@ app.use(
     })
 );
 
-function asJsonObject(value: Prisma.JsonValue | null | undefined): Prisma.JsonObject {
+function asJsonObject(
+    value: Prisma.JsonValue | null | undefined
+): Prisma.JsonObject {
     if (value && typeof value === "object" && !Array.isArray(value)) {
         return value as Prisma.JsonObject;
     }
@@ -60,7 +70,9 @@ app.post("/bankWebhook", async (req: any, res) => {
 
     const parsed = webhookBodySchema.safeParse(req.body);
     if (!parsed.success) {
-        return res.status(400).json({ message: "Invalid request", issues: parsed.error.issues });
+        return res
+            .status(400)
+            .json({ message: "Invalid request", issues: parsed.error.issues });
     }
 
     const body = parsed.data;
@@ -75,39 +87,96 @@ app.post("/bankWebhook", async (req: any, res) => {
     try {
         const now = new Date();
 
-        const outcome = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-            const txn = await tx.onRampTransaction.findUnique({
-                where: { token: body.token },
-            });
+        const outcome = await db.$transaction(
+            async (tx: Prisma.TransactionClient) => {
+                const txn = await tx.onRampTransaction.findUnique({
+                    where: { token: body.token },
+                });
 
-            if (!txn) return { kind: "not_found" as const };
+                if (!txn) return { kind: "not_found" as const };
 
-            if (txn.userId !== userIdFromBody) {
-                return { kind: "user_mismatch" as const };
-            }
+                if (txn.userId !== userIdFromBody) {
+                    return { kind: "user_mismatch" as const };
+                }
 
-            if (txn.amount !== body.amount) {
-                return { kind: "amount_mismatch" as const };
-            }
+                if (txn.amount !== body.amount) {
+                    return { kind: "amount_mismatch" as const };
+                }
 
-            if (txn.status === "Success" || txn.status === "Failure") {
-                return { kind: "already_processed" as const };
-            }
+                if (txn.status === "Success") {
+                    return { kind: "already_processed" as const };
+                }
 
-            const prevMeta = asJsonObject(txn.metadata);
+                const canOverrideFailureWithSuccess =
+                    txn.status === "Failure" &&
+                    txn.failureReasonCode === "BANK_TIMEOUT" &&
+                    body.status === "Success";
 
-            if (body.status === "Failure") {
+                if (txn.status === "Failure" && body.status === "Failure") {
+                    return { kind: "already_processed" as const };
+                }
+
+                if (
+                    txn.status === "Failure" &&
+                    body.status === "Success" &&
+                    !canOverrideFailureWithSuccess
+                ) {
+                    return { kind: "already_processed" as const };
+                }
+
+                const prevMeta = asJsonObject(txn.metadata);
+
+                if (body.status === "Failure") {
+                    const claimed = await tx.onRampTransaction.updateMany({
+                        where: {
+                            token: body.token,
+                            userId: txn.userId,
+                            status: "Processing",
+                        },
+                        data: {
+                            status: "Failure",
+                            completedAt: now,
+                            failureReasonCode: body.failureReasonCode ?? "UNKNOWN",
+                            failureReasonMessage: body.failureReasonMessage,
+                            metadata: {
+                                ...prevMeta,
+                                webhookReceivedAt: now.toISOString(),
+                                webhookPayload: req.body,
+                            },
+                        },
+                    });
+
+                    if (claimed.count === 0)
+                        return { kind: "already_processed" as const };
+
+                    return {
+                        kind: "processed_failure" as const,
+                        userId: txn.userId,
+                        onRampTxnId: txn.id,
+                        provider: txn.provider,
+                        prevStatus: txn.status,
+                        token: body.token,
+                        amount: body.amount,
+                        nowIso: now.toISOString(),
+                        failureReasonCode: body.failureReasonCode ?? "UNKNOWN",
+                        failureReasonMessage: body.failureReasonMessage,
+                        webhookEventId: webhookEventId || undefined,
+                    };
+                }
+
                 const claimed = await tx.onRampTransaction.updateMany({
                     where: {
                         token: body.token,
                         userId: txn.userId,
-                        status: "Processing",
+                        status: canOverrideFailureWithSuccess
+                            ? { in: ["Processing", "Failure"] }
+                            : "Processing",
                     },
                     data: {
-                        status: "Failure",
+                        status: "Success",
                         completedAt: now,
-                        failureReasonCode: body.failureReasonCode ?? "UNKNOWN",
-                        failureReasonMessage: body.failureReasonMessage,
+                        failureReasonCode: null,
+                        failureReasonMessage: null,
                         metadata: {
                             ...prevMeta,
                             webhookReceivedAt: now.toISOString(),
@@ -118,135 +187,48 @@ app.post("/bankWebhook", async (req: any, res) => {
 
                 if (claimed.count === 0) return { kind: "already_processed" as const };
 
-                await auditLogger.createAuditLog(
-                    {
-                        userId: txn.userId,
-                        action: "ONRAMP_FAILED",
-                        entityType: "OnRampTransaction",
-                        entityId: txn.id,
-                        oldValue: { status: txn.status },
-                        newValue: {
-                            status: "Failure",
-                            amount: body.amount,
-                            completedAt: now,
-                            failureReasonCode: body.failureReasonCode ?? "UNKNOWN",
-                            failureReasonMessage: body.failureReasonMessage,
-                        },
-                        metadata: { token: body.token, provider: txn.provider },
-                    },
-                    tx
-                );
-
-                try {
-                    await emitSecurityEvent(tx as any, {
-                        userId: txn.userId,
-                        type: "ONRAMP_FAILED",
-                        source: "bank-webhook",
-                        sourceId: `onramp:fail:${body.token}`,
-                        metadata: {
-                            provider: txn.provider,
-                            amountBucket,
-                            failureReasonCode: body.failureReasonCode ?? "UNKNOWN",
-                            webhookEventId: webhookEventId || undefined,
-                        },
-                    });
-                } catch {
-                    // ignoring to avoid webhook to break
-                }
-
-                return { kind: "processed" as const };
-            }
-
-            const claimed = await tx.onRampTransaction.updateMany({
-                where: {
-                    token: body.token,
-                    userId: txn.userId,
-                    status: "Processing",
-                },
-                data: {
-                    status: "Success",
-                    completedAt: now,
-                    metadata: {
-                        ...prevMeta,
-                        webhookReceivedAt: now.toISOString(),
-                        webhookPayload: req.body,
-                    },
-                },
-            });
-
-            if (claimed.count === 0) return { kind: "already_processed" as const };
-
-            await tx.balance.upsert({
-                where: { userId: txn.userId },
-                update: {},
-                create: { userId: txn.userId, amount: 0, locked: 0 },
-            });
-
-            const ledgerTxn = await postOnrampLedger({
-                tx,
-                token: body.token,
-                userId: txn.userId,
-                amount: body.amount,
-                provider: txn.provider,
-                webhookEventId: webhookEventId || undefined,
-            });
-
-            const currentBalance = await tx.balance.findUnique({ where: { userId: txn.userId } });
-
-            const updatedBalance = await tx.balance.update({
-                where: { userId: txn.userId },
-                data: { amount: { increment: body.amount } },
-            });
-
-            await auditLogger.logBalanceChange(
-                txn.userId,
-                currentBalance?.amount ?? 0,
-                updatedBalance.amount,
-                "ONRAMP_CREDIT",
-                {
-                    token: body.token,
-                    provider: txn.provider,
-                    onRampTxnId: txn.id,
-                    ledgerTransactionId: ledgerTxn.id,
-                },
-                tx
-            );
-
-            await auditLogger.createAuditLog(
-                {
-                    userId: txn.userId,
-                    action: "ONRAMP_COMPLETED",
-                    entityType: "OnRampTransaction",
-                    entityId: txn.id,
-                    oldValue: { status: txn.status },
-                    newValue: {
-                        status: "Success",
-                        amount: body.amount,
-                        completedAt: now,
-                    },
-                    metadata: { token: body.token, provider: txn.provider },
-                },
-                tx
-            );
-
-            try {
-                await emitSecurityEvent(tx as any, {
-                    userId: txn.userId,
-                    type: "ONRAMP_COMPLETED",
-                    source: "bank-webhook",
-                    sourceId: `onramp:success:${body.token}`,
-                    metadata: {
-                        provider: txn.provider,
-                        amountBucket,
-                        webhookEventId: webhookEventId || undefined,
-                    },
+                await tx.balance.upsert({
+                    where: { userId: txn.userId },
+                    update: {},
+                    create: { userId: txn.userId, amount: 0, locked: 0 },
                 });
-            } catch {
-                // ignoring to avoid webhook to break
-            }
 
-            return { kind: "processed" as const };
-        });
+                const ledgerTxn = await postOnrampLedger({
+                    tx,
+                    token: body.token,
+                    userId: txn.userId,
+                    amount: body.amount,
+                    provider: txn.provider,
+                    webhookEventId: webhookEventId || undefined,
+                });
+
+                const updatedBalance = await tx.balance.update({
+                    where: { userId: txn.userId },
+                    data: { amount: { increment: body.amount } },
+                });
+
+                const prevBalanceAmount = updatedBalance.amount - body.amount;
+
+                return {
+                    kind: "processed_success" as const,
+                    userId: txn.userId,
+                    onRampTxnId: txn.id,
+                    provider: txn.provider,
+                    prevStatus: txn.status,
+                    token: body.token,
+                    amount: body.amount,
+                    nowIso: now.toISOString(),
+                    ledgerTransactionId: ledgerTxn.id,
+                    prevBalanceAmount,
+                    newBalanceAmount: updatedBalance.amount,
+                    webhookEventId: webhookEventId || undefined,
+                };
+            },
+            {
+                maxWait: Number.isFinite(TX_MAX_WAIT_MS) ? TX_MAX_WAIT_MS : 20_000,
+                timeout: Number.isFinite(TX_TIMEOUT_MS) ? TX_TIMEOUT_MS : 30_000,
+            }
+        );
 
         if (outcome.kind === "not_found") {
             return res.status(400).json({ message: "Transaction not found" });
@@ -258,6 +240,111 @@ app.post("/bankWebhook", async (req: any, res) => {
             return res.status(400).json({ message: "amount mismatch" });
         }
 
+        if (outcome.kind === "processed_failure") {
+            res.status(200).json({ message: "Captured" });
+
+            void (async () => {
+                try {
+                    await auditLogger.createAuditLog({
+                        userId: outcome.userId,
+                        action: "ONRAMP_FAILED",
+                        entityType: "OnRampTransaction",
+                        entityId: outcome.onRampTxnId,
+                        oldValue: { status: outcome.prevStatus },
+                        newValue: {
+                            status: "Failure",
+                            amount: outcome.amount,
+                            completedAt: outcome.nowIso,
+                            failureReasonCode: outcome.failureReasonCode,
+                            failureReasonMessage: outcome.failureReasonMessage,
+                        },
+                        metadata: { token: outcome.token, provider: outcome.provider },
+                    });
+                } catch (e) {
+                    console.error("[Webhook] Audit log failed (non-fatal):", e);
+                }
+
+                try {
+                    await emitSecurityEvent(db as any, {
+                        userId: outcome.userId,
+                        type: "ONRAMP_FAILED",
+                        source: "bank-webhook",
+                        sourceId: `onramp:fail:${outcome.token}`,
+                        metadata: {
+                            provider: outcome.provider,
+                            amountBucket,
+                            failureReasonCode: outcome.failureReasonCode,
+                            webhookEventId: outcome.webhookEventId,
+                        },
+                    });
+                } catch (e) {
+                    console.error("[Webhook] Security event emit failed (non-fatal):", e);
+                }
+            })();
+
+            return;
+        }
+
+        if (outcome.kind === "processed_success") {
+            res.status(200).json({ message: "Captured" });
+
+            void (async () => {
+                try {
+                    await auditLogger.logBalanceChange(
+                        outcome.userId,
+                        outcome.prevBalanceAmount,
+                        outcome.newBalanceAmount,
+                        "ONRAMP_CREDIT",
+                        {
+                            token: outcome.token,
+                            provider: outcome.provider,
+                            onRampTxnId: outcome.onRampTxnId,
+                            ledgerTransactionId: outcome.ledgerTransactionId,
+                        }
+                    );
+                } catch (e) {
+                    console.error("[Webhook] Balance audit failed (non-fatal):", e);
+                }
+
+                try {
+                    await auditLogger.createAuditLog({
+                        userId: outcome.userId,
+                        action: "ONRAMP_COMPLETED",
+                        entityType: "OnRampTransaction",
+                        entityId: outcome.onRampTxnId,
+                        oldValue: { status: outcome.prevStatus },
+                        newValue: {
+                            status: "Success",
+                            amount: outcome.amount,
+                            completedAt: outcome.nowIso,
+                        },
+                        metadata: { token: outcome.token, provider: outcome.provider },
+                    });
+                } catch (e) {
+                    console.error("[Webhook] Audit log failed (non-fatal):", e);
+                }
+
+                try {
+                    await emitSecurityEvent(db as any, {
+                        userId: outcome.userId,
+                        type: "ONRAMP_COMPLETED",
+                        source: "bank-webhook",
+                        sourceId: `onramp:success:${outcome.token}`,
+                        metadata: {
+                            provider: outcome.provider,
+                            amountBucket,
+                            webhookEventId: outcome.webhookEventId,
+                        },
+                    });
+                } catch (e) {
+                    console.error("[Webhook] Security event emit failed (non-fatal):", e);
+                }
+            })();
+
+            return;
+        }
+
+        // already_processed + others
         return res.status(200).json({ message: "Captured" });
     } catch (e: any) {
         console.error("[Webhook] Processing failed:", e);

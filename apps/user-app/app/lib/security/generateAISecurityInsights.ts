@@ -1,9 +1,8 @@
 import "server-only";
 
 import db, { auditLogger } from "@repo/db/client";
-import { Prisma } from "@prisma/client";
 
-import { checkAndConsumeAIQuota } from "./aiQuota";
+import { consumeAIQuota, peekAIQuota } from "./aiQuota";
 import { generateAISecurityInsightWithGemini } from "./geminiClient";
 
 type GenerateResult =
@@ -11,16 +10,27 @@ type GenerateResult =
     | {
         ok: true;
         generated: number;
-        skipped: "NO_PENDING_SIGNALS" | "USER_DAILY_CAP" | "GLOBAL_DAILY_CAP" | "CIRCUIT_OPEN" | "MISSING_API_KEY";
+        skipped:
+        | "NO_PENDING_SIGNALS"
+        | "USER_DAILY_CAP"
+        | "GLOBAL_DAILY_CAP"
+        | "CIRCUIT_OPEN"
+        | "MISSING_API_KEY";
     };
 
-export async function generateAISecurityInsightsForUser(opts: { userId: number; maxToGenerate?: number }): Promise<GenerateResult> {
+export async function generateAISecurityInsightsForUser(opts: {
+    userId: number;
+    maxToGenerate?: number;
+}): Promise<GenerateResult> {
     const maxToGenerate = Math.max(1, Math.min(opts.maxToGenerate ?? 3, 5));
 
-    const pendingSignals = await db.securitySignal.findMany({
+    const candidates = await db.securitySignal.findMany({
         where: {
             userId: opts.userId,
-            insight: { is: null },
+            OR: [
+                { insight: { is: null } },
+                { insight: { is: { status: "FAILED" } } },
+            ],
         },
         orderBy: { createdAt: "desc" },
         take: maxToGenerate,
@@ -32,27 +42,48 @@ export async function generateAISecurityInsightsForUser(opts: { userId: number; 
             windowEnd: true,
             metadata: true,
             createdAt: true,
+            insight: {
+                select: {
+                    id: true,
+                    status: true,
+                    errorCode: true,
+                },
+            },
         },
     });
 
-    if (pendingSignals.length === 0) {
+    if (candidates.length === 0) {
         return { ok: true, generated: 0, skipped: "NO_PENDING_SIGNALS" };
     }
 
     let generated = 0;
 
-    for (const s of pendingSignals) {
-        const quota = await checkAndConsumeAIQuota({ userId: opts.userId, feature: "security_insights" });
-        if (!quota.allowed) {
-            return {
-                ok: true,
-                generated,
-                skipped: quota.reason,
-            };
+    for (const s of candidates) {
+        const quotaPeek = await peekAIQuota({
+            userId: opts.userId,
+            feature: "security_insights",
+        });
+
+        if (!quotaPeek.allowed) {
+            return { ok: true, generated, skipped: quotaPeek.reason };
         }
 
-        let insightId: number | null = null;
-        try {
+        let insightId: number | null = s.insight?.id ?? null;
+
+        if (insightId && s.insight?.status === "FAILED") {
+            await db.aISecurityInsight.update({
+                where: { id: insightId },
+                data: {
+                    status: "PENDING",
+                    title: "Generating insight",
+                    summary: "Pending",
+                    recommendedActions: [],
+                    errorCode: null,
+                },
+            });
+        }
+
+        if (!insightId) {
             const created = await db.aISecurityInsight.create({
                 data: {
                     userId: opts.userId,
@@ -69,11 +100,6 @@ export async function generateAISecurityInsightsForUser(opts: { userId: number; 
                 select: { id: true },
             });
             insightId = created.id;
-        } catch (e: any) {
-            if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-                continue;
-            }
-            throw e;
         }
 
         const ai = await generateAISecurityInsightWithGemini({
@@ -116,6 +142,26 @@ export async function generateAISecurityInsightsForUser(opts: { userId: number; 
             continue;
         }
 
+        const quotaConsume = await consumeAIQuota({
+            userId: opts.userId,
+            feature: "security_insights",
+        });
+
+        if (!quotaConsume.allowed) {
+            await db.aISecurityInsight.update({
+                where: { id: insightId },
+                data: {
+                    status: "FAILED",
+                    errorCode: quotaConsume.reason,
+                    title: "Daily limit reached",
+                    summary: "You have reached your daily AI insights limit. Please try again tomorrow.",
+                    recommendedActions: ["Try again tomorrow"],
+                },
+            });
+
+            return { ok: true, generated, skipped: quotaConsume.reason };
+        }
+
         await db.aISecurityInsight.update({
             where: { id: insightId },
             data: {
@@ -148,6 +194,7 @@ export async function generateAISecurityInsightsForUser(opts: { userId: number; 
         });
 
         generated += 1;
+        if (generated >= 3) break;
     }
 
     return { ok: true, generated, skipped: null };

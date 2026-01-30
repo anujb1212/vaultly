@@ -71,7 +71,6 @@ export async function ensureUserCashAccount(
 }
 
 export async function ensurePlatformClearingAccount(tx: Prisma.TransactionClient, currency = DEFAULT_CURRENCY) {
-    // Requires schema: systemKey String? @unique
     const systemKey = `PLATFORM_CLEARING:${currency}`;
     return tx.ledgerAccount.upsert({
         where: { systemKey },
@@ -113,17 +112,21 @@ export async function postBalancedLedgerTransaction(args: {
 
     try {
         const txn = await args.tx.ledgerTransaction.create({
-            data: { type: args.type, externalRef: args.externalRef, metadata: args.metadata },
-        });
-
-        await args.tx.ledgerEntry.createMany({
-            data: args.entries.map((e) => ({
-                transactionId: txn.id,
-                accountId: e.accountId,
-                direction: e.direction,
-                amount: e.amount,
-                currency,
-            })),
+            data: {
+                type: args.type,
+                externalRef: args.externalRef,
+                metadata: args.metadata,
+                entries: {
+                    createMany: {
+                        data: args.entries.map((e) => ({
+                            accountId: e.accountId,
+                            direction: e.direction,
+                            amount: e.amount,
+                            currency,
+                        })),
+                    },
+                },
+            },
         });
 
         return txn;
