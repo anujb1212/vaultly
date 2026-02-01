@@ -6,7 +6,36 @@ import Link from "next/link";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { Button } from "@repo/ui/button";
 import { TextInput } from "@repo/ui/textinput";
-import { ShieldCheck, UserPlus, ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Loader2,
+  Sparkles,
+  Wallet,
+  AlertCircle
+} from "lucide-react";
+import { z } from "zod";
+
+const signUpSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+
+  phone: z
+    .string()
+    .length(10, { message: "Phone number must be exactly 10 digits" })
+    .regex(/^\d+$/, { message: "Phone number must contain only numbers" }),
+
+  email: z
+    .string()
+    .email({ message: "Invalid email address" })
+    .optional()
+    .or(z.literal("")),
+
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, {
+      message: "Password must contain at least one special character"
+    }),
+});
 
 export default function SignupPage() {
   const [phone, setPhone] = useState("");
@@ -21,11 +50,29 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
 
+    const validation = signUpSchema.safeParse({
+      name,
+      phone,
+      email: email || "",
+      password
+    });
+
+    if (!validation.success) {
+      setError(validation.error.message);
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password, name, email: email || undefined }),
+        body: JSON.stringify({
+          phone,
+          password,
+          name,
+          email: email || undefined
+        }),
       });
       const data = await res.json();
 
@@ -44,113 +91,140 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen relative bg-slate-50 dark:bg-black">
-      <div className="absolute top-4 right-4 z-10">
+    <div className="min-h-screen w-full flex relative bg-background selection:bg-indigo-500/20 overflow-hidden">
+
+      {/* Theme Toggle */}
+      <div className="absolute top-6 right-6 z-50">
         <ThemeToggle />
       </div>
 
-      <div className="fixed inset-0 -z-10 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#111_1px,transparent_1px),linear-gradient(to_bottom,#111_1px,transparent_1px)] bg-[size:6rem_4rem]" />
+      {/* Left Panel */}
+      <div className="hidden lg:flex flex-col justify-between w-[45%] relative bg-slate-50 dark:bg-black border-r border-border/40 p-12 overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-500/10 blur-[120px] rounded-full" />
 
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-        {/* Left */}
-        <div className="hidden lg:flex relative overflow-hidden border-r border-slate-200 dark:border-neutral-800">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_700px_at_10%_10%,#dbeafe,transparent)] dark:bg-[radial-gradient(circle_700px_at_10%_10%,#1e3a8a,transparent)] opacity-40" />
-          <div className="relative z-10 p-12 flex flex-col justify-between">
-            <div>
-              <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200/70 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/40 backdrop-blur px-4 py-2">
-                <div className="h-9 w-9 rounded-xl bg-slate-900 dark:bg-white flex items-center justify-center">
-                  <ShieldCheck className="h-5 w-5 text-white dark:text-black" />
-                </div>
-                <div className="font-extrabold tracking-tight text-slate-900 dark:text-white">
-                  VAULTLY
-                </div>
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-foreground text-background grid place-items-center font-bold text-lg shadow-sm">
+            V
+          </div>
+          <span className="font-bold tracking-tight text-xl">Vaultly</span>
+        </div>
+
+        <div className="relative z-10 max-w-md">
+          <h1 className="text-4xl font-bold tracking-tight text-balance mb-6">
+            Financial freedom <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-indigo-400 dark:to-violet-400">
+              starts here.
+            </span>
+          </h1>
+
+          <div className="space-y-5">
+            <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 backdrop-blur-md shadow-sm">
+              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                <Sparkles className="w-5 h-5" />
               </div>
-
-              <h1 className="mt-8 text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-                Create your account
-              </h1>
-              <p className="mt-3 text-slate-600 dark:text-neutral-300 max-w-md">
-                Set up your profile, verify email, and enable Transaction PIN for stronger protection.
-              </p>
-
-              <div className="mt-8 rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/40 backdrop-blur p-5 flex items-start gap-3 max-w-md">
-                <UserPlus className="h-5 w-5 mt-0.5 text-slate-700 dark:text-neutral-200" />
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-white">Fast onboarding</div>
-                  <div className="text-sm text-slate-600 dark:text-neutral-300">
-                    Phone sign-in, optional email, and secure session tracking.
-                  </div>
-                </div>
+              <div>
+                <h3 className="font-semibold text-sm mb-1">Instant Setup</h3>
+                <p className="text-sm text-muted-foreground leading-tight">
+                  Create your account in seconds. No paperwork, just a phone number.
+                </p>
               </div>
             </div>
 
-            <div className="text-xs text-slate-500 dark:text-neutral-400">
-              Use a unique password and avoid reusing old credentials.
+            <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 backdrop-blur-md shadow-sm">
+              <div className="p-2 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm mb-1">Unified Wallet</h3>
+                <p className="text-sm text-muted-foreground leading-tight">
+                  Manage on-ramp, P2P transfers, and insights from one dashboard.
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right */}
-        <div className="flex items-center justify-center p-6">
-          <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-[2.5rem] shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-neutral-800 p-8">
-            <div className="mb-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Create an account</h2>
-                  <p className="text-slate-500 dark:text-neutral-400 text-sm mt-2">
-                    Join Vaultly for secure payments.
-                  </p>
-                </div>
-                <div className="lg:hidden h-11 w-11 rounded-2xl bg-slate-900 dark:bg-white flex items-center justify-center">
-                  <ShieldCheck className="h-5 w-5 text-white dark:text-black" />
-                </div>
-              </div>
-            </div>
+        {/* Footer */}
+        <div className="relative z-10 text-xs text-muted-foreground/60 font-medium">
+          © {new Date().getFullYear()} Vaultly Inc.
+        </div>
+      </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <TextInput label="Full Name" placeholder="John Doe" onChange={(val) => setName(val)} />
+      {/* Right Panel */}
+      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 relative overflow-y-auto">
+        <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-foreground text-background grid place-items-center font-bold text-sm">V</div>
+          <span className="font-bold tracking-tight text-lg">Vaultly</span>
+        </div>
+
+        <div className="w-full max-w-[400px] animate-in fade-in slide-in-from-bottom-4 duration-700 my-auto">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold tracking-tight mb-2">Create your account</h2>
+            <p className="text-sm text-muted-foreground">
+              Join other users managing their money smarter.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div className="space-y-4">
+              <TextInput
+                label="Full Name"
+                placeholder="John Doe"
+                onChange={(val) => { setName(val); setError(""); }}
+              />
               <TextInput
                 label="Phone Number"
-                placeholder="1234567890"
-                onChange={(val) => setPhone(val)}
+                placeholder="e.g. 9876543210"
+                onChange={(val) => { setPhone(val.trim()); setError(""); }}
                 type="tel"
               />
               <TextInput
                 label="Email (optional)"
                 placeholder="you@example.com"
-                onChange={(val) => setEmail(val)}
+                onChange={(val) => { setEmail(val.trim()); setError(""); }}
                 type="email"
               />
               <TextInput
                 label="Password"
-                placeholder="Create a strong password"
-                onChange={(val) => setPassword(val)}
+                placeholder="Min 8 chars + special char"
+                onChange={(val) => { setPassword(val); setError(""); }}
                 type="password"
               />
+            </div>
 
-              <Button type="submit" disabled={loading} className="w-full py-3 mt-2">
-                <span className="inline-flex items-center justify-center gap-2">
-                  {loading ? "Creating Account..." : "Sign Up"}
-                  {!loading ? <ArrowRight className="h-4 w-4" /> : null}
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium animate-in fade-in slide-in-from-top-1 duration-200">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 bg-primary text-primary-foreground font-medium rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98] mt-2"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  Create Account <ArrowRight className="w-4 h-4" />
                 </span>
-              </Button>
+              )}
+            </Button>
+          </form>
 
-              {error ? (
-                <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm text-center font-medium border border-red-100 dark:border-red-900/30">
-                  {error}
-                </div>
-              ) : null}
-            </form>
-
-            <div className="mt-6 text-center text-sm text-slate-500">
+          <div className="mt-8 text-center">
+            <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link
                 href="/signin"
-                className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="font-medium text-foreground text-indigo-600 dark:text-indigo-400 hover:underline underline-offset-4 decoration-muted-foreground/30"
               >
                 Sign in
               </Link>
-            </div>
+            </p>
           </div>
         </div>
       </div>

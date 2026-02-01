@@ -6,12 +6,14 @@ export const TextInput = ({
     label,
     type = "text",
     value,
+    className
 }: {
     placeholder: string;
     onChange: (value: string) => void;
     label: string;
     type?: string;
     value?: string;
+    className?: string
 }) => {
     return (
         <div className="w-full">
