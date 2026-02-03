@@ -4,12 +4,12 @@ import { Button } from "@repo/ui/button";
 import { Select } from "@repo/ui/select";
 import { useState } from "react";
 import { TextInput } from "@repo/ui/textinput";
-import { createOnRampTxn } from "../app/lib/actions/createOnRampTxn";
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ArrowRight, Banknote, Loader2 } from "lucide-react";
-import { TransactionPinDialog } from "./TransactionPinDialog";
+import { TransactionPinDialog } from "../dialog/TransactionPinDialog";
+import { createOnRampTxn } from "../../app/lib/actions/createOnRampTxn";
 
 const SUPPORTED_BANKS = [
     { name: "HDFC Bank" },

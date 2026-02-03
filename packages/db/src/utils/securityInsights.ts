@@ -14,6 +14,9 @@ export type SecurityEventInput = {
     | "ONRAMP_INITIATED"
     | "ONRAMP_COMPLETED"
     | "ONRAMP_FAILED"
+    | "OFFRAMP_INITIATED"
+    | "OFFRAMP_COMPLETED"
+    | "OFFRAMP_FAILED"
     | "EMAIL_ADDED";
     source: "user-app" | "bank-webhook" | "mock-gateway" | string;
     sourceId?: string | null;
@@ -161,6 +164,17 @@ export function deriveSignalsFromEvent(e: {
                     severity: "MEDIUM",
                     windowMinutes: 6 * 60,
                     metadata: { reason: "Onramp failed" },
+                },
+            ];
+        }
+
+        case "OFFRAMP_FAILED": {
+            return [
+                {
+                    type: "RAPID_RETRIES",
+                    severity: "MEDIUM",
+                    windowMinutes: 60,
+                    metadata: { reason: "Offramp failed" },
                 },
             ];
         }

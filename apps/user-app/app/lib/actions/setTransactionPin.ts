@@ -2,7 +2,7 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
-import { rateLimit } from "../rateLimit";
+import { rateLimit } from "../redis/rateLimit";
 import db, { auditLogger } from "@repo/db/client";
 import bcrypt from "bcrypt";
 import { VerifyMpinError, verifyMpinOrThrow } from "../security/verifyMpin";

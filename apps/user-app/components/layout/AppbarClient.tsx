@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { ThemeToggle } from "../ThemeToggle";
+import { ThemeToggle } from "../theme/ThemeToggle";
 import { useState, useRef, useEffect } from "react";
 import { LogOut, Settings, User, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";

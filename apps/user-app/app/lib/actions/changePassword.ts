@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import bcrypt from "bcrypt";
 import db, { auditLogger } from "@repo/db/client";
 import { authOptions } from "../auth";
-import { rateLimit } from "../rateLimit";
+import { rateLimit } from "../redis/rateLimit";
 
 export type ChangePasswordResult =
     | { success: true; message: string }

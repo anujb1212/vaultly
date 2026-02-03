@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Sparkles, ChevronRight, X } from "lucide-react";
-import { AISecurityInsightsCard } from "./AISecurityInsightsCard";
+import { AISecurityInsightsCard } from "../aiInsights/AISecurityInsightsCard";
 
 export const DashboardSecurityWidget = () => {
     const [expanded, setExpanded] = useState(false);

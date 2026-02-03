@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
     KeyRound,
@@ -13,10 +13,10 @@ import { useSession } from "next-auth/react";
 
 import { getTransactionPinStatus } from "../../../lib/actions/getTransactionPinStatus";
 import { listUserSessions } from "../../../lib/actions/listUserSessions";
-import { EmailVerificationDialog } from "../../../../components/EmailVerificationDialog";
+import { EmailVerificationDialog } from "../../../../components/dialog/EmailVerificationDialog";
 import { sendEmailVerification } from "../../../lib/actions/sendEmailVerification";
 import { getEmailVerificationStatus } from "../../../lib/actions/getEmailVerificationStatus";
-import { AISecurityInsightsCard } from "../../../../components/AISecurityInsightsCard";
+import { AISecurityInsightsCard } from "../../../../components/aiInsights/AISecurityInsightsCard";
 import { ActiveSessionsList } from "../../../../components/settings/ActiveSessionsList";
 
 function StatusBadge({ enabled }: { enabled: boolean }) {
@@ -36,22 +36,20 @@ function StatusBadge({ enabled }: { enabled: boolean }) {
 
 export default function SecuritySettingsPage() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const { update } = useSession();
 
     const [pinLoaded, setPinLoaded] = useState(false);
     const [pinIsSet, setPinIsSet] = useState(false);
     const [pinLockedUntil, setPinLockedUntil] = useState<string | null>(null);
 
-    const [sessionsLoaded, setSessionsLoaded] = useState(false);
-    const [sessions, setSessions] = useState<any[]>([]);
-    const [sessionsError, setSessionsError] = useState<string | null>(null);
+    const [, setSessionsLoaded] = useState(false);
+    const [, setSessions] = useState<any[]>([]);
+    const [, setSessionsError] = useState<string | null>(null);
 
     const [email, setEmail] = useState<string | null>(null);
     const [emailSentMsg, setEmailSentMsg] = useState<string | null>(null);
     const [emailVerified, setEmailVerified] = useState(false);
     const [emailLoading, setEmailLoading] = useState(true);
-    const [emailError, setEmailError] = useState<string | null>(null);
+    const [, setEmailError] = useState<string | null>(null);
     const [showEmailDialog, setShowEmailDialog] = useState(false);
 
     async function refreshEmailStatus() {

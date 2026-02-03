@@ -34,6 +34,9 @@ model User {
   securitySignals    SecuritySignal[]
   aiSecurityInsights AISecurityInsight[]
 
+  linkedBankAccounts LinkedBankAccount[]
+  OffRampTransaction OffRampTransaction[]
+
   @@index([number])
 }
 
@@ -296,6 +299,57 @@ model AISecurityInsight {
   @@index([userId, status, createdAt])
 }
 
+model LinkedBankAccount {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  providerKey   LinkedBankProviderKey
+  displayName   String
+  maskedAccount String
+
+  amount Int
+  locked Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  offRamps OffRampTransaction[]
+
+  @@unique([userId, providerKey])
+  @@index([userId])
+  @@index([userId, providerKey])
+}
+
+model OffRampTransaction {
+  id     Int           @id @default(autoincrement())
+  status OffRampStatus
+  token  String        @unique
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  linkedBankAccountId Int
+  linkedBankAccount   LinkedBankAccount @relation(fields: [linkedBankAccountId], references: [id], onDelete: Cascade)
+
+  providerKey LinkedBankProviderKey
+  amount      Int
+
+  startTime   DateTime  @default(now())
+  completedAt DateTime?
+
+  metadata             Json?
+  failureReason        String?
+  failureReasonCode    String?
+  failureReasonMessage String?
+  retryCount           Int       @default(0)
+  lastRetryAt          DateTime?
+
+  @@index([userId, startTime])
+  @@index([linkedBankAccountId, startTime])
+  @@index([token])
+}
+
 enum AuthType {
   Google
   Github
@@ -328,6 +382,7 @@ enum LedgerTxnType {
   P2P_TRANSFER
   ONRAMP
   REVERSAL
+  OFFRAMP
 }
 
 enum LedgerEntryDirection {
@@ -348,6 +403,10 @@ enum SecurityEventType {
   ONRAMP_INITIATED
   ONRAMP_COMPLETED
   ONRAMP_FAILED
+
+  OFFRAMP_INITIATED
+  OFFRAMP_COMPLETED
+  OFFRAMP_FAILED
 
   EMAIL_ADDED
 }
@@ -372,4 +431,18 @@ enum AIInsightStatus {
   PENDING
   COMPLETED
   FAILED
+}
+
+enum OffRampStatus {
+  Success
+  Failure
+  Processing
+}
+
+enum LinkedBankProviderKey {
+  HDFC
+  AXIS
+  ICICI
+  SBI
+  KOTAK
 }

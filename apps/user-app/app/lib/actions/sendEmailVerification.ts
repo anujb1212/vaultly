@@ -5,7 +5,7 @@ import crypto from "crypto";
 import db, { auditLogger } from "@repo/db/client";
 import { authOptions } from "../auth";
 
-import { rateLimit } from "../rateLimit";
+import { rateLimit } from "../redis/rateLimit";
 import { resend, RESEND_FROM } from "../email/resendClient";
 
 export type SendEmailVerificationResult =

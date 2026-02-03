@@ -22,9 +22,23 @@ export interface P2PTransaction {
     type: "sent" | "received";
 }
 
+export interface OffRampTransaction {
+    id: number;
+    time: Date;
+    amount: number;
+    status: TransactionStatus;
+    token: string;
+    linkedBankAccountId: number;
+    providerKey: string;
+    displayName: string | null;
+    maskedAccount: string | null;
+    type: "offRamp";
+}
+
 interface TransactionsResponse {
     onRamp: OnRampTransaction[];
     p2p: P2PTransaction[];
+    offRamp: OffRampTransaction[]
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -54,6 +68,7 @@ export function useTransactions() {
     return {
         onRampTransactions: data?.onRamp || [],
         p2pTransactions: data?.p2p || [],
+        offRampTransactions: data?.offRamp || [],
         isLoading,
         isError: error,
         refresh: mutate,

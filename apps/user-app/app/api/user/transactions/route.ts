@@ -36,6 +36,16 @@ export async function GET() {
             take: 20,
         });
 
+        // Fetch OffRamp transactions
+        const offRampTransactions = await prisma.offRampTransaction.findMany({
+            where: { userId },
+            include: {
+                linkedBankAccount: { select: { displayName: true, maskedAccount: true, providerKey: true } },
+            },
+            orderBy: { startTime: "desc" },
+            take: 20,
+        });
+
         // Format OnRamp transactions
         const formattedOnRamp = onRampTransactions.map((tx) => ({
             id: tx.id,
@@ -62,9 +72,24 @@ export async function GET() {
             };
         });
 
+        //Formatted offRamp
+        const formattedOffRamp = offRampTransactions.map((tx) => ({
+            id: tx.id,
+            time: tx.startTime,
+            amount: tx.amount,
+            status: tx.status,
+            token: tx.token,
+            linkedBankAccountId: tx.linkedBankAccountId,
+            providerKey: String(tx.providerKey),
+            displayName: tx.linkedBankAccount?.displayName ?? null,
+            maskedAccount: tx.linkedBankAccount?.maskedAccount ?? null,
+            type: "offRamp",
+        }));
+
         return NextResponse.json({
             onRamp: formattedOnRamp,
             p2p: formattedP2P,
+            offRamp: formattedOffRamp
         });
     } catch (error) {
         console.error("Transactions fetch error:", error);

@@ -1,7 +1,7 @@
 "use client";
 
 import { AppbarClient } from "../../components/layout/AppbarClient";
-import { SidebarItem } from "../../components/SidebarItem";
+import { SidebarItem } from "../../components/layout/SidebarItem";
 import { LayoutDashboard, ArrowRightLeft, Clock, Users, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { AddMoney } from "../../../components/AddMoneyCard";
-import { BalanceCard } from "../../../components/BalanceCard";
+import { BalanceCard } from "../../../components/dashboard/BalanceCard";
+import { AddMoney } from "../../../components/transactions/AddMoneyCard";
 import { OnRampTransactions } from "../../../components/transactions/OnRampTransactions";
 
 export default function TransferPage() {
@@ -13,12 +13,12 @@ export default function TransferPage() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-                {/* Left Column: Input Action */}
+                {/* Input Action */}
                 <div className="xl:col-span-7 space-y-8">
                     <AddMoney />
                 </div>
 
-                {/* Right Column: Information & History */}
+                {/* Information & History */}
                 <div className="xl:col-span-5 space-y-8 sticky top-8">
                     <BalanceCard />
                     <div className="min-h-[400px]">

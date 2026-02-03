@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { TransactionPinDialog } from "../../../components/TransactionPinDialog";
-import { ChangePasswordDialog } from "../../../components/ChangePasswordDialog";
+import { TransactionPinDialog } from "../../../components/dialog/TransactionPinDialog";
+import { ChangePasswordDialog } from "../../../components/dialog/ChangePasswordDialog";
 
 import {
     setTransactionPin,

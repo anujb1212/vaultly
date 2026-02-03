@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ThemeToggle } from "../components/ThemeToggle";
+import { ThemeToggle } from "../components/theme/ThemeToggle";
 import {
   ArrowRight,
   TrendingUp,
@@ -132,7 +132,7 @@ export default function LandingPage() {
 
         {/* Features Grid */}
         <div className="mt-24 sm:mt-32 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {FEATURES.map((feature, i) => (
+          {FEATURES.map((feature) => (
             <div
               key={feature.title}
               className="group relative p-8 h-full min-h-[220px] rounded-3xl border border-border/40 bg-background/40 hover:bg-background/60 transition-all duration-300 backdrop-blur-sm overflow-hidden hover:border-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/5"

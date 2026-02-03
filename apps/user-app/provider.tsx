@@ -1,7 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { ThemeProvider } from "./components/ThemeProvider";
+import { ThemeProvider } from "./components/theme/ThemeProvider";
 import { SWRConfig } from "swr";
 
 const fetcher = (url: string) =>

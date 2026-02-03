@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Header } from "../../../components/dashboard/Header";
-import { BalanceCard } from "../../../components/BalanceCard";
+import { BalanceCard } from "../../../components/dashboard/BalanceCard";
 import { ActionTiles } from "../../../components/dashboard/ActionTiles";
 import { OnRampTransactions } from "../../../components/transactions/OnRampTransactions";
 import { SecurityInsights } from "../../../components/dashboard/SecurityInsights";

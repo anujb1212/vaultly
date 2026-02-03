@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
-import { TransactionPinDialog } from "../TransactionPinDialog";
+import { TransactionPinDialog } from "../dialog/TransactionPinDialog";
 import { p2pTransfer } from "../../app/lib/actions/p2pTransfer";
 import { UserSearch } from "./UserSearch";
 

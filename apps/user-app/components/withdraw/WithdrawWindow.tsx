@@ -1,111 +1,225 @@
 "use client";
 
-import { useState } from "react";
-import { BankCard } from "./BankCard";
-import { Button } from "@repo/ui/button";
-import { TextInput } from "@repo/ui/textinput";
-import { ArrowRight, Eye, EyeOff, AlertCircle, Landmark } from "lucide-react";
-import { Card } from "@repo/ui/card";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
 
-const SUPPORTED_BANKS = [
-    { name: "HDFC Bank", colorFrom: "from-blue-800", colorTo: "to-blue-600", account: "**** 4821", id: 1 },
-    { name: "Axis Bank", colorFrom: "from-rose-800", colorTo: "to-rose-600", account: "**** 9923", id: 2 },
-    { name: "ICICI Bank", colorFrom: "from-orange-700", colorTo: "to-orange-500", account: "**** 1120", id: 3 },
-    { name: "SBI", colorFrom: "from-cyan-700", colorTo: "to-blue-500", account: "**** 3311", id: 4 },
-    { name: "Kotak Bank", colorFrom: "from-red-700", colorTo: "to-red-500", account: "**** 8822", id: 5 },
-];
+import { TransactionPinDialog } from "../dialog/TransactionPinDialog";
+import { LinkedAccountsGrid } from "./LinkedAccountsGrid";
+import { RecentItem, RecentOfframpActivity } from "./RecentOfframpActivity";
+import { WithdrawActionPanel } from "./WithdrawActionPanel";
+
+import { useBalance, useLinkedAccounts, useTransactions } from "@repo/store";
+import { withdrawToLinkedAccount } from "../../app/lib/actions/withdraw";
+
+type OffRampTx = {
+    id: number;
+    time: string | number | Date;
+    amount: number;
+    status: "Processing" | "Success" | "Failure";
+    token: string;
+    linkedBankAccountId: number;
+    providerKey: string;
+    displayName: string | null;
+    maskedAccount: string | null;
+    type: "offRamp";
+};
 
 export const WithdrawWindow = () => {
-    const [selectedBank, setSelectedBank] = useState<number | null>(null);
-    const [amount, setAmount] = useState("");
-    const [showBalances, setShowBalances] = useState(false);
-    const [pin, setPin] = useState("");
-    const [step, setStep] = useState(1);
+    const router = useRouter();
 
-    const [balances] = useState(() =>
-        SUPPORTED_BANKS.map(() => Math.floor(Math.random() * 5000000) + 100000)
-    );
+    const { linkedAccounts, isLoading, error, refresh } = useLinkedAccounts();
+    const { balance, refresh: refreshBalance } = useBalance();
+
+    const txAny = useTransactions() as any;
+    const offRampTransactions = (txAny?.offRampTransactions ?? []) as OffRampTx[];
+    const refreshTransactions = (txAny?.refresh ?? (async () => { })) as () => Promise<any>;
+
+    const [selectedId, setSelectedId] = useState<number | null>(null);
+    const [showBalances, setShowBalances] = useState(false);
+
+    const [amount, setAmount] = useState("");
+    const [pinOpen, setPinOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const [panelError, setPanelError] = useState<string | null>(null);
+    const [panelOk, setPanelOk] = useState<string | null>(null);
+
+    const [pending, setPending] = useState<{
+        linkedBankAccountId: number;
+        amountPaise: number;
+        idempotencyKey: string;
+    } | null>(null);
+
+    const selected = useMemo(() => {
+        if (selectedId) return linkedAccounts.find((a) => a.id === selectedId) ?? null;
+        return linkedAccounts.length > 0 ? linkedAccounts[0]! : null;
+    }, [linkedAccounts, selectedId]);
+
+    const walletAmount = balance?.amount ?? 0;
+    const walletLocked = balance?.locked ?? 0;
+    const walletAvailablePaise = walletAmount - walletLocked;
+
+    const recentItems = useMemo<RecentItem[]>(() => {
+        if (!selected) return [];
+
+        return offRampTransactions
+            .filter((t) => t.linkedBankAccountId === selected.id)
+            .slice(0, 10)
+            .map((t) => {
+                const status =
+                    t.status === "Success"
+                        ? ("Success" as const)
+                        : t.status === "Processing"
+                            ? ("Processing" as const)
+                            : ("Failed" as const);
+
+                return {
+                    id: t.id,
+                    time: t.time,
+                    status,
+                    displayName: t.displayName ?? t.providerKey,
+                    amountPaise: t.amount,
+                };
+            });
+    }, [offRampTransactions, selected]);
+
+
+    const selectedLabel = selected ? `${selected.displayName} (${selected.maskedAccount})` : null;
+
+    const onConfirm = () => {
+        setPanelError(null);
+        setPanelOk(null);
+
+        if (!selected) {
+            setPanelError("Select a linked bank account to proceed.");
+            return;
+        }
+
+        const rs = Number(amount);
+        if (!Number.isFinite(rs) || rs <= 0) {
+            setPanelError("Please enter a valid amount.");
+            return;
+        }
+        if (rs < 100) {
+            setPanelError("Minimum withdrawal is ₹100.");
+            return;
+        }
+
+        const amountPaise = Math.round(rs * 100);
+        setPending({
+            linkedBankAccountId: selected.id,
+            amountPaise,
+            idempotencyKey: uuidv4(),
+        });
+        setPinOpen(true);
+    };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-7 space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Your Linked Accounts</h2>
-                    <button
-                        onClick={() => setShowBalances(!showBalances)}
-                        className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
-                    >
-                        {showBalances ? <><EyeOff size={16} /> Hide Balances</> : <><Eye size={16} /> Show Balances</>}
-                    </button>
+        <>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-7 space-y-8">
+                    <LinkedAccountsGrid
+                        linkedAccounts={linkedAccounts}
+                        isLoading={isLoading}
+                        error={error}
+                        selectedId={selected?.id ?? null}
+                        onSelect={(id) => setSelectedId(id)}
+                        showBalances={showBalances}
+                        onToggleShowBalances={() => setShowBalances((v) => !v)}
+                        onRetry={refresh}
+                    />
+
+                    <RecentOfframpActivity selectedLabel={selectedLabel} items={recentItems} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {SUPPORTED_BANKS.map((bank, index) => (
-                        <BankCard
-                            key={bank.id}
-                            {...bank}
-                            balance={balances[index]}
-                            isSelected={selectedBank === bank.id}
-                            onSelect={() => setSelectedBank(bank.id)}
-                            showBalance={showBalances}
-                        />
-                    ))}
-                </div>
-            </div>
-
-            {/* Right Side: Action Panel */}
-            <div className="lg:col-span-5">
-                <div className="sticky top-6">
-                    <Card title="Withdraw Funds" className="relative overflow-hidden min-h-[400px]">
-                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                        <div className="relative z-10 space-y-6 mt-2">
-                            {!selectedBank ? (
-                                <div className="h-[250px] flex flex-col items-center justify-center text-center text-slate-400">
-                                    <Landmark className="w-12 h-12 mb-3 opacity-50" />
-                                    <p>Select a bank account<br />to proceed with withdrawal.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-neutral-800/50 border border-slate-100 dark:border-neutral-800">
-                                        <p className="text-xs text-slate-500 uppercase tracking-wide">Withdraw To</p>
-                                        <p className="font-bold text-slate-900 dark:text-white text-lg">
-                                            {SUPPORTED_BANKS.find(b => b.id === selectedBank)?.name}
-                                        </p>
-                                        <p className="text-xs text-slate-400 font-mono mt-0.5">
-                                            {SUPPORTED_BANKS.find(b => b.id === selectedBank)?.account}
-                                        </p>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <TextInput
-                                            label="Amount to Withdraw"
-                                            placeholder="Min ₹100"
-                                            value={amount}
-                                            onChange={(v) => setAmount(v)}
-                                            type="number"
-                                        />
-
-                                        <div className="bg-indigo-50 dark:bg-indigo-900/10 p-3 rounded-lg flex gap-3 items-start">
-                                            <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-                                            <p className="text-xs text-indigo-800 dark:text-indigo-200 leading-relaxed">
-                                                Funds will be transferred instantly to your linked bank account via IMPS.
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <Button
-                                        onClick={() => console.log("Withdraw Logic Trigger")}
-                                        className="w-full py-4 text-base shadow-lg shadow-emerald-500/20"
-                                    >
-                                        Confirm Withdrawal <ArrowRight className="w-4 h-4 ml-2" />
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
+                <div className="lg:col-span-5">
+                    <WithdrawActionPanel
+                        selected={
+                            selected
+                                ? { displayName: selected.displayName, maskedAccount: selected.maskedAccount, amount: selected.amount }
+                                : null
+                        }
+                        walletAvailablePaise={walletAvailablePaise}
+                        amount={amount}
+                        onAmountChange={setAmount}
+                        isProcessing={isProcessing}
+                        panelError={panelError}
+                        panelOk={panelOk}
+                        onConfirm={onConfirm}
+                    />
                 </div>
             </div>
-        </div>
+
+            <TransactionPinDialog
+                open={pinOpen}
+                title="Enter Transaction PIN"
+                subtitle="Required to complete this withdrawal."
+                onClose={() => {
+                    if (!isProcessing) {
+                        setPinOpen(false);
+                        setPending(null);
+                    }
+                }}
+                onVerify={async (pin) => {
+                    if (!pending) return;
+
+                    setIsProcessing(true);
+                    setPanelError(null);
+                    setPanelOk(null);
+
+                    try {
+                        const result = await withdrawToLinkedAccount(
+                            pending.linkedBankAccountId,
+                            pending.amountPaise,
+                            pending.idempotencyKey,
+                            pin
+                        );
+
+                        if (!result.success) {
+                            if (result.errorCode === "PIN_NOT_SET") {
+                                setPinOpen(false);
+                                setPending(null);
+                                router.push("/settings/security");
+                                throw new Error("Please set your Transaction PIN in Security Center first.");
+                            }
+
+                            if (result.errorCode === "UNAUTHENTICATED") {
+                                setPinOpen(false);
+                                setPending(null);
+                                router.push("/signin");
+                                return;
+                            }
+
+                            if (result.errorCode === "PIN_LOCKED") {
+                                const retry = result.retryAfterSec ? ` Try again in ~${result.retryAfterSec}s.` : "";
+                                throw new Error(`PIN locked due to repeated failures.${retry}`);
+                            }
+
+                            if (result.errorCode === "RATE_LIMITED") {
+                                const retry = result.retryAfterSec ? ` Retry after ~${result.retryAfterSec}s.` : "";
+                                throw new Error(`Too many attempts.${retry}`);
+                            }
+
+                            throw new Error(result.message || "Withdrawal failed");
+                        }
+
+                        setPanelOk("Withdrawal successful.");
+                        setAmount("");
+
+                        setPinOpen(false);
+                        setPending(null);
+
+                        await refreshTransactions();
+                        await refreshBalance().catch(() => { });
+                        await refresh();
+                    } catch (e: any) {
+                        setPanelError(e?.message ?? "Withdrawal failed.");
+                    } finally {
+                        setIsProcessing(false);
+                    }
+                }}
+            />
+        </>
     );
 };

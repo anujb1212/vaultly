@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import prisma, { auditLogger, idempotencyManager, emitSecurityEvent, bucketizeAmount } from "@repo/db/client";
 import { revalidatePath } from "next/cache";
-import { rateLimit } from "../rateLimit";
+import { rateLimit } from "../redis/rateLimit";
 import crypto from "crypto";
 import { verifyMpinOrThrow, VerifyMpinError } from "../security/verifyMpin";
 
