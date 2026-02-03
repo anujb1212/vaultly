@@ -10,6 +10,7 @@ export interface OnRampTransaction {
     amount: number;
     status: TransactionStatus;
     provider: string;
+    failureReasonCode: string
 }
 
 export interface P2PTransaction {
@@ -17,6 +18,7 @@ export interface P2PTransaction {
     time: Date;
     amount: number;
     toUser: string;
+    toUserName: string;
     type: "sent" | "received";
 }
 
@@ -25,7 +27,7 @@ interface TransactionsResponse {
     p2p: P2PTransaction[];
 }
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function useTransactions() {
     const { data, error, mutate, isLoading } = useSWR<TransactionsResponse>(

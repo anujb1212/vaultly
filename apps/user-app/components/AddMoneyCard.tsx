@@ -8,7 +8,7 @@ import { createOnRampTxn } from "../app/lib/actions/createOnRampTxn";
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, ArrowRight, Banknote } from "lucide-react";
+import { ShieldCheck, ArrowRight, Banknote, Loader2 } from "lucide-react";
 import { TransactionPinDialog } from "./TransactionPinDialog";
 
 const SUPPORTED_BANKS = [
@@ -54,65 +54,80 @@ export const AddMoney = () => {
 
     return (
         <>
-            <div className="bg-white dark:bg-neutral-900 p-8 md:p-10 rounded-[2.5rem] border border-slate-200 dark:border-neutral-800 shadow-sm relative overflow-hidden">
-                <div className="flex items-center gap-5 mb-8">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm">
-                        <Banknote className="w-7 h-7" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Deposit via Bank</h2>
-                        <p className="text-sm text-slate-500 dark:text-neutral-400">
-                            Instant transfer using NetBanking
-                        </p>
-                    </div>
-                </div>
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 shadow-xl shadow-indigo-500/5 p-8 md:p-10">
 
-                <div className="space-y-8">
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-neutral-300 mb-3 ml-1">
-                            Amount to Add
-                        </label>
-                        <TextInput
-                            placeholder="e.g. 5000"
-                            label=""
-                            onChange={(value) => setAmount(Number(value))}
-                        />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+
+                <div className="relative z-10">
+                    <div className="flex items-center gap-5 mb-10">
+                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/20">
+                            <Banknote className="w-7 h-7" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                Deposit via Bank
+                            </h2>
+                            <p className="text-sm font-medium text-slate-500 dark:text-neutral-400 mt-1">
+                                Instant transfer using NetBanking
+                            </p>
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-neutral-300 mb-3 ml-1">
-                            Select Bank
-                        </label>
-                        <Select
-                            onSelect={(value) =>
-                                setProvider(SUPPORTED_BANKS.find((x) => x.name === value)?.name || "")
-                            }
-                            options={SUPPORTED_BANKS.map((x) => ({ key: x.name, value: x.name }))}
-                        />
-                    </div>
+                    <div className="space-y-8">
+                        <div className="space-y-3">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-neutral-300 ml-1">
+                                Amount to Add
+                            </label>
+                            <TextInput
+                                placeholder="e.g. 5000"
+                                label=""
+                                onChange={(value) => setAmount(Number(value))}
+                                customClass="w-full"
+                            />
+                        </div>
 
-                    <div className="pt-6">
-                        <Button
-                            onClick={handleAddMoney}
-                            disabled={isProcessing}
-                            className={`w-full py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 shadow-xl
-              ${isProcessing
-                                    ? "bg-slate-100 text-slate-400 dark:bg-neutral-800 dark:text-neutral-600 cursor-not-allowed shadow-none"
-                                    : "bg-slate-900 dark:bg-white text-white dark:text-black hover:scale-[1.02] active:scale-[0.98] shadow-slate-200 dark:shadow-none"
-                                }`}
-                        >
-                            {isProcessing ? (
-                                "Processing..."
-                            ) : (
-                                <>
-                                    Proceed to Pay <ArrowRight className="w-5 h-5" />
-                                </>
-                            )}
-                        </Button>
+                        <div className="space-y-3">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-neutral-300 ml-1">
+                                Select Bank
+                            </label>
+                            <Select
+                                onSelect={(value) =>
+                                    setProvider(
+                                        SUPPORTED_BANKS.find((x) => x.name === value)?.name || ""
+                                    )
+                                }
+                                options={SUPPORTED_BANKS.map((x) => ({
+                                    key: x.name,
+                                    value: x.name,
+                                }))}
+                            />
+                        </div>
 
-                        <div className="flex items-center justify-center gap-2 mt-6 text-xs text-slate-400 dark:text-neutral-500">
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>256-bit Secure SSL Connection</span>
+                        <div className="pt-4">
+                            <Button
+                                onClick={handleAddMoney}
+                                disabled={isProcessing}
+                                className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:shadow-md
+                  ${isProcessing
+                                        ? "bg-slate-100 text-slate-400 dark:bg-neutral-800 dark:text-neutral-600 cursor-not-allowed shadow-none"
+                                        : "bg-slate-900 dark:bg-white text-white dark:text-black shadow-slate-900/20"
+                                    }`}
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" /> Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        Proceed to Pay <ArrowRight className="w-5 h-5" />
+                                    </>
+                                )}
+                            </Button>
+
+                            <div className="flex items-center justify-center gap-2 mt-6 text-xs font-medium text-slate-400 dark:text-neutral-500">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>256-bit Secure SSL Connection</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -145,7 +160,9 @@ export const AddMoney = () => {
                                 setPinOpen(false);
                                 setPendingOnramp(null);
                                 router.push("/settings/security");
-                                throw new Error("Please set your Transaction PIN in Security Center first.");
+                                throw new Error(
+                                    "Please set your Transaction PIN in Security Center first."
+                                );
                             }
 
                             if (result.errorCode === "UNAUTHENTICATED") {
@@ -156,17 +173,23 @@ export const AddMoney = () => {
                             }
 
                             if (result.errorCode === "PIN_LOCKED") {
-                                const retry = result.retryAfterSec ? ` Try again in ~${result.retryAfterSec}s.` : "";
+                                const retry = result.retryAfterSec
+                                    ? ` Try again in ~${result.retryAfterSec}s.`
+                                    : "";
                                 throw new Error(`PIN locked due to repeated failures.${retry}`);
                             }
 
                             if (result.errorCode === "RATE_LIMITED") {
-                                const retry = result.retryAfterSec ? ` Retry after ~${result.retryAfterSec}s.` : "";
+                                const retry = result.retryAfterSec
+                                    ? ` Retry after ~${result.retryAfterSec}s.`
+                                    : "";
                                 throw new Error(`Too many attempts.${retry}`);
                             }
 
-                            if (result.errorCode === "PIN_REQUIRED") throw new Error("Transaction PIN is required.");
-                            if (result.errorCode === "PIN_INVALID") throw new Error("Invalid transaction PIN.");
+                            if (result.errorCode === "PIN_REQUIRED")
+                                throw new Error("Transaction PIN is required.");
+                            if (result.errorCode === "PIN_INVALID")
+                                throw new Error("Invalid transaction PIN.");
 
                             throw new Error(result.message || "Transaction failed");
                         }
@@ -191,6 +214,8 @@ export const AddMoney = () => {
                         setPinOpen(false);
                         setPendingOnramp(null);
                         router.push(`/mock-bank?${qs.toString()}`);
+                    } catch (error: any) {
+                        alert(error.message);
                     } finally {
                         setIsProcessing(false);
                         await refreshBalance().catch(() => { });

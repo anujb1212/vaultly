@@ -1,4 +1,4 @@
-import { SendMoneyCard } from "../../../components/SendMoneyCard";
+import { SendMoneyCard } from "../../../components/p2p/SendMoneyCard";
 
 export default function P2PTransferPage() {
     return (

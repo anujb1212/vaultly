@@ -1,6 +1,6 @@
 import "server-only";
 
-import db, { auditLogger } from "@repo/db/client";
+import db, { auditLogger, emitSecurityEvent } from "@repo/db/client";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 import type { NextAuthOptions, User } from "next-auth";
@@ -102,6 +102,20 @@ export const authOptions: NextAuthOptions = {
                     newValue: { sessionId: created.id },
                     metadata: { sessionId: created.id },
                 });
+
+                try {
+                    await emitSecurityEvent(db as any, {
+                        userId: Number(userId),
+                        type: "SESSION_CREATED",
+                        source: "user-app",
+                        sourceId: created.id,
+                        metadata: {
+                            reason: "login",
+                        },
+                    });
+                } catch {
+                    // To avoid impacting auth flow
+                }
 
                 return token;
             }

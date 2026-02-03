@@ -2,7 +2,7 @@
 
 import { AddMoney } from "../../../components/AddMoneyCard";
 import { BalanceCard } from "../../../components/BalanceCard";
-import { OnRampTransactions } from "../../../components/OnRampTransactions";
+import { OnRampTransactions } from "../../../components/transactions/OnRampTransactions";
 
 export default function TransferPage() {
     return (

@@ -30,6 +30,10 @@ model User {
   AuditLog          AuditLog[]
   ledgerAccounts    LedgerAccount[]
 
+  securityEvents     SecurityEvent[]
+  securitySignals    SecuritySignal[]
+  aiSecurityInsights AISecurityInsight[]
+
   @@index([number])
 }
 
@@ -175,15 +179,16 @@ model UserSession {
 }
 
 model LedgerAccount {
-  id     Int   @id @default(autoincrement())
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id            Int               @id @default(autoincrement())
+  userId        Int?
+  user          User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systemKey     String?           @unique
   accountType   LedgerAccountType
   currency      String
   createdAt     DateTime          @default(now())
   ledgerEntries LedgerEntry[]
 
+  @@unique([userId, accountType, currency])
   @@index([userId, accountType])
   @@index([accountType, currency])
 }
@@ -209,12 +214,86 @@ model LedgerEntry {
   account   LedgerAccount @relation(fields: [accountId], references: [id])
 
   direction LedgerEntryDirection
-  amount    BigInt
+  amount    Int
   currency  String
   createdAt DateTime             @default(now())
 
   @@index([transactionId])
   @@index([accountId, createdAt])
+}
+
+model SecurityEvent {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type     SecurityEventType
+  source   String
+  sourceId String?
+
+  occurredAt      DateTime         @default(now())
+  ipHash          String?
+  deviceHash      String?
+  metadata        Json?
+  createdAt       DateTime         @default(now())
+  securitySignals SecuritySignal[]
+
+  @@unique([source, sourceId])
+  @@index([userId, occurredAt])
+  @@index([userId, type, occurredAt])
+}
+
+model SecuritySignal {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type     SecuritySignalType
+  severity SecuritySeverity
+
+  dedupeKey String
+
+  windowStart DateTime
+  windowEnd   DateTime
+
+  metadata Json?
+
+  eventId Int?
+  event   SecurityEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  insight AISecurityInsight?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
+}
+
+model AISecurityInsight {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  signalId Int            @unique
+  signal   SecuritySignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  severity           SecuritySeverity
+  title              String
+  summary            String
+  recommendedActions String[]         @default([])
+
+  provider      String
+  model         String
+  promptVersion String
+
+  status    AIInsightStatus @default(PENDING)
+  errorCode String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([userId, status, createdAt])
 }
 
 enum AuthType {
@@ -254,4 +333,43 @@ enum LedgerTxnType {
 enum LedgerEntryDirection {
   DEBIT
   CREDIT
+}
+
+enum SecurityEventType {
+  SESSION_CREATED
+  LOGIN_FAILED
+  PIN_VERIFY_FAILED
+  PIN_LOCKED
+
+  P2P_INITIATED
+  P2P_COMPLETED
+  P2P_FAILED
+
+  ONRAMP_INITIATED
+  ONRAMP_COMPLETED
+  ONRAMP_FAILED
+
+  EMAIL_ADDED
+}
+
+enum SecuritySignalType {
+  NEW_DEVICE
+  NEW_SESSION_SPIKE
+  RAPID_PIN_FAILURES
+  LARGE_TRANSFER
+  FIRST_TIME_RECIPIENT
+  RAPID_RETRIES
+  ONRAMP_FAILURES
+}
+
+enum SecuritySeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AIInsightStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
