@@ -26,7 +26,7 @@ const FEATURES = [
     gradient: "from-indigo-500/20 to-violet-500/20"
   },
   {
-    title: "AI Security",
+    title: "AI Powered Insights",
     desc: "Smart insights that analyze your transaction patterns for safety.",
     icon: Sparkles,
     gradient: "from-violet-500/20 to-fuchsia-500/20"

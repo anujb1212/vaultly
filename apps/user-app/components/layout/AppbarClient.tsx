@@ -1,16 +1,25 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { ThemeToggle } from "./ThemeToggle";
+import { ThemeToggle } from "../ThemeToggle";
 import { useState, useRef, useEffect } from "react";
-import { Bell, LogOut, Settings, User, ChevronDown } from "lucide-react";
+import { LogOut, Settings, User, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function AppbarClient() {
   const { data: session } = useSession();
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     function close(e: MouseEvent) {
@@ -27,28 +36,26 @@ export function AppbarClient() {
     : "U";
 
   return (
-    <header className="sticky top-0 z-[40] w-full border-b border-slate-200/40 dark:border-neutral-800/40 bg-white/60 dark:bg-black/60 backdrop-blur-xl backdrop-saturate-150 transition-all">
+    <header
+      className={`sticky top-0 z-[40] w-full transition-all duration-300 ${isScrolled
+        ? "border-b border-slate-200/50 dark:border-neutral-800/50 bg-white/80 dark:bg-black/80 backdrop-blur-xl shadow-sm"
+        : "border-b border-transparent bg-transparent"
+        }`}
+    >
       <div className="flex items-center justify-between px-6 h-16 w-full max-w-7xl mx-auto">
-
         <div className="flex items-center gap-2 md:hidden">
           <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center">
             <span className="text-white dark:text-black font-bold text-lg">V</span>
           </div>
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Vaultly</span>
+          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
+            Vaultly
+          </span>
         </div>
 
         <div className="hidden md:block" />
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
-
-          {/* <button
-            className="group relative p-2 rounded-xl text-slate-500 hover:bg-slate-100/80 hover:text-slate-700 dark:text-neutral-400 dark:hover:bg-neutral-800/80 dark:hover:text-white transition-all duration-200"
-            aria-label="Notifications"
-          >
-            <Bell className="w-5 h-5 stroke-[1.5]" />
-            <span className="absolute top-2.5 right-2.5 h-2 w-2 bg-indigo-500 rounded-full ring-2 ring-white dark:ring-black scale-100 group-hover:scale-110 transition-transform" />
-          </button> */}
 
           <div className="h-6 w-px bg-slate-200/60 dark:bg-neutral-800/60 mx-1 hidden md:block" />
 
@@ -63,7 +70,10 @@ export function AppbarClient() {
                   {userInitials}
                 </div>
               </div>
-              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showMenu ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showMenu ? "rotate-180" : ""
+                  }`}
+              />
             </button>
 
             {showMenu && (
@@ -79,13 +89,19 @@ export function AppbarClient() {
 
                 <div className="p-1.5 space-y-0.5">
                   <button
-                    onClick={() => { setShowMenu(false); router.push("/profile"); }}
+                    onClick={() => {
+                      setShowMenu(false);
+                      router.push("/settings");
+                    }}
                     className="w-full px-3 py-2.5 flex items-center gap-3 text-sm font-medium text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-white rounded-xl transition-all"
                   >
                     <User className="w-4 h-4 stroke-[1.5]" /> Profile
                   </button>
                   <button
-                    onClick={() => { setShowMenu(false); router.push("/settings"); }}
+                    onClick={() => {
+                      setShowMenu(false);
+                      router.push("/settings/security");
+                    }}
                     className="w-full px-3 py-2.5 flex items-center gap-3 text-sm font-medium text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-white rounded-xl transition-all"
                   >
                     <Settings className="w-4 h-4 stroke-[1.5]" /> Settings

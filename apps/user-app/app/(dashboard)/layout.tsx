@@ -1,6 +1,6 @@
 "use client";
 
-import { AppbarClient } from "../../components/AppbarClient";
+import { AppbarClient } from "../../components/layout/AppbarClient";
 import { SidebarItem } from "../../components/SidebarItem";
 import { LayoutDashboard, ArrowRightLeft, Clock, Users, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -35,8 +35,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <nav className="space-y-1">
             <SidebarItem href="/dashboard" icon={<LayoutDashboard className="w-5 h-5" strokeWidth={1.5} />} title="Dashboard" />
             <SidebarItem href="/transfer" icon={<ArrowRightLeft className="w-5 h-5" strokeWidth={1.5} />} title="Transfer Funds" />
-            <SidebarItem href="/transactions" icon={<Clock className="w-5 h-5" strokeWidth={1.5} />} title="History" />
             <SidebarItem href="/p2ptransfer" icon={<Users className="w-5 h-5" strokeWidth={1.5} />} title="P2P Transfer" />
+            <SidebarItem href="/withdraw" icon={<Users className="w-5 h-5" strokeWidth={1.5} />} title="Withdraw Funds" />
+            <SidebarItem href="/transactions" icon={<Clock className="w-5 h-5" strokeWidth={1.5} />} title="History" />
           </nav>
         </div>
 
@@ -50,7 +51,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">Verified</p>
-                <p className="text-xs text-slate-500 dark:text-neutral-400 truncate">Tier 1 • Limit ₹1L</p>
+                {/* <p className="text-xs text-slate-500 dark:text-neutral-400 truncate">Tier 1 • Limit ₹1L</p> */}
               </div>
             </div>
           </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldAlert, Sparkles, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ShieldAlert, Sparkles, ChevronRight, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type AIInsightSeverity = "LOW" | "MEDIUM" | "HIGH";
 type AIInsightStatus = "COMPLETED" | "FAILED";
@@ -53,19 +53,27 @@ const severityConfig = {
 };
 
 export function AISecurityInsightsCard({ limit = 3 }: { limit?: number }) {
+    const [isRevealed, setIsRevealed] = useState(false);
     const [items, setItems] = useState<AISecurityInsightItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
 
     useEffect(() => {
+        if (!isRevealed || hasLoaded) return;
+
         let isMounted = true;
         async function load() {
+            setIsLoading(true);
             try {
                 const res = await fetch(`/api/user/security/insights?limit=${limit}`);
                 if (!res.ok) throw new Error();
                 const data = await res.json();
-                if (isMounted) setItems(data.items || []);
+                if (isMounted) {
+                    setItems(data.items || []);
+                    setHasLoaded(true);
+                }
             } catch (e) {
-                // Silent fail 
+                // Silent fail, user can try again by refreshing page 
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -74,20 +82,14 @@ export function AISecurityInsightsCard({ limit = 3 }: { limit?: number }) {
         return () => {
             isMounted = false;
         };
-    }, [limit]);
-
-    if (isLoading) {
-        return (
-            <div className="h-64 rounded-[2rem] bg-slate-100 dark:bg-neutral-900/50 animate-pulse" />
-        );
-    }
+    }, [isRevealed, hasLoaded, limit]);
 
     return (
         <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 backdrop-blur-sm p-8 shadow-lg shadow-indigo-500/5">
             <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none" />
 
             <div className="relative z-10">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-50 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/20 dark:to-neutral-800 border border-indigo-100 dark:border-indigo-500/20 rounded-xl shadow-sm">
                             <ShieldAlert className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -101,16 +103,41 @@ export function AISecurityInsightsCard({ limit = 3 }: { limit?: number }) {
                             </p>
                         </div>
                     </div>
-                    <Link
-                        href="/settings/security"
-                        className="group flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors"
-                    >
-                        Details <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                    </Link>
+                    {isRevealed && (
+                        <Link
+                            href="/settings/security"
+                            className="group flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors"
+                        >
+                            Details{" "}
+                            <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                        </Link>
+                    )}
                 </div>
 
-                {items.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                {!isRevealed ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-center">
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 max-w-[240px]">
+                            Review AI-generated security analysis for your account activity.
+                        </p>
+                        <button
+                            onClick={() => setIsRevealed(true)}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 transition-all active:scale-[0.98]"
+                        >
+                            <Eye className="w-4 h-4" />
+                            Reveal Insights
+                        </button>
+                    </div>
+                ) : isLoading ? (
+                    <div className="space-y-3">
+                        {[1, 2].map((i) => (
+                            <div
+                                key={i}
+                                className="h-20 rounded-2xl bg-slate-100 dark:bg-neutral-800/50 animate-pulse"
+                            />
+                        ))}
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center animate-in fade-in slide-in-from-bottom-2">
                         <div className="p-3 bg-slate-50 dark:bg-neutral-800 rounded-full mb-3">
                             <Sparkles className="w-5 h-5 text-slate-400" />
                         </div>
@@ -120,7 +147,7 @@ export function AISecurityInsightsCard({ limit = 3 }: { limit?: number }) {
                         <p className="text-xs text-slate-400">No anomalies detected.</p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
                         {items.map((it) => {
                             const style = severityConfig[it.severity];
                             return (

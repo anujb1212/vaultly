@@ -4,11 +4,12 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ThemeToggle } from "../../components/ThemeToggle";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 import { Button } from "@repo/ui/button";
 import { TextInput } from "@repo/ui/textinput";
 import { ArrowRight, LockKeyhole, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
+import { toFieldErrors, type FieldErrors } from "../../../components/auth/zodFieldErrors";
 
 const signInSchema = z.object({
   phone: z
@@ -20,22 +21,30 @@ const signInSchema = z.object({
     .min(1, { message: "Password is required" }),
 });
 
+type SignInFields = "phone" | "password";
+
 export default function SigninPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+
+  const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<SignInFields>>({});
   const [loading, setLoading] = useState(false);
+
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    setFormError("");
+    setFieldErrors({});
     setLoading(true);
 
     const validation = signInSchema.safeParse({ phone, password });
 
     if (!validation.success) {
-      setError(validation.error.message);
+      const { fieldErrors: fe, formError: top } = toFieldErrors<SignInFields>(validation.error);
+      setFieldErrors(fe);
+      if (top) setFormError(top);
       setLoading(false);
       return;
     }
@@ -49,7 +58,7 @@ export default function SigninPage() {
     setLoading(false);
 
     if (res?.error) {
-      setError("Invalid credentials. Please check your details.");
+      setFormError("Invalid credentials. Please check your phone number and password.");
       return;
     }
 
@@ -133,25 +142,29 @@ export default function SigninPage() {
                 placeholder="e.g. 9876543210"
                 onChange={(val) => {
                   setPhone(val.trim());
-                  setError("");
+                  if (fieldErrors.phone) setFieldErrors(prev => ({ ...prev, phone: undefined }));
                 }}
                 type="tel"
+                value={phone}
+                error={fieldErrors.phone}
               />
               <TextInput
                 label="Password"
                 placeholder="••••••••"
                 onChange={(val) => {
                   setPassword(val);
-                  setError("");
+                  if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined }));
                 }}
                 type="password"
+                value={password}
+                error={fieldErrors.password}
               />
             </div>
 
-            {error && (
+            {formError && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium animate-in fade-in slide-in-from-top-1 duration-200">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                {error}
+                {formError}
               </div>
             )}
 

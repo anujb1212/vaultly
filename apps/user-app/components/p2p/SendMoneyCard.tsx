@@ -5,14 +5,18 @@ import { Card } from "@repo/ui/card";
 import { TextInput } from "@repo/ui/textinput";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { p2pTransfer } from "../app/lib/actions/p2pTransfer";
+
 import { useBalance, useTransactions } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
-import { TransactionPinDialog } from "./TransactionPinDialog";
+import { TransactionPinDialog } from "../TransactionPinDialog";
+import { p2pTransfer } from "../../app/lib/actions/p2pTransfer";
+import { UserSearch } from "./UserSearch";
+
+
 
 export function SendMoneyCard() {
-    const [number, setNumber] = useState("");
+    const [selectedUser, setSelectedUser] = useState<{ id: number; name: string | null; number: string } | null>(null);
     const [amount, setAmount] = useState("");
     const [status, setStatus] = useState<"idle" | "processing" | "success">("idle");
     const [error, setError] = useState<string | null>(null);
@@ -32,9 +36,14 @@ export function SendMoneyCard() {
     async function handleSend() {
         setError(null);
 
-        const to = number.trim();
+        if (!selectedUser?.number) {
+            setError("Please select a recipient.");
+            return;
+        }
+
+        const to = selectedUser.number;
         if (!/^\d{10}$/.test(to)) {
-            setError("Please enter a valid 10-digit mobile number.");
+            setError("Invalid recipient number.");
             return;
         }
 
@@ -62,7 +71,7 @@ export function SendMoneyCard() {
 
     if (status === "success") {
         return (
-            <div className="w-full max-w-md mx-auto">
+            <div className="w-full max-w-md mx-auto animate-fade-in">
                 <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border border-slate-200 dark:border-neutral-800 shadow-sm min-h-[420px] flex flex-col items-center justify-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
                     <div className="text-center animate-in zoom-in-95 duration-300">
@@ -73,7 +82,7 @@ export function SendMoneyCard() {
                             Transfer Successful!
                         </h3>
                         <p className="text-slate-500 dark:text-neutral-400 text-sm">
-                            ₹{Number(amount).toLocaleString()} sent to {number}
+                            ₹{Number(amount).toLocaleString()} sent to {selectedUser?.name || selectedUser?.number}
                         </p>
                     </div>
                 </div>
@@ -97,20 +106,13 @@ export function SendMoneyCard() {
                     </div>
 
                     <div className="space-y-4">
-                        <div className="space-y-1">
-                            <TextInput
-                                label="Mobile Number"
-                                placeholder="Enter 10-digit number"
-                                value={number}
-                                onChange={(val) => {
-                                    const cleanVal = val.replace(/\D/g, "").slice(0, 10);
-                                    setNumber(cleanVal);
-                                    setError(null);
-                                }}
-                            />
-                        </div>
+                        <UserSearch
+                            selectedUser={selectedUser}
+                            onSelect={setSelectedUser}
+                        />
 
-                        <div className="space-y-1">
+                        {/* Amount Input */}
+                        <div className={`space-y-1 transition-all duration-300 ${selectedUser ? 'opacity-100' : 'opacity-50 pointer-events-none blur-[1px]'}`}>
                             <TextInput
                                 label="Amount (₹)"
                                 placeholder="0.00"
@@ -134,7 +136,7 @@ export function SendMoneyCard() {
                     <div className="pt-2">
                         <Button
                             onClick={handleSend}
-                            disabled={status === "processing"}
+                            disabled={status === "processing" || !selectedUser || !amount}
                             className={`w-full py-4 text-base shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2
               ${status === "processing" ? "opacity-70 cursor-wait" : "hover:-translate-y-0.5"}`}
                         >
@@ -153,7 +155,7 @@ export function SendMoneyCard() {
             <TransactionPinDialog
                 open={pinOpen}
                 title="Enter Transaction PIN"
-                subtitle="Required to complete this transfer."
+                subtitle={`Sending ₹${amount} to ${selectedUser?.name || selectedUser?.number}`}
                 onClose={() => {
                     if (status !== "processing") {
                         setPinOpen(false);
@@ -179,7 +181,7 @@ export function SendMoneyCard() {
                             setPendingSend(null);
 
                             setTimeout(() => {
-                                setNumber("");
+                                setSelectedUser(null);
                                 setAmount("");
                                 setStatus("idle");
                                 router.push("/dashboard");
@@ -195,30 +197,28 @@ export function SendMoneyCard() {
                             router.push("/settings/security");
                             return;
                         }
-
                         if (result.errorCode === "UNAUTHENTICATED") {
                             setPinOpen(false);
                             setPendingSend(null);
                             router.push("/signin");
                             return;
                         }
-
                         if (result.errorCode === "PIN_LOCKED") {
                             const retry = result.retryAfterSec ? ` Try again in ~${result.retryAfterSec}s.` : "";
                             throw new Error(`PIN locked due to repeated failures.${retry}`);
                         }
-
                         if (result.errorCode === "RATE_LIMITED") {
                             const retry = result.retryAfterSec ? ` Retry after ~${result.retryAfterSec}s.` : "";
                             throw new Error(`Too many attempts.${retry}`);
                         }
-
                         if (result.errorCode === "PIN_REQUIRED") throw new Error("Transaction PIN is required.");
                         if (result.errorCode === "PIN_INVALID") throw new Error("Invalid transaction PIN.");
 
                         throw new Error(result.message || "Transfer failed");
-                    } finally {
-                        setStatus((s) => (s === "success" ? s : "idle"));
+                    } catch (e: any) {
+                        setStatus("idle");
+                        setPinOpen(false);
+                        setError(e.message || "An unexpected error occurred");
                     }
                 }}
             />

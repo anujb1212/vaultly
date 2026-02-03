@@ -1,14 +1,16 @@
 "use client";
 
 import { useBalance } from "@repo/store";
-import { Lock, Wallet, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Wallet, Lock } from "lucide-react";
+import { useState } from "react";
 
 export const BalanceCard = () => {
     const { balance, isLoading } = useBalance();
+    const [hidden, setHidden] = useState(false);
 
     if (isLoading) {
         return (
-            <div className="h-48 rounded-[2rem] bg-slate-100 dark:bg-neutral-900/50 animate-pulse" />
+            <div className="h-full min-h-[220px] rounded-[2rem] bg-slate-100 dark:bg-neutral-900 animate-pulse" />
         );
     }
 
@@ -31,54 +33,57 @@ export const BalanceCard = () => {
     const lockedVal = format(locked);
 
     return (
-        <div className="relative group overflow-hidden rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/40 dark:bg-neutral-900/60 backdrop-blur-xl shadow-xl shadow-indigo-500/10 transition-all hover:shadow-indigo-500/20">
-            <div className="absolute top-[-50%] right-[-20%] w-[400px] h-[400px] bg-indigo-500/20 rounded-full blur-[80px] opacity-40 mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
-            <div className="absolute bottom-[-20%] left-[-10%] w-[300px] h-[300px] bg-violet-500/10 rounded-full blur-[60px] opacity-30 mix-blend-multiply dark:mix-blend-screen pointer-events-none" />
+        <div className="relative w-full h-full min-h-[220px] rounded-[2rem] overflow-hidden p-8 flex flex-col justify-between group shadow-xl shadow-indigo-500/10 transition-all hover:scale-[1.01]">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-700 to-indigo-900 z-0" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-32 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/20 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none" />
 
-            <div className="relative z-10 p-8 flex flex-col h-full justify-between">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-indigo-500/10 dark:bg-indigo-400/20 rounded-xl">
-                            <Wallet className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
-                        </div>
-                        <span className="text-sm font-bold tracking-wide text-slate-600 dark:text-slate-300 uppercase">
+            <div className="relative z-10 flex justify-between items-start">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <Wallet className="w-4 h-4 text-indigo-200" />
+                        <h3 className="text-indigo-200 font-medium text-xs tracking-wider uppercase">
                             Total Balance
-                        </span>
+                        </h3>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-4xl font-bold text-white tracking-tight flex items-baseline">
+                            {hidden ? (
+                                "••••••"
+                            ) : (
+                                <>
+                                    <span className="text-2xl mr-1">₹</span>
+                                    {total.rs}
+                                    <span className="text-lg opacity-60">.{total.ps}</span>
+                                </>
+                            )}
+                        </h1>
+                        <button
+                            onClick={() => setHidden(!hidden)}
+                            className="text-indigo-300 hover:text-white transition-colors"
+                        >
+                            {hidden ? <Eye size={18} /> : <EyeOff size={18} />}
+                        </button>
                     </div>
                 </div>
+            </div>
 
-                {/* Main Amount */}
-                <div className="mt-6 mb-8">
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-5xl md:text-6xl font-bold tracking-tighter text-slate-900 dark:text-white">
-                            ₹{total.rs}
-                        </span>
-                        <span className="text-2xl font-medium text-slate-400 dark:text-slate-500">
-                            .{total.ps}
-                        </span>
-                    </div>
+            <div className="relative z-10 grid grid-cols-2 gap-4 mt-auto">
+                <div className="flex flex-col">
+                    <span className="text-[10px] text-indigo-200 uppercase tracking-wider mb-0.5">Available</span>
+                    <span className="text-white font-semibold text-lg">
+                        ₹{available.rs}<span className="text-xs opacity-60">.{available.ps}</span>
+                    </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-white/40 dark:border-white/10 backdrop-blur-sm">
-                        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
-                            Available
-                        </div>
-                        <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                            ₹{available.rs}
-                            <span className="text-sm opacity-60">.{available.ps}</span>
-                        </div>
+                <div className="flex flex-col border-l border-white/10 pl-4">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                        <Lock className="w-3 h-3 text-indigo-300" />
+                        <span className="text-[10px] text-indigo-200 uppercase tracking-wider">Locked</span>
                     </div>
-
-                    <div className="p-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-white/40 dark:border-white/10 backdrop-blur-sm">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
-                            <Lock className="w-3 h-3" /> Locked
-                        </div>
-                        <div className="text-lg font-bold text-slate-700 dark:text-slate-200">
-                            ₹{lockedVal.rs}
-                            <span className="text-sm opacity-60">.{lockedVal.ps}</span>
-                        </div>
-                    </div>
+                    <span className="text-white/80 font-semibold text-lg">
+                        ₹{lockedVal.rs}<span className="text-xs opacity-60">.{lockedVal.ps}</span>
+                    </span>
                 </div>
             </div>
         </div>

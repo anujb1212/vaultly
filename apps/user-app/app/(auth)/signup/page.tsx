@@ -3,51 +3,48 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { ThemeToggle } from "../../components/ThemeToggle";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 import { Button } from "@repo/ui/button";
 import { TextInput } from "@repo/ui/textinput";
-import {
-  ArrowRight,
-  Loader2,
-  Sparkles,
-  Wallet,
-  AlertCircle
-} from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Wallet, AlertCircle } from "lucide-react";
 import { z } from "zod";
+import { toFieldErrors, type FieldErrors } from "../../../components/auth/zodFieldErrors";
 
 const signUpSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   phone: z
     .string()
-    .length(10, { message: "Phone number must be exactly 10 digits" })
-    .regex(/^\d+$/, { message: "Phone number must contain only numbers" }),
-
+    .length(10, { message: "Phone number must be exactly 10 digits." })
+    .regex(/^\d+$/, { message: "Phone number must contain only numbers." }),
   email: z
     .string()
-    .email({ message: "Invalid email address" })
+    .email({ message: "Please enter a valid email address." })
     .optional()
     .or(z.literal("")),
-
   password: z
     .string()
-    .min(8, { message: "Password must be at least 8 characters" })
+    .min(8, { message: "Password must be at least 8 characters." })
     .regex(/[!@#$%^&*(),.?":{}|<>]/, {
-      message: "Password must contain at least one special character"
+      message: "Include at least one special character (!@#$%).",
     }),
 });
+
+type SignUpFields = "name" | "phone" | "email" | "password";
 
 export default function SignupPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [error, setError] = useState("");
+
+  const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<SignUpFields>>({});
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    setFormError("");
+    setFieldErrors({});
     setLoading(true);
 
     const validation = signUpSchema.safeParse({
@@ -58,7 +55,9 @@ export default function SignupPage() {
     });
 
     if (!validation.success) {
-      setError(validation.error.message);
+      const { fieldErrors: fe, formError: top } = toFieldErrors<SignUpFields>(validation.error);
+      setFieldErrors(fe);
+      if (top) setFormError(top);
       setLoading(false);
       return;
     }
@@ -77,14 +76,14 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Signup failed");
+        setFormError(data.error || "Signup failed. Please try again.");
         setLoading(false);
         return;
       }
 
       await signIn("credentials", { phone, password, callbackUrl: "/dashboard" });
     } catch {
-      setError("Network error. Please try again.");
+      setFormError("Network connection error. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -92,8 +91,6 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen w-full flex relative bg-background selection:bg-indigo-500/20 overflow-hidden">
-
-      {/* Theme Toggle */}
       <div className="absolute top-6 right-6 z-50">
         <ThemeToggle />
       </div>
@@ -171,32 +168,40 @@ export default function SignupPage() {
               <TextInput
                 label="Full Name"
                 placeholder="John Doe"
-                onChange={(val) => { setName(val); setError(""); }}
+                onChange={(val) => { setName(val); if (fieldErrors.name) setFieldErrors(p => ({ ...p, name: undefined })); }}
+                value={name}
+                error={fieldErrors.name}
               />
               <TextInput
                 label="Phone Number"
                 placeholder="e.g. 9876543210"
-                onChange={(val) => { setPhone(val.trim()); setError(""); }}
+                onChange={(val) => { setPhone(val.trim()); if (fieldErrors.phone) setFieldErrors(p => ({ ...p, phone: undefined })); }}
                 type="tel"
+                value={phone}
+                error={fieldErrors.phone}
               />
               <TextInput
                 label="Email (optional)"
                 placeholder="you@example.com"
-                onChange={(val) => { setEmail(val.trim()); setError(""); }}
+                onChange={(val) => { setEmail(val.trim()); if (fieldErrors.email) setFieldErrors(p => ({ ...p, email: undefined })); }}
                 type="email"
+                value={email}
+                error={fieldErrors.email}
               />
               <TextInput
                 label="Password"
                 placeholder="Min 8 chars + special char"
-                onChange={(val) => { setPassword(val); setError(""); }}
+                onChange={(val) => { setPassword(val); if (fieldErrors.password) setFieldErrors(p => ({ ...p, password: undefined })); }}
                 type="password"
+                value={password}
+                error={fieldErrors.password}
               />
             </div>
 
-            {error && (
+            {formError && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium animate-in fade-in slide-in-from-top-1 duration-200">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                {error}
+                {formError}
               </div>
             )}
 

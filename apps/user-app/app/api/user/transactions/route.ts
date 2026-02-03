@@ -43,16 +43,24 @@ export async function GET() {
             amount: tx.amount,
             status: tx.status,
             provider: tx.provider,
+            failureReasonCode: tx.failureReasonCode,
+            type: "onRamp"
         }));
 
         // Format P2P transactions
-        const formattedP2P = p2pTransactions.map((tx) => ({
-            id: tx.id,
-            time: tx.timestamp,
-            amount: tx.amount,
-            toUser: tx.senderId === userId ? tx.receiver.number : tx.sender.number,
-            type: tx.senderId === userId ? "sent" : "received",
-        }));
+        const formattedP2P = p2pTransactions.map((tx) => {
+            const isSender = tx.senderId === userId;
+            const otherParty = isSender ? tx.receiver : tx.sender;
+
+            return {
+                id: tx.id,
+                time: tx.timestamp,
+                amount: tx.amount,
+                toUser: otherParty.number,
+                toUserName: otherParty.name,
+                type: isSender ? "sent" : "received",
+            };
+        });
 
         return NextResponse.json({
             onRamp: formattedOnRamp,

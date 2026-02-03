@@ -82,7 +82,7 @@ export const AddMoney = () => {
                                 placeholder="e.g. 5000"
                                 label=""
                                 onChange={(value) => setAmount(Number(value))}
-                                className="w-full"
+                                customClass="w-full"
                             />
                         </div>
 
