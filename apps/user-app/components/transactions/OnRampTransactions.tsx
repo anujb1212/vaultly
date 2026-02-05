@@ -67,7 +67,6 @@ export const OnRampTransactions = ({ transactions }: { transactions?: Transactio
 
                     return (
                         <div
-                            key={t.id}
                             className="flex items-center justify-between group p-3 -mx-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors"
                         >
                             <div className="flex items-center gap-4">
