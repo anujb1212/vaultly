@@ -35,7 +35,8 @@ export async function createOnRampTxn(
     amount: number,
     provider: string,
     idempotencyKey: string,
-    mpin?: string
+    linkedBankAccountId?: number,
+    mpin?: string,
 ): Promise<CreateOnRampTxnResult> {
     const session = await getServerSession(authOptions);
     if (!session?.user || !session.user?.id) {
@@ -99,6 +100,50 @@ export async function createOnRampTxn(
         const result = await prisma.$transaction(async (tx) => {
             const dummyToken = crypto.randomUUID();
 
+            let linked = null as null | { id: number; providerKey: any; displayName: string; maskedAccount: string; amount: number; locked: number };
+
+            if (Number.isFinite(linkedBankAccountId as any) && Number(linkedBankAccountId) > 0) {
+                const id = Number(linkedBankAccountId);
+                await tx.$queryRaw`
+                  SELECT * FROM "LinkedBankAccount"
+                  WHERE "id" = ${id} AND "userId" = ${userId}
+                  FOR UPDATE
+                `;
+                linked = await tx.linkedBankAccount.findFirst({
+                    where: { id, userId },
+                    select: { id: true, providerKey: true, displayName: true, maskedAccount: true, amount: true, locked: true },
+                });
+            } else {
+                linked = await tx.linkedBankAccount.findFirst({
+                    where: { userId, displayName: provider },
+                    select: { id: true, providerKey: true, displayName: true, maskedAccount: true, amount: true, locked: true },
+                });
+                if (linked) {
+                    await tx.$queryRaw`
+                      SELECT * FROM "LinkedBankAccount"
+                      WHERE "id" = ${linked.id} AND "userId" = ${userId}
+                      FOR UPDATE
+                    `;
+                    linked = await tx.linkedBankAccount.findFirst({
+                        where: { id: linked.id, userId },
+                        select: { id: true, providerKey: true, displayName: true, maskedAccount: true, amount: true, locked: true },
+                    });
+                }
+            }
+
+            if (!linked) {
+                return { success: false, message: "Linked bank account not found", errorCode: "UNKNOWN" } as const;
+            }
+
+            const available = linked.amount - linked.locked;
+            if (available < amount) {
+                return { success: false, message: "Insufficient funds in selected bank account", errorCode: "UNKNOWN" } as const
+            }
+            await tx.linkedBankAccount.update({
+                where: { id: linked.id },
+                data: { locked: { increment: amount } },
+            });
+
             const onRampTxn = await tx.onRampTransaction.create({
                 data: {
                     provider,
@@ -107,6 +152,16 @@ export async function createOnRampTxn(
                     status: "Processing",
                     startTime: new Date(),
                     token: dummyToken,
+                    linkedBankAccountId: linked.id,
+                    metadata: {
+                        linkedBankAccountSnapshot: {
+                            id: linked.id,
+                            providerKey: String(linked.providerKey),
+                            displayName: linked.displayName,
+                            maskedAccount: linked.maskedAccount,
+                        },
+                        reservedAt: new Date().toISOString(),
+                    },
                 },
                 select: { id: true, token: true, userId: true, amount: true, provider: true },
             });

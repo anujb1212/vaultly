@@ -1,0 +1,96 @@
+enum AuthType {
+    Google
+    Github
+}
+
+enum OnRampStatus {
+    Success
+    Failure
+    Processing
+}
+
+enum P2PStatus {
+    SUCCESS
+    FAILED
+    REVERSED
+}
+
+enum TotpStatus {
+    DISABLED
+    PENDING
+    ENABLED
+}
+
+enum LedgerAccountType {
+    USER_CASH
+    PLATFORM_CLEARING
+}
+
+enum LedgerTxnType {
+    P2P_TRANSFER
+    ONRAMP
+    REVERSAL
+    OFFRAMP
+}
+
+enum LedgerEntryDirection {
+    DEBIT
+    CREDIT
+}
+
+enum SecurityEventType {
+    SESSION_CREATED
+    LOGIN_FAILED
+    PIN_VERIFY_FAILED
+    PIN_LOCKED
+
+    P2P_INITIATED
+    P2P_COMPLETED
+    P2P_FAILED
+
+    ONRAMP_INITIATED
+    ONRAMP_COMPLETED
+    ONRAMP_FAILED
+
+    OFFRAMP_INITIATED
+    OFFRAMP_COMPLETED
+    OFFRAMP_FAILED
+
+    EMAIL_ADDED
+}
+
+enum SecuritySignalType {
+    NEW_DEVICE
+    NEW_SESSION_SPIKE
+    RAPID_PIN_FAILURES
+    LARGE_TRANSFER
+    FIRST_TIME_RECIPIENT
+    RAPID_RETRIES
+    ONRAMP_FAILURES
+}
+
+enum SecuritySeverity {
+    LOW
+    MEDIUM
+    HIGH
+}
+
+enum AIInsightStatus {
+    PENDING
+    COMPLETED
+    FAILED
+}
+
+enum OffRampStatus {
+    Success
+    Failure
+    Processing
+}
+
+enum LinkedBankProviderKey {
+    HDFC
+    AXIS
+    ICICI
+    SBI
+    KOTAK
+}

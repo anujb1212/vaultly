@@ -1,0 +1,103 @@
+model Balance {
+    id        Int      @id @default(autoincrement())
+    userId    Int      @unique
+    amount    Int
+    locked    Int
+    user      User     @relation(fields: [userId], references: [id])
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@index([userId])
+}
+
+model p2pTransfer {
+    id         Int       @id @default(autoincrement())
+    amount     Int
+    timestamp  DateTime
+    senderId   Int
+    sender     User      @relation(name: "SenderRelation", fields: [senderId], references: [id])
+    receiverId Int
+    receiver   User      @relation(name: "ReceiverRelation", fields: [receiverId], references: [id])
+    status     P2PStatus @default(SUCCESS)
+    metadata   Json?
+
+    @@index([senderId, timestamp])
+    @@index([receiverId, timestamp])
+}
+
+model LinkedBankAccount {
+    id     Int  @id @default(autoincrement())
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    providerKey   LinkedBankProviderKey
+    displayName   String
+    maskedAccount String
+
+    amount Int
+    locked Int @default(0)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    offRamps OffRampTransaction[]
+    onRamps  OnRampTransaction[]
+
+    @@unique([userId, providerKey])
+    @@index([userId])
+    @@index([userId, providerKey])
+}
+
+model OnRampTransaction {
+    id                   Int                @id @default(autoincrement())
+    status               OnRampStatus
+    token                String             @unique
+    provider             String
+    amount               Int
+    startTime            DateTime
+    userId               Int
+    user                 User               @relation(fields: [userId], references: [id])
+    metadata             Json?
+    linkedBankAccountId  Int?
+    linkedBankAccount    LinkedBankAccount? @relation(fields: [linkedBankAccountId], references: [id], onDelete: SetNull)
+    failureReason        String?
+    failureReasonCode    String?
+    failureReasonMessage String?
+    retryCount           Int                @default(0)
+    lastRetryAt          DateTime?
+    completedAt          DateTime?
+
+    @@index([userId, status])
+    @@index([token])
+    @@index([startTime])
+    @@index([failureReasonCode])
+    @@index([linkedBankAccountId])
+}
+
+model OffRampTransaction {
+    id     Int           @id @default(autoincrement())
+    status OffRampStatus
+    token  String        @unique
+
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    linkedBankAccountId Int
+    linkedBankAccount   LinkedBankAccount @relation(fields: [linkedBankAccountId], references: [id], onDelete: Cascade)
+
+    providerKey LinkedBankProviderKey
+    amount      Int
+
+    startTime   DateTime  @default(now())
+    completedAt DateTime?
+
+    metadata             Json?
+    failureReason        String?
+    failureReasonCode    String?
+    failureReasonMessage String?
+    retryCount           Int       @default(0)
+    lastRetryAt          DateTime?
+
+    @@index([userId, startTime])
+    @@index([linkedBankAccountId, startTime])
+    @@index([token])
+}

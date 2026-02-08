@@ -1,0 +1,43 @@
+model LedgerAccount {
+    id            Int               @id @default(autoincrement())
+    userId        Int?
+    user          User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+    systemKey     String?           @unique
+    accountType   LedgerAccountType
+    currency      String
+    createdAt     DateTime          @default(now())
+    ledgerEntries LedgerEntry[]
+
+    @@unique([userId, accountType, currency])
+    @@index([userId, accountType])
+    @@index([accountType, currency])
+}
+
+model LedgerTransaction {
+    id          Int           @id @default(autoincrement())
+    type        LedgerTxnType
+    externalRef String        @unique
+    metadata    Json?
+    createdAt   DateTime      @default(now())
+
+    entries LedgerEntry[]
+
+    @@index([type, createdAt])
+}
+
+model LedgerEntry {
+    id            Int               @id @default(autoincrement())
+    transactionId Int
+    transaction   LedgerTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+    accountId Int
+    account   LedgerAccount @relation(fields: [accountId], references: [id])
+
+    direction LedgerEntryDirection
+    amount    Int
+    currency  String
+    createdAt DateTime             @default(now())
+
+    @@index([transactionId])
+    @@index([accountId, createdAt])
+}

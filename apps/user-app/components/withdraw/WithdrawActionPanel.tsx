@@ -26,8 +26,7 @@ export function WithdrawActionPanel(props: {
 
     onConfirm: () => void;
 }) {
-    const { selected, walletAvailablePaise, amount, onAmountChange, isProcessing, panelError, panelOk, onConfirm } =
-        props;
+    const { selected, walletAvailablePaise, amount, onAmountChange, isProcessing, panelError, panelOk, onConfirm } = props;
 
     const walletFmt = formatPaise(walletAvailablePaise);
     const selFmt = selected ? formatPaise(selected.amount) : null;

@@ -83,11 +83,11 @@ async function main() {
       Balance: { create: { amount: 50000, locked: 0 } },
       linkedBankAccounts: {
         create: [
-          { providerKey: "HDFC", displayName: "HDFC Bank", maskedAccount: "**** 4821", amount: 2000000, locked: 0 },
-          { providerKey: "AXIS", displayName: "Axis Bank", maskedAccount: "**** 9923", amount: 2000000, locked: 0 },
-          { providerKey: "ICICI", displayName: "ICICI Bank", maskedAccount: "**** 1120", amount: 2000000, locked: 0 },
-          { providerKey: "SBI", displayName: "SBI", maskedAccount: "**** 3311", amount: 2000000, locked: 0 },
-          { providerKey: "KOTAK", displayName: "Kotak Bank", maskedAccount: "**** 8822", amount: 2000000, locked: 0 },
+          { providerKey: "HDFC", displayName: "HDFC Bank", maskedAccount: "**** 7416", amount: 1250430, locked: 0 },
+          { providerKey: "AXIS", displayName: "Axis Bank", maskedAccount: "**** 2094", amount: 2034120, locked: 0 },
+          { providerKey: "ICICI", displayName: "ICICI Bank", maskedAccount: "**** 5689", amount: 1789550, locked: 0 },
+          { providerKey: "SBI", displayName: "SBI", maskedAccount: "**** 7742", amount: 965900, locked: 0 },
+          { providerKey: "KOTAK", displayName: "Kotak Bank", maskedAccount: "**** 1308", amount: 3960000, locked: 0 },
         ],
       },
       OnRampTransaction: {
@@ -113,11 +113,11 @@ async function main() {
       Balance: { create: { amount: 150000, locked: 0 } },
       linkedBankAccounts: {
         create: [
-          { providerKey: "HDFC", displayName: "HDFC Bank", maskedAccount: "**** 4821", amount: 1000000, locked: 0 },
-          { providerKey: "AXIS", displayName: "Axis Bank", maskedAccount: "**** 9923", amount: 1000000, locked: 0 },
-          { providerKey: "ICICI", displayName: "ICICI Bank", maskedAccount: "**** 1120", amount: 1000000, locked: 0 },
-          { providerKey: "SBI", displayName: "SBI", maskedAccount: "**** 3311", amount: 1000000, locked: 0 },
-          { providerKey: "KOTAK", displayName: "Kotak Bank", maskedAccount: "**** 8822", amount: 1000000, locked: 0 },
+          { providerKey: "HDFC", displayName: "HDFC Bank", maskedAccount: "**** 6159", amount: 842315, locked: 0 },
+          { providerKey: "AXIS", displayName: "Axis Bank", maskedAccount: "**** 9841", amount: 3156480, locked: 0 },
+          { providerKey: "ICICI", displayName: "ICICI Bank", maskedAccount: "**** 4370", amount: 2045705, locked: 0 },
+          { providerKey: "SBI", displayName: "SBI", maskedAccount: "**** 2286", amount: 1127500, locked: 0 },
+          { providerKey: "KOTAK", displayName: "Kotak Bank", maskedAccount: "**** 9017", amount: 2828000, locked: 0 },
         ],
       },
     },

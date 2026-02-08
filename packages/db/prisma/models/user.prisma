@@ -1,0 +1,39 @@
+model User {
+    id        Int      @id @default(autoincrement())
+    email     String?  @unique
+    name      String?
+    number    String   @unique
+    password  String
+    createdAt DateTime @default(now())
+
+    pendingEmail            String?
+    emailVerified           Boolean                  @default(false)
+    emailVerificationTokens EmailVerificationToken[]
+
+    sessionVersion Int             @default(1)
+    transactionPin TransactionPin?
+    userSessions   UserSession[]
+
+    OnRampTransaction OnRampTransaction[]
+    Balance           Balance[]
+    sentTransfers     p2pTransfer[]       @relation(name: "SenderRelation")
+    receivedTransfers p2pTransfer[]       @relation(name: "ReceiverRelation")
+    AuditLog          AuditLog[]
+    ledgerAccounts    LedgerAccount[]
+
+    securityEvents     SecurityEvent[]
+    securitySignals    SecuritySignal[]
+    aiSecurityInsights AISecurityInsight[]
+
+    linkedBankAccounts LinkedBankAccount[]
+    OffRampTransaction OffRampTransaction[]
+
+    @@index([number])
+}
+
+model Merchant {
+    id        Int      @id @default(autoincrement())
+    email     String   @unique
+    name      String?
+    auth_type AuthType
+}

@@ -140,87 +140,135 @@ export async function withdrawToLinkedAccount(
                     return { success: false, message: "Insufficient wallet balance", errorCode: "INSUFFICIENT_BALANCE" } as const;
                 }
 
-                const ledgerTxn = await postOfframpLedger({
-                    tx,
-                    idempotencyKey,
-                    userId,
-                    amount: amountPaise,
-                    providerKey: String(linked.providerKey),
-                    linkedBankAccountId: linked.id,
-                });
-
-                const updatedWallet = await tx.balance.update({
-                    where: { userId },
-                    data: { amount: { decrement: amountPaise } },
-                });
-
-                const updatedLinked = await tx.linkedBankAccount.update({
-                    where: { id: linked.id },
-                    data: { amount: { increment: amountPaise } },
-                });
-
                 const now = new Date();
 
                 const offramp = await tx.offRampTransaction.create({
                     data: {
-                        status: "Success",
+                        status: "Processing",
                         token: idempotencyKey,
                         userId,
                         linkedBankAccountId: linked.id,
                         providerKey: linked.providerKey as any,
                         amount: amountPaise,
                         startTime: now,
-                        completedAt: now,
+                        completedAt: null,
                         metadata: {
                             idempotencyKey,
-                            ledgerTransactionId: ledgerTxn.id,
                             walletBefore: { amount: wallet.amount, locked: wallet.locked },
-                            walletAfter: { amount: updatedWallet.amount, locked: updatedWallet.locked },
-                            linkedBefore: { amount: linked.amount, locked: linked.locked },
-                            linkedAfter: { amount: updatedLinked.amount, locked: updatedLinked.locked },
+                            linkedBefore: { amount: linked.amount, locked: linked.locked }
                         },
                     },
                     select: { id: true, token: true },
+                });
+
+                const updatedWallet = await tx.balance.update({
+                    where: { userId },
+                    data: { locked: { increment: amountPaise } },
                 });
 
                 await auditLogger.logBalanceChange(
                     userId,
                     wallet.amount,
                     updatedWallet.amount,
-                    "OFFRAMP_WITHDRAW_DEBIT",
+                    "OFFRAMP_WITHDRAW_LOCK",
                     { offrampId: offramp.id, linkedBankAccountId: linked.id, providerKey: linked.providerKey },
-                    tx as any
-                );
-
-                await auditLogger.createAuditLog(
-                    {
-                        userId,
-                        action: "LINKED_ACCOUNT_CREDIT",
-                        entityType: "LinkedBankAccount",
-                        entityId: linked.id,
-                        oldValue: { amount: linked.amount, locked: linked.locked },
-                        newValue: { amount: updatedLinked.amount, locked: updatedLinked.locked },
-                        metadata: { offrampId: offramp.id, providerKey: linked.providerKey },
-                    },
                     tx as any
                 );
 
                 try {
                     await emitSecurityEvent(tx as any, {
                         userId,
-                        type: "OFFRAMP_COMPLETED",
+                        type: "OFFRAMP_INITIATED",
                         source: "user-app",
-                        sourceId: `offramp:success:${offramp.id}`,
+                        sourceId: `offramp:init:${offramp.id}`,
                         metadata: { amountBucket, linkedBankAccountId: linked.id },
                     });
                 } catch {
                     // ignore
                 }
 
-                return { success: true, message: "Withdrawal successful", token: offramp.token, transactionId: offramp.id } as const;
+                return { success: true, message: "Withdrawal Initiated", token: offramp.token, transactionId: offramp.id } as const;
             },
             { timeout: 20000, maxWait: 10000 }
         );
+
+        // Enqueue async settlement via gateway webhook delivery 
+        const bases = [
+            process.env.GATEWAY_URL,
+            process.env.NEXT_PUBLIC_GATEWAY_URL,
+            "http://mock-payment-gateway:3004",
+            "http://localhost:3004",
+        ].filter(Boolean) as string[];
+
+        let enqueued = false;
+        let lastErr: any = null;
+
+        for (const base of bases) {
+            try {
+                const res = await fetch(`${base.replace(/\/$/, "")}/api/process-withdraw`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        token: result.success ? result.token : idempotencyKey,
+                        user_identifier: String(userId),
+                        amount: amountPaise,
+                        linkedBankAccountId,
+                        scenario: "success",
+                    }),
+                    signal: AbortSignal.timeout(8000),
+                });
+
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    throw new Error(body?.message ?? `Gateway returned ${res.status}`);
+                }
+
+                enqueued = true;
+                break;
+            } catch (e) {
+                lastErr = e;
+            }
+        }
+
+        if (!enqueued) {
+            await prisma.$transaction(async (tx) => {
+                const txn = await tx.offRampTransaction.findUnique({ where: { token: idempotencyKey } });
+                if (!txn || txn.status !== "Processing") return;
+
+                await tx.balance.upsert({
+                    where: { userId },
+                    update: {},
+                    create: { userId, amount: 0, locked: 0 },
+                });
+
+                await tx.$queryRaw`
+                  SELECT * FROM "Balance"
+                  WHERE "userId" = ${userId}
+                  FOR UPDATE
+                `;
+
+                await tx.offRampTransaction.update({
+                    where: { token: idempotencyKey },
+                    data: {
+                        status: "Failure",
+                        completedAt: new Date(),
+                        failureReasonCode: "GATEWAY_ENQUEUE_FAILED",
+                        failureReasonMessage: String(lastErr?.message ?? "Failed to enqueue webhook"),
+                    },
+                });
+
+                await tx.balance.update({
+                    where: { userId },
+                    data: { locked: { decrement: amountPaise } },
+                });
+            });
+
+            return {
+                success: false,
+                message: "Failed to enqueue withdrawal for processing. Please try again.",
+                errorCode: "UNKNOWN",
+            };
+        }
 
         await idempotencyManager.updateResponse(idempotencyKey, result);
 

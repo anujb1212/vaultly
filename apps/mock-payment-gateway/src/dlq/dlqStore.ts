@@ -128,7 +128,7 @@ export async function replayDLQJob(args: {
             ? generateWebhookEventId()
             : data.webhookEventId;
 
-    const replayJobId = `replay:${token || "unknown"}:${job.id}:${Date.now()}`;
+    const replayJobId = `replay-${token || "unknown"}-${job.id}-${Date.now()}`;
 
     await webhookQueue.add(
         "send-webhook",

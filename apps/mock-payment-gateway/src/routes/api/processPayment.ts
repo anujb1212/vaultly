@@ -52,6 +52,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
     const scenario: Scenario = payload.scenario;
 
     const baseWebhookPayload = {
+        type: "ONRAMP" as const,
         token: payload.token,
         user_identifier: payload.user_identifier,
         amount: payload.amount,
@@ -63,7 +64,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
 
             await queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
                 delayMs: 0,
-                jobId: payload.token,
+                jobId: `onramp-${payload.token}`,
             });
 
             return res.status(202).json({
@@ -85,7 +86,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
 
             await queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
                 delayMs: 0,
-                jobId: payload.token,
+                jobId: `onramp-${payload.token}`,
             });
 
             return res.status(202).json({
@@ -101,7 +102,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
 
             await queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
                 delayMs: 10000,
-                jobId: payload.token,
+                jobId: `onramp-${payload.token}`,
             });
 
             return res.status(202).json({
@@ -117,15 +118,15 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
             await Promise.all([
                 queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
                     delayMs: randomDelayMs(200),
-                    jobId: `${payload.token}:dup:1`,
+                    jobId: `onramp-${payload.token}-dup-1`,
                 }),
                 queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
                     delayMs: randomDelayMs(200),
-                    jobId: `${payload.token}:dup:2`,
+                    jobId: `onramp-${payload.token}-dup-2`,
                 }),
                 queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
                     delayMs: randomDelayMs(200),
-                    jobId: `${payload.token}:dup:3`,
+                    jobId: `onramp-${payload.token}-dup-3`,
                 }),
             ]);
 
@@ -148,11 +149,11 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
             await Promise.all([
                 queueWebhook(webhookPayload1, WEBHOOK_SECRET, WEBHOOK_URL, {
                     delayMs: randomDelayMs(200),
-                    jobId: `${payload.token}:race:1`,
+                    jobId: `onramp-${payload.token}-race-1`,
                 }),
                 queueWebhook(webhookPayload2, WEBHOOK_SECRET, WEBHOOK_URL, {
                     delayMs: randomDelayMs(200),
-                    jobId: `${payload.token}:race:2`,
+                    jobId: `onramp-${payload.token}-race-2`,
                 }),
             ]);
 

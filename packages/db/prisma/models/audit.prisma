@@ -1,0 +1,30 @@
+model AuditLog {
+    id         Int      @id @default(autoincrement())
+    userId     Int
+    user       User     @relation(fields: [userId], references: [id])
+    action     String
+    entityType String
+    entityId   Int?
+    oldValue   Json?
+    newValue   Json
+    metadata   Json?
+    timestamp  DateTime @default(now())
+
+    @@index([userId, timestamp])
+    @@index([entityType, entityId])
+    @@index([action, timestamp])
+}
+
+model IdempotencyKey {
+    id        Int      @id @default(autoincrement())
+    key       String   @unique
+    userId    Int
+    action    String
+    response  Json
+    createdAt DateTime @default(now())
+    expiresAt DateTime
+
+    @@index([key])
+    @@index([userId, action])
+    @@index([expiresAt])
+}

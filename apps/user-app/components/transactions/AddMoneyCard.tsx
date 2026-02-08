@@ -4,24 +4,19 @@ import { Button } from "@repo/ui/button";
 import { Select } from "@repo/ui/select";
 import { useState } from "react";
 import { TextInput } from "@repo/ui/textinput";
-import { useBalance, useTransactions } from "@repo/store";
+import { useBalance, useTransactions, useLinkedAccounts } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ArrowRight, Banknote, Loader2 } from "lucide-react";
 import { TransactionPinDialog } from "../dialog/TransactionPinDialog";
 import { createOnRampTxn } from "../../app/lib/actions/createOnRampTxn";
 
-const SUPPORTED_BANKS = [
-    { name: "HDFC Bank" },
-    { name: "Axis Bank" },
-    { name: "ICICI Bank" },
-    { name: "SBI" },
-    { name: "Kotak Mahindra Bank" },
-];
-
 export const AddMoney = () => {
     const router = useRouter();
-    const [provider, setProvider] = useState(SUPPORTED_BANKS[0]?.name || "");
+
+    const { linkedAccounts, isLoading: linkedLoading, error: linkedError, refresh: refreshLinked } = useLinkedAccounts();
+
+    const [selectedLinkedId, setSelectedLinkedId] = useState<number | null>(null);
     const [amount, setAmount] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -29,6 +24,7 @@ export const AddMoney = () => {
     const [pendingOnramp, setPendingOnramp] = useState<{
         amountPaise: number;
         provider: string;
+        linkedBankAccountId: number;
         idempotencyKey: string;
     } | null>(null);
 
@@ -48,7 +44,24 @@ export const AddMoney = () => {
         }
 
         const idempotencyKey = uuidv4();
-        setPendingOnramp({ amountPaise, provider, idempotencyKey });
+
+        const effectiveSelected = (selectedLinkedId
+            ? linkedAccounts.find((a) => a.id === selectedLinkedId) ?? null
+            : linkedAccounts.length > 0
+                ? linkedAccounts[0]!
+                : null);
+
+        if (!effectiveSelected) {
+            alert("No linked bank accounts found. Please sign out and sign in again.");
+            return;
+        }
+
+        setPendingOnramp({
+            amountPaise,
+            provider: effectiveSelected.displayName,
+            linkedBankAccountId: effectiveSelected.id,
+            idempotencyKey,
+        });
         setPinOpen(true);
     };
 
@@ -91,16 +104,24 @@ export const AddMoney = () => {
                                 Select Bank
                             </label>
                             <Select
-                                onSelect={(value) =>
-                                    setProvider(
-                                        SUPPORTED_BANKS.find((x) => x.name === value)?.name || ""
-                                    )
-                                }
-                                options={SUPPORTED_BANKS.map((x) => ({
-                                    key: x.name,
-                                    value: x.name,
+                                onSelect={(value) => setSelectedLinkedId(Number(value))}
+                                options={linkedAccounts.map((a) => ({
+                                    key: String(a.id),
+                                    value: `${a.displayName} (${a.maskedAccount})`,
                                 }))}
                             />
+
+                            {linkedLoading ? (
+                                <div className="text-xs text-slate-400">Loading linked accounts…</div>
+                            ) : linkedError ? (
+                                <div className="text-xs text-rose-500">
+                                    Failed to load linked accounts: {linkedError}{" "}
+                                    <button className="underline" onClick={() => refreshLinked()}>
+                                        Retry
+                                    </button>
+                                </div>
+                            ) : null}
+
                         </div>
 
                         <div className="pt-4">
@@ -152,7 +173,8 @@ export const AddMoney = () => {
                             pendingOnramp.amountPaise,
                             pendingOnramp.provider,
                             pendingOnramp.idempotencyKey,
-                            pin
+                            pendingOnramp.linkedBankAccountId,
+                            pin,
                         );
 
                         if (!result.success) {

@@ -5,6 +5,7 @@ export async function sendWebhook(args: {
     secret: string;
     url: string;
     webhookEventId: string;
+    timeoutMs: number
 }): Promise<void> {
     const bodyStr = JSON.stringify(args.payload);
     const signature = crypto
@@ -21,7 +22,7 @@ export async function sendWebhook(args: {
             "X-Webhook-Timestamp": Date.now().toString(),
         },
         body: bodyStr,
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(args.timeoutMs ?? 30_000),
     });
 
     if (!response.ok) {

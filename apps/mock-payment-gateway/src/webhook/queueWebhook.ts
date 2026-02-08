@@ -12,7 +12,7 @@ export async function queueWebhook(
     url: string,
     opts?: {
         delayMs?: number;
-        jobId?: string
+        jobId?: string;
     }
 ) {
     const webhookEventId = generateWebhookEventId();
@@ -23,8 +23,13 @@ export async function queueWebhook(
         {
             delay: opts?.delayMs ?? 0,
             jobId: opts?.jobId ?? payload.token,
+            attempts: 5,
+            backoff: {
+                type: "exponential",
+                delay: 1000
+            }
         }
     );
 
-    console.log(`[Queue] Webhook queued: token=${payload.token} webhookId=${webhookEventId}`);
+    console.log(`[Queue] Webhook queued: type=${payload?.type} token=${payload.token} webhookId=${webhookEventId}`);
 }
