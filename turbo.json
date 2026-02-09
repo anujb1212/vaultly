@@ -16,7 +16,9 @@
     "GOOGLE_API_KEY",
     "GEMINI_API_KEY",
     "AI_USER_DAILY_CAP",
-    "AI_GLOBAL_DAILY_CAP"
+    "AI_GLOBAL_DAILY_CAP",
+    "ADMIN_API_TOKEN",
+    "GATEWAY_API_TOKEN"
   ],
   "tasks": {
     "build": {

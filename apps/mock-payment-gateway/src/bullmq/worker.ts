@@ -49,9 +49,10 @@ export function startWebhookWorker(): Worker<WebhookJobData> {
         if (!job) return;
 
         const maxAttempts = job.opts.attempts ?? 1;
-        const attemptsUsed = job.attemptsMade + 1;
+        const attemptsUsed = job.attemptsMade ?? 0;
+        const isUnrecoverable = error?.name === "UnrecoverableError"
 
-        if (attemptsUsed >= maxAttempts) {
+        if (isUnrecoverable || attemptsUsed >= maxAttempts) {
             const token = job.data?.payload?.token;
             const webhookEventId = job.data?.webhookEventId;
 
@@ -62,7 +63,7 @@ export function startWebhookWorker(): Worker<WebhookJobData> {
             await dlqQueue.add("failed-webhook", {
                 ...(job.data as WebhookJobData),
                 failureReason: error?.message ?? "unknown",
-                failureClass: transient ? "transient" : "permanent",
+                failureClass: isUnrecoverable ? "permanent" : (transient ? "transient" : "permanent"),
                 failedAt: new Date().toISOString(),
                 attempts: attemptsUsed,
                 sourceQueue: "webhook-delivery",
