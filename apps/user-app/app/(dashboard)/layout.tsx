@@ -1,12 +1,15 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { AppbarClient } from "../../components/layout/AppbarClient";
 import { SidebarItem } from "../../components/layout/SidebarItem";
-import { LayoutDashboard, ArrowRightLeft, Clock, Users, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ArrowRightLeft, Clock, Users, ShieldCheck, Inbox, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const isAdmin = status === "authenticated" && Boolean((session?.user as any)?.isAdmin)
 
   return (
     <div className="flex h-screen w-full bg-slate-50 dark:bg-black font-sans text-slate-900 dark:text-slate-50 overflow-hidden selection:bg-indigo-100 dark:selection:bg-indigo-900">
@@ -36,8 +39,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarItem href="/dashboard" icon={<LayoutDashboard className="w-5 h-5" strokeWidth={1.5} />} title="Dashboard" />
             <SidebarItem href="/transfer" icon={<ArrowRightLeft className="w-5 h-5" strokeWidth={1.5} />} title="Transfer Funds" />
             <SidebarItem href="/p2ptransfer" icon={<Users className="w-5 h-5" strokeWidth={1.5} />} title="P2P Transfer" />
-            <SidebarItem href="/withdraw" icon={<Users className="w-5 h-5" strokeWidth={1.5} />} title="Withdraw Funds" />
+            <SidebarItem href="/withdraw" icon={<CreditCard className="w-5 h-5" strokeWidth={1.5} />} title="Withdraw Funds" />
             <SidebarItem href="/transactions" icon={<Clock className="w-5 h-5" strokeWidth={1.5} />} title="History" />
+            {isAdmin ? (
+              <SidebarItem href="/admin/dlq" icon={<Inbox className="w-5 h-5" strokeWidth={1.5} />} title="DLQ Inbox" />
+            ) : null}
           </nav>
         </div>
 

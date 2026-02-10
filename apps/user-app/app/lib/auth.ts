@@ -8,6 +8,19 @@ import type { NextAuthOptions, User } from "next-auth";
 const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60;
 const LAST_SEEN_SYNC_SEC = 5 * 60;
 
+function parseAdminEmails() {
+    return (process.env.ADMIN_EMAILS ?? "")
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+}
+
+function computeIsAdmin(email: unknown) {
+    const mail = String(email ?? "").trim().toLowerCase()
+    if (!mail) return false
+    return parseAdminEmails().includes(mail)
+}
+
 export const authOptions: NextAuthOptions = {
     providers: [
         CredentialsProvider({
@@ -81,6 +94,7 @@ export const authOptions: NextAuthOptions = {
                 (token as any).email = (user as any).email ?? null;
                 (token as any).emailVerified = (user as any).emailVerified ?? false;
                 (token as any).pinIsSet = (user as any).pinIsSet ?? false;
+                (token as any).isAdmin = computeIsAdmin((token as any).email);
 
                 const created = await db.userSession.create({
                     data: {
@@ -123,7 +137,10 @@ export const authOptions: NextAuthOptions = {
             const userIdRaw = (token as any).userId;
             const sessionIdRaw = (token as any).sessionId;
 
-            if (!userIdRaw || !sessionIdRaw) return token;
+            if (!userIdRaw || !sessionIdRaw) {
+                (token as any).isAdmin = computeIsAdmin((token as any).email);
+                return token;
+            }
 
             const userIdNum = Number(userIdRaw);
             const sessionId = String(sessionIdRaw);
@@ -136,6 +153,7 @@ export const authOptions: NextAuthOptions = {
                 delete (token as any).emailVerified;
                 delete (token as any).pinIsSet;
                 delete (token as any).lastSeenSyncAt;
+                delete (token as any).isAdmin;
                 return token;
             }
 
@@ -183,6 +201,8 @@ export const authOptions: NextAuthOptions = {
                 (token as any).pinIsSet = Boolean(fresh?.transactionPin?.userId);
             }
 
+            (token as any).isAdmin = computeIsAdmin((token as any).email);
+
             return token;
         },
 
@@ -193,6 +213,7 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).email = (token as any).email ?? null;
                 (session.user as any).emailVerified = (token as any).emailVerified ?? false;
                 (session.user as any).pinIsSet = (token as any).pinIsSet ?? false;
+                (session.user as any).isAdmin = Boolean((token as any).isAdmin);
             }
 
             (session as any).sessionId = (token as any).sessionId ?? null;

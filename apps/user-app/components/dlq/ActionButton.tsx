@@ -10,19 +10,24 @@ export function ActionButton(props: {
     const { pending } = useFormStatus();
 
     const base =
-        "inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium transition " +
-        "disabled:opacity-50 disabled:cursor-not-allowed";
+        "inline-flex items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold transition " +
+        "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none";
 
     const variant =
         props.variant === "primary"
-            ? "bg-indigo-500/90 hover:bg-indigo-500 text-white"
+            ? "bg-primary text-primaryForeground hover:bg-primary/90"
             : props.variant === "danger"
-                ? "bg-rose-500/90 hover:bg-rose-500 text-white"
-                : "bg-white/10 hover:bg-white/15 text-white";
+                ? "bg-red-500 text-white hover:bg-red-600"
+                : "bg-transparent border border-border text-foreground/80 hover:bg-muted/40 hover:text-foreground";
 
     return (
-        <button type="submit" disabled={pending} className={`${base} ${variant}`}>
-            {pending ? "Working…" : props.children}
+        <button
+            type="submit"
+            disabled={pending}
+            aria-busy={pending}
+            className={`${base} ${variant} ${pending ? "cursor-wait" : ""}`}
+        >
+            {props.children}
         </button>
     );
 }

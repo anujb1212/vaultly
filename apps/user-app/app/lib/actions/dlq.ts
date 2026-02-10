@@ -26,7 +26,10 @@ export async function dlqList() {
     await requireAdmin();
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL}/api/admin/dlq/list?limit=50&offset=0&includeArchived=false`, {
-        headers: { "X-Admin-Token": adminToken(), "X-Admin-Actor": "user-app-admin" },
+        headers: {
+            "X-Admin-Token": adminToken(),
+            "X-Admin-Actor": "user-app-admin"
+        },
         cache: "no-store",
     });
 
