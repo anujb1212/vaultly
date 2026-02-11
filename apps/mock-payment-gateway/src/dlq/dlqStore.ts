@@ -32,12 +32,22 @@ export async function getDLQJobs(opts?: {
         )
         .map((job) => {
             const data = job.data as WebhookJobData;
+            const p: any = data?.payload ?? {};
+            const userIdentifier = p?.user_identifier ?? null;
+            const userIdNum = Number(userIdentifier);
+            const userId = Number.isFinite(userIdNum) ? userIdNum : null;
+            const type = typeof p?.type === "string" ? p.type : null;
             return {
                 id: job.id,
                 name: job.name,
                 state: job.finishedOn ? "completed" : undefined,
                 token: data?.payload?.token,
                 webhookEventId: data?.webhookEventId,
+                type,
+                userIdentifier,
+                userId,
+                amount: p?.amount ?? null,
+                linkedBankAccountId: p?.linkedBankAccountId ?? null,
                 failureReason: data?.failureReason,
                 failureClass: data?.failureClass,
                 failedAt: data?.failedAt,
