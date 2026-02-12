@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { useState, useRef, useEffect } from "react";
-import { LogOut, Settings, User, ChevronDown } from "lucide-react";
+import { LogOut, Settings, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function AppbarClient() {
@@ -11,12 +11,13 @@ export function AppbarClient() {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuId = "user-menu";
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -31,8 +32,27 @@ export function AppbarClient() {
     return () => document.removeEventListener("mousedown", close);
   }, [showMenu]);
 
+  useEffect(() => {
+    if (!showMenu) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowMenu(false);
+        requestAnimationFrame(() => triggerRef.current?.focus());
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showMenu]);
+
   const userInitials = session?.user?.name
-    ? session.user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    ? session.user.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
     : "U";
 
   return (
@@ -42,7 +62,7 @@ export function AppbarClient() {
         : "border-b border-transparent bg-transparent"
         }`}
     >
-      <div className="flex items-center justify-between px-6 h-16 w-full max-w-7xl mx-auto">
+      <div className="flex items-center justify-between h-16 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 md:hidden">
           <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center">
             <span className="text-white dark:text-black font-bold text-lg">V</span>
@@ -56,12 +76,14 @@ export function AppbarClient() {
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
-
           <div className="h-6 w-px bg-slate-200/60 dark:bg-neutral-800/60 mx-1 hidden md:block" />
 
-          {/* User Menu */}
           <div ref={menuRef} className="relative">
             <button
+              ref={triggerRef}
+              type="button"
+              aria-expanded={showMenu}
+              aria-controls={menuId}
               onClick={() => setShowMenu((prev) => !prev)}
               className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-slate-100/50 dark:hover:bg-neutral-800/50 transition-colors group"
             >
@@ -77,7 +99,10 @@ export function AppbarClient() {
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl bg-white/90 dark:bg-neutral-900/95 backdrop-blur-xl shadow-2xl shadow-slate-200/50 dark:shadow-black/80 border border-slate-100 dark:border-neutral-800 ring-1 ring-black/5 focus:outline-none z-[100] animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200">
+              <div
+                id={menuId}
+                className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl bg-white/90 dark:bg-neutral-900/95 backdrop-blur-xl shadow-2xl shadow-slate-200/50 dark:shadow-black/80 border border-slate-100 dark:border-neutral-800 ring-1 ring-black/5 focus:outline-none z-[100] animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200"
+              >
                 <div className="px-5 py-4 border-b border-slate-100 dark:border-neutral-800">
                   <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                     {session?.user?.name || "Vaultly User"}
@@ -87,20 +112,13 @@ export function AppbarClient() {
                   </p>
                 </div>
 
-                <div className="p-1.5 space-y-0.5">
+                {/* Mobile */}
+                <div className="p-1.5 md:hidden">
                   <button
+                    type="button"
                     onClick={() => {
                       setShowMenu(false);
                       router.push("/settings");
-                    }}
-                    className="w-full px-3 py-2.5 flex items-center gap-3 text-sm font-medium text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-white rounded-xl transition-all"
-                  >
-                    <User className="w-4 h-4 stroke-[1.5]" /> Profile
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      router.push("/settings/security");
                     }}
                     className="w-full px-3 py-2.5 flex items-center gap-3 text-sm font-medium text-slate-600 dark:text-neutral-400 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-slate-900 dark:hover:text-white rounded-xl transition-all"
                   >
@@ -110,6 +128,7 @@ export function AppbarClient() {
 
                 <div className="p-1.5 border-t border-slate-100 dark:border-neutral-800">
                   <button
+                    type="button"
                     onClick={async () => {
                       setShowMenu(false);
                       await signOut({ callbackUrl: "/" });

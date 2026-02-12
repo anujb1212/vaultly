@@ -54,29 +54,17 @@ const StatRow = ({
 
 export const MonthlyAnalysis = ({ inflow, outflow }: MonthlyAnalysisProps) => {
     return (
-        <div className="rounded-[2rem] border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 backdrop-blur-sm p-8 shadow-sm">
+        <div className="rounded-2xl bg-card text-cardForeground ring-1 ring-border/60 shadow-elev-1 p-6 sm:p-8">
             <div className="flex items-center justify-between mb-8">
-                <h3 className="font-bold text-slate-900 dark:text-white">
-                    Monthly Analysis
-                </h3>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 dark:bg-neutral-800 px-2.5 py-1 rounded-full">
+                <h3 className="font-semibold">Monthly Analysis</h3>
+                <span className="text-[10px] font-semibold text-mutedForeground uppercase tracking-wider bg-muted px-2.5 py-1 rounded-full ring-1 ring-border/60">
                     Realtime
                 </span>
             </div>
 
             <div className="space-y-8">
-                <StatRow
-                    label="Total Inflow"
-                    amount={inflow}
-                    type="inflow"
-                    icon={TrendingUp}
-                />
-                <StatRow
-                    label="Total Outflow"
-                    amount={outflow}
-                    type="outflow"
-                    icon={TrendingDown}
-                />
+                <StatRow label="Total Inflow" amount={inflow} type="inflow" icon={TrendingUp} />
+                <StatRow label="Total Outflow" amount={outflow} type="outflow" icon={TrendingDown} />
             </div>
         </div>
     );

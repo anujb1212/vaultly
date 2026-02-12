@@ -1,6 +1,5 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
 import { BankCard } from "./BankCard";
 import { LinkedAccount } from "@repo/store";
 
@@ -34,9 +33,6 @@ export function LinkedAccountsGrid(props: {
     selectedId: number | null;
     onSelect: (id: number) => void;
 
-    showBalances: boolean;
-    onToggleShowBalances: () => void;
-
     onRetry: () => void;
 }) {
     const {
@@ -45,8 +41,6 @@ export function LinkedAccountsGrid(props: {
         error,
         selectedId,
         onSelect,
-        showBalances,
-        onToggleShowBalances,
         onRetry,
     } = props;
 
@@ -54,20 +48,7 @@ export function LinkedAccountsGrid(props: {
         <div>
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">Your Linked Accounts</h2>
-                <button
-                    onClick={onToggleShowBalances}
-                    className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
-                >
-                    {showBalances ? (
-                        <>
-                            <EyeOff size={16} /> Hide Balances
-                        </>
-                    ) : (
-                        <>
-                            <Eye size={16} /> Show Balances
-                        </>
-                    )}
-                </button>
+                {/* REMOVED TOGGLE BUTTON */}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -111,7 +92,7 @@ export function LinkedAccountsGrid(props: {
                                 colorTo={style.colorTo}
                                 isSelected={selectedId === a.id}
                                 onSelect={() => onSelect(a.id)}
-                                showBalance={showBalances}
+                                showBalance={true} // ALWAYS TRUE
                             />
                         );
                     })

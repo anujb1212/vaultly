@@ -1,9 +1,7 @@
 "use client";
 
 import { useTransactions } from "@repo/store";
-import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { ShieldCheck } from "lucide-react";
 import { Header } from "../../../components/dashboard/Header";
 import { BalanceCard } from "../../../components/dashboard/BalanceCard";
 import { ActionTiles } from "../../../components/dashboard/ActionTiles";
@@ -11,34 +9,53 @@ import { OnRampTransactions } from "../../../components/transactions/OnRampTrans
 import { SecurityInsights } from "../../../components/dashboard/SecurityInsights";
 import { MonthlyAnalysis } from "../../../components/dashboard/MonthlyAnalysis";
 
+type ActivityKind = "onramp" | "offramp" | "p2p";
+type ActivityDirection = "in" | "out";
 
 export default function Dashboard() {
-    const { onRampTransactions, p2pTransactions } = useTransactions();
-    const router = useRouter();
+    const { onRampTransactions, p2pTransactions, offRampTransactions } = useTransactions();
 
     const recentActivity = useMemo(() => {
-        const p2pFormatted = p2pTransactions.map(t => ({
+        const p2pFormatted = p2pTransactions.map((t) => ({
             id: t.id,
             time: new Date(t.time),
             amount: t.amount,
             status: "Success" as const,
-            provider: t.type === 'sent' ? `Sent to ${t.toUserName || t.toUser}` : `Received from ${t.toUser || t.toUser}`,
-            failureReasonCode: null
+            kind: "p2p" as const,
+            direction: (t.type === "sent" ? "out" : "in") as ActivityDirection,
+            provider:
+                t.type === "sent"
+                    ? `Sent to ${t.toUserName || t.toUser}`
+                    : `Received from ${t.toUserName || t.toUser}`,
+            failureReasonCode: null as string | null,
         }));
 
-        const onRampFormatted = onRampTransactions.map(t => ({
+        const onRampFormatted = onRampTransactions.map((t) => ({
             id: t.id,
             time: new Date(t.time),
             amount: t.amount,
             status: t.status,
+            kind: "onramp" as const,
+            direction: "in" as const,
             provider: `Added from ${t.provider}`,
-            failureReasonCode: t.failureReasonCode
+            failureReasonCode: t.failureReasonCode ?? null,
         }));
 
-        return [...onRampFormatted, ...p2pFormatted]
+        const offRampFormatted = offRampTransactions.map((t) => ({
+            id: t.id,
+            time: new Date(t.time),
+            amount: t.amount,
+            status: t.status,
+            kind: "offramp" as const,
+            direction: "out" as const,
+            provider: `Withdraw to ${t.displayName ?? "Bank account"}${t.maskedAccount ? ` ${t.maskedAccount}` : ""}`,
+            failureReasonCode: null as string | null,
+        }));
+
+        return [...onRampFormatted, ...offRampFormatted, ...p2pFormatted]
             .sort((a, b) => b.time.getTime() - a.time.getTime())
             .slice(0, 5);
-    }, [onRampTransactions, p2pTransactions]);
+    }, [onRampTransactions, offRampTransactions, p2pTransactions]);
 
     const stats = useMemo(() => {
         const onRampInflow = onRampTransactions
@@ -55,57 +72,35 @@ export default function Dashboard() {
 
         const totalInflow = onRampInflow + p2pInflow;
 
-        return {
-            inflow: totalInflow,
-            outflow: p2pOutflow,
-        };
+        return { inflow: totalInflow, outflow: p2pOutflow };
     }, [onRampTransactions, p2pTransactions]);
 
     return (
         <div className="w-full pb-20 animate-fade-in max-w-7xl mx-auto">
             <Header />
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div className="md:col-span-12 lg:col-span-4 h-full">
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-4">
                     <BalanceCard />
                 </div>
-                <div className="md:col-span-12 lg:col-span-8 h-full flex flex-col justify-end">
-                    <div className="mb-2">
-                        <h3 className="text-sm font-semibold text-slate-500 dark:text-neutral-400 mb-3 ml-1 uppercase tracking-wider">
-                            Quick Actions
-                        </h3>
-                        <ActionTiles />
-                    </div>
+
+                <div className="lg:col-span-8">
+                    <h3 className="text-sm font-semibold text-mutedForeground mb-3 ml-1 uppercase tracking-wider">
+                        Quick Actions
+                    </h3>
+                    <ActionTiles />
                 </div>
 
-                <div className="md:col-span-12 lg:col-span-8 space-y-6">
-                    <section>
-                        <OnRampTransactions transactions={recentActivity} />
-                    </section>
+                <div className="lg:col-span-8">
+                    <OnRampTransactions transactions={recentActivity} />
                 </div>
 
-                <div className="md:col-span-12 lg:col-span-4 space-y-6">
+                <div className="lg:col-span-4 space-y-6">
                     <div className="h-[300px]">
                         <SecurityInsights />
                     </div>
-
                     <MonthlyAnalysis inflow={stats.inflow} outflow={stats.outflow} />
-
-                    <div
-                        onClick={() => router.push("/settings/security")}
-                        className="group relative overflow-hidden rounded-[2rem] bg-slate-900 dark:bg-black p-8 text-white cursor-pointer transition-all hover:shadow-xl hover:shadow-indigo-500/20 active:scale-[0.99]"
-                    >
-                        <div className="absolute top-[-20%] right-[-20%] opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:rotate-12 transform">
-                            <ShieldCheck className="w-40 h-40" />
-                        </div>
-                        <div className="relative z-10">
-                            <h3 className="text-lg font-bold mb-2">Vaultly Secure™</h3>
-                            <p className="text-sm text-slate-400 leading-relaxed">
-                                Tap to view active sessions.
-                            </p>
-                        </div>
-                    </div>
                 </div>
-
             </div>
         </div>
     );

@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Vaultly Payments",
-  description: "Secure, fast, and simple payments.",
+  title: "Vaultly Wallet",
+  description: "Secure, fast, and simple transaction.",
 };
 
 export default function RootLayout({

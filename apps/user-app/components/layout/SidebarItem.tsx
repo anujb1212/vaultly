@@ -1,5 +1,7 @@
 "use client";
-import { usePathname, useRouter } from "next/navigation";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React from "react";
 
 interface SidebarItemProps {
@@ -9,41 +11,37 @@ interface SidebarItemProps {
 }
 
 export const SidebarItem = ({ href, title, icon }: SidebarItemProps) => {
-    const router = useRouter();
     const pathname = usePathname();
-    const selected = pathname === href;
+
+    const selected = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+
+    const base =
+        "group relative flex w-full items-center rounded-xl px-4 py-2.5 text-sm font-medium " +
+        "transition-colors duration-150 " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+        "focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+    const selectedCls =
+        "bg-slate-900/5 text-slate-900 ring-1 ring-slate-900/10 " +
+        "dark:bg-white/10 dark:text-white dark:ring-white/10";
+
+    const idleCls =
+        "text-slate-500 hover:text-slate-900 hover:bg-slate-100/60 " +
+        "dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800/50";
+
+    const iconBase = "mr-3 grid h-5 w-5 place-items-center transition-colors";
+    const iconSelected = "text-slate-900 dark:text-white";
+    const iconIdle =
+        "text-slate-400 group-hover:text-slate-600 dark:text-neutral-500 dark:group-hover:text-neutral-300";
 
     return (
-        <button
-            type="button"
-            onClick={() => router.push(href)}
-            className={`
-        group relative flex items-center w-full px-4 py-2.5 my-1 rounded-xl 
-        text-sm font-medium transition-all duration-200 ease-out active:scale-95
-        ${selected
-                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10"
-                    : "text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-slate-100/50 dark:hover:bg-neutral-800/50"
-                }
-      `}
+        <Link
+            href={href}
+            aria-current={selected ? "page" : undefined}
+            className={`${base} ${selected ? selectedCls : idleCls}`}
         >
-            {/* Active Indicator */}
-            {selected && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-500 rounded-r-full shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
-            )}
-
-            <span
-                className={`
-          flex items-center justify-center w-5 h-5 mr-3 transition-colors
-          ${selected
-                        ? "text-indigo-600 dark:text-indigo-400"
-                        : "text-slate-400 group-hover:text-slate-600 dark:text-neutral-500 dark:group-hover:text-neutral-300"
-                    }
-        `}
-            >
-                {icon}
-            </span>
-
-            <span className="tracking-wide truncate">{title}</span>
-        </button>
+            <span className={`${iconBase} ${selected ? iconSelected : iconIdle}`}>{icon}</span>
+            <span className="truncate tracking-wide">{title}</span>
+        </Link>
     );
 };

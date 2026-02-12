@@ -19,7 +19,8 @@ export function ActiveSessionsList() {
             setError(res.message || "Failed to load sessions");
             return;
         }
-        setSessions(res.sessions);
+        const activeSessions = (res.sessions || []).filter((s: any) => !s.revokedAt);
+        setSessions(activeSessions);
         setSessionsLoaded(true);
     }
 
@@ -29,6 +30,7 @@ export function ActiveSessionsList() {
 
     const handleRevoke = async (sessionId: string) => {
         const previousSessions = [...sessions];
+
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
 
         const res = await revokeUserSession(sessionId);
@@ -56,7 +58,7 @@ export function ActiveSessionsList() {
     };
 
     return (
-        <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white/20 dark:border-white/5 shadow-sm overflow-hidden flex flex-col h-full max-h-[500px]">
+        <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white/20 dark:border-white/5 shadow-sm overflow-hidden flex flex-col w-full">
             <div className="p-8 border-b border-slate-200/50 dark:border-white/5 flex items-center justify-between gap-4 shrink-0">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20">
@@ -100,9 +102,7 @@ export function ActiveSessionsList() {
                                 <div
                                     className={`w-2.5 h-2.5 rounded-full ${s.isCurrent
                                         ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                                        : s.revokedAt
-                                            ? "bg-slate-300 dark:bg-neutral-700"
-                                            : "bg-indigo-500"
+                                        : "bg-indigo-500"
                                         }`}
                                 />
                                 <div>
@@ -110,13 +110,13 @@ export function ActiveSessionsList() {
                                         {s.deviceLabel || (s.userAgent ? "Browser Session" : "Session")}
                                     </div>
                                     <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
-                                        {s.isCurrent ? "This device" : s.revokedAt ? "Revoked" : "Active"}
+                                        {s.isCurrent ? "This device" : "Active"}
                                         {" - "}
                                         {s.lastSeenAt ? new Date(s.lastSeenAt).toLocaleString() : "Unknown"}
                                     </div>
                                 </div>
                             </div>
-                            {!s.isCurrent && !s.revokedAt && (
+                            {!s.isCurrent && (
                                 <button
                                     onClick={() => handleRevoke(s.id)}
                                     className="text-xs font-bold text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition"

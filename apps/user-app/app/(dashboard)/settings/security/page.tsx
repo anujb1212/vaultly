@@ -9,14 +9,12 @@ import {
     Mail,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useSession } from "next-auth/react";
 
 import { getTransactionPinStatus } from "../../../lib/actions/getTransactionPinStatus";
 import { listUserSessions } from "../../../lib/actions/listUserSessions";
 import { EmailVerificationDialog } from "../../../../components/dialog/EmailVerificationDialog";
 import { sendEmailVerification } from "../../../lib/actions/sendEmailVerification";
 import { getEmailVerificationStatus } from "../../../lib/actions/getEmailVerificationStatus";
-import { AISecurityInsightsCard } from "../../../../components/aiInsights/AISecurityInsightsCard";
 import { ActiveSessionsList } from "../../../../components/settings/ActiveSessionsList";
 
 function StatusBadge({ enabled }: { enabled: boolean }) {
@@ -258,8 +256,6 @@ export default function SecuritySettingsPage() {
 
                 {/* --- RIGHT COLUMN --- */}
                 <div className="space-y-8">
-                    <AISecurityInsightsCard limit={3} />
-
                     {/* Security Health Score Widget */}
                     <div className="bg-slate-900 dark:bg-black rounded-[2.5rem] p-8 border border-slate-800 dark:border-neutral-800 shadow-2xl relative overflow-hidden group text-white">
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-transparent opacity-50" />

@@ -88,7 +88,7 @@ export function WithdrawActionPanel(props: {
                             <div className="bg-indigo-50 dark:bg-indigo-900/10 p-3 rounded-lg flex gap-3 items-start">
                                 <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                                 <p className="text-xs text-indigo-800 dark:text-indigo-200 leading-relaxed">
-                                    Transfers complete instantly in v1 (sync). Available wallet balance is checked as amount − locked.
+                                    Transfers complete instantly. Available wallet balance is checked as amount - locked.
                                 </p>
                             </div>
 

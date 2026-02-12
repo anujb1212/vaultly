@@ -36,7 +36,6 @@ export const WithdrawWindow = () => {
     const refreshTransactions = (txAny?.refresh ?? (async () => { })) as () => Promise<any>;
 
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [showBalances, setShowBalances] = useState(false);
 
     const [amount, setAmount] = useState("");
     const [pinOpen, setPinOpen] = useState(false);
@@ -125,8 +124,6 @@ export const WithdrawWindow = () => {
                         error={error}
                         selectedId={selected?.id ?? null}
                         onSelect={(id) => setSelectedId(id)}
-                        showBalances={showBalances}
-                        onToggleShowBalances={() => setShowBalances((v) => !v)}
                         onRetry={refresh}
                     />
 
