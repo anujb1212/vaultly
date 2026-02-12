@@ -8,7 +8,17 @@
     "GOOGLE_CLIENT_SECRET",
     "NEXTAUTH_SECRET",
     "JWT_SECRET",
-    "REDIS_URL"
+    "REDIS_URL",
+    "APP_URL",
+    "RESEND_API_KEY",
+    "RESEND_FROM",
+    "GEMINI_MODEL",
+    "GOOGLE_API_KEY",
+    "GEMINI_API_KEY",
+    "AI_USER_DAILY_CAP",
+    "AI_GLOBAL_DAILY_CAP",
+    "ADMIN_API_TOKEN",
+    "GATEWAY_API_TOKEN"
   ],
   "tasks": {
     "build": {

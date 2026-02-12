@@ -5,7 +5,7 @@ import crypto from "crypto";
 import db, { auditLogger } from "@repo/db/client";
 import { authOptions } from "../auth";
 
-import { rateLimit } from "../rateLimit";
+import { rateLimit } from "../redis/rateLimit";
 import { resend, RESEND_FROM } from "../email/resendClient";
 
 export type SendEmailVerificationResult =
@@ -112,50 +112,61 @@ export async function sendEmailVerification(inputEmail?: string): Promise<SendEm
 
         const appName = "Vaultly";
 
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <meta charset="utf-8">
+            <title>Verify your email address</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; background-color: #f9fafb; margin: 0; padding: 0; }
+                .container { max-width: 580px; margin: 0 auto; padding: 40px 20px; }
+                .card { background: #ffffff; border-radius: 8px; border: 1px solid #e5e7eb; padding: 40px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
+                .logo { font-size: 24px; font-weight: 700; color: #111827; letter-spacing: -0.5px; margin-bottom: 24px; }
+                .h1 { font-size: 20px; font-weight: 600; color: #111827; margin: 0 0 16px; }
+                .p { font-size: 15px; line-height: 24px; color: #4b5563; margin: 0 0 24px; }
+                .btn { display: inline-block; background-color: #000000; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 24px; border-radius: 6px; }
+                .footer { margin-top: 32px; font-size: 12px; color: #9ca3af; text-align: center; }
+                .link { color: #6b7280; text-decoration: none; }
+                .divider { border-top: 1px solid #e5e7eb; margin: 32px 0 24px; }
+                .subtext { font-size: 12px; color: #6b7280; word-break: break-all; }
+            </style>
+            </head>
+            <body>
+            <div class="container">
+                <div class="card">
+                <div class="logo">${appName}</div>
+                <div class="h1">Verify your email address</div>
+                <div class="p">
+                    Please confirm that you want to use this as your ${appName} account email address. Once it's done, you will be able to start buying and selling.
+                </div>
+                <div style="margin-bottom: 32px;">
+                    <a href="${verifyUrl}" class="btn">Verify my email</a>
+                </div>
+                <div class="p" style="margin-bottom: 0;">
+                    Or paste this link into your browser:
+                </div>
+                <div class="subtext" style="margin-top: 8px;">
+                    <a href="${verifyUrl}" class="link">${verifyUrl}</a>
+                </div>
+                <div class="divider"></div>
+                <div class="subtext">
+                    This link will expire in 24 hours. If you didn't request this, you can safely ignore this email.
+                </div>
+                </div>
+                <div class="footer">
+                &copy; ${new Date().getFullYear()} ${appName}. All rights reserved.
+                </div>
+            </div>
+            </body>
+            </html>
+            `;
+
         const { error } = await resend.emails.send({
             from: RESEND_FROM,
             to: [email],
             subject: "Verify your email for Vaultly",
-            html: `
-            <div style="font-family:Arial,Helvetica,sans-serif;background:#0b0b0f;padding:24px;">
-            <div style="max-width:560px;margin:0 auto;background:#111827;border:1px solid #1f2937;border-radius:14px;padding:20px;">
-                <div style="font-size:14px;font-weight:700;color:#ffffff;letter-spacing:0.2px;">
-                ${appName}
-                </div>
-
-                <div style="margin-top:14px;font-size:16px;font-weight:700;color:#ffffff;">
-                Verify your email
-                </div>
-
-                <div style="margin-top:8px;font-size:13px;line-height:18px;color:#d1d5db;">
-                Click the button below to verify your email address. This link expires in 24 hours.
-                </div>
-
-                <table cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
-                <tr>
-                    <td bgcolor="#22c55e" style="border-radius:10px;">
-                    <a href="${verifyUrl}" target="_blank"
-                        style="display:inline-block;padding:10px 14px;border:1px solid #22c55e;border-radius:10px;font-size:13px;font-weight:700;color:#0b0b0f;text-decoration:none;">
-                        Verify email
-                    </a>
-                    </td>
-                </tr>
-                </table>
-
-                <div style="margin-top:14px;font-size:12px;line-height:18px;color:#9ca3af;">
-                If the button does not work, copy and paste this link into your browser:
-                </div>
-
-                <div style="margin-top:6px;font-size:12px;line-height:18px;color:#93c5fd;word-break:break-all;">
-                ${verifyUrl}
-                </div>
-
-                <div style="margin-top:16px;font-size:12px;line-height:18px;color:#9ca3af;">
-                If you did not request this, you can ignore this email.
-                </div>
-            </div>
-            </div>
-        `,
+            html: emailHtml,
         });
 
         if (error) return { success: false, errorCode: "INTERNAL_ERROR", message: "Failed to send email." };

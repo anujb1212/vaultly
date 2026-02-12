@@ -1,0 +1,73 @@
+model SecurityEvent {
+    id     Int  @id @default(autoincrement())
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    type     SecurityEventType
+    source   String
+    sourceId String?
+
+    occurredAt      DateTime         @default(now())
+    ipHash          String?
+    deviceHash      String?
+    metadata        Json?
+    createdAt       DateTime         @default(now())
+    securitySignals SecuritySignal[]
+
+    @@unique([source, sourceId])
+    @@index([userId, occurredAt])
+    @@index([userId, type, occurredAt])
+}
+
+model SecuritySignal {
+    id     Int  @id @default(autoincrement())
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    type     SecuritySignalType
+    severity SecuritySeverity
+
+    dedupeKey String
+
+    windowStart DateTime
+    windowEnd   DateTime
+
+    metadata Json?
+
+    eventId Int?
+    event   SecurityEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+    insight AISecurityInsight?
+
+    createdAt DateTime @default(now())
+
+    @@unique([userId, dedupeKey])
+    @@index([userId, createdAt])
+}
+
+model AISecurityInsight {
+    id     Int  @id @default(autoincrement())
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    signalId Int            @unique
+    signal   SecuritySignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+    severity           SecuritySeverity
+    title              String
+    summary            String
+    recommendedActions String[]         @default([])
+
+    provider      String
+    model         String
+    promptVersion String
+
+    status    AIInsightStatus @default(PENDING)
+    errorCode String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId, createdAt])
+    @@index([userId, status, createdAt])
+}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "../../../../lib/auth";
-import { rateLimit } from "../../../../lib/rateLimit";
+import { rateLimit } from "../../../../lib/redis/rateLimit";
 
 import { prisma } from "@repo/db";
 import { generateAISecurityInsightsForUser } from "../../../../lib/security/generateAISecurityInsights";

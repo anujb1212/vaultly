@@ -6,11 +6,15 @@ const prisma = new PrismaClient();
 async function main() {
   await prisma.p2pTransfer.deleteMany();
   await prisma.onRampTransaction.deleteMany();
+  await prisma.offRampTransaction.deleteMany().catch(() => { });
   await prisma.transactionPin.deleteMany();
   await prisma.balance.deleteMany();
+  await prisma.linkedBankAccount.deleteMany().catch(() => { });
   await prisma.userSession.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.idempotencyKey.deleteMany();
+  await prisma.ledgerEntry.deleteMany();
+  await prisma.ledgerAccount.deleteMany();
   await prisma.user.deleteMany();
 
   const passwordCost = 10;
@@ -29,6 +33,15 @@ async function main() {
       name: "Alice",
       email: "alice@example.com",
       Balance: { create: { amount: 250000, locked: 0 } },
+      linkedBankAccounts: {
+        create: [
+          { providerKey: "HDFC", displayName: "HDFC Bank", maskedAccount: "**** 4821", amount: 419611, locked: 0 },
+          { providerKey: "AXIS", displayName: "Axis Bank", maskedAccount: "**** 9923", amount: 1448215, locked: 0 },
+          { providerKey: "ICICI", displayName: "ICICI Bank", maskedAccount: "**** 1120", amount: 2240778, locked: 0 },
+          { providerKey: "SBI", displayName: "SBI", maskedAccount: "**** 3311", amount: 505623, locked: 0 },
+          { providerKey: "KOTAK", displayName: "Kotak Bank", maskedAccount: "**** 8822", amount: 5385773, locked: 0 },
+        ],
+      },
       transactionPin: {
         create: {
           pinHash: aliceMpinHash,
@@ -68,6 +81,15 @@ async function main() {
       name: "Bob",
       email: null,
       Balance: { create: { amount: 50000, locked: 0 } },
+      linkedBankAccounts: {
+        create: [
+          { providerKey: "HDFC", displayName: "HDFC Bank", maskedAccount: "**** 7416", amount: 1250430, locked: 0 },
+          { providerKey: "AXIS", displayName: "Axis Bank", maskedAccount: "**** 2094", amount: 2034120, locked: 0 },
+          { providerKey: "ICICI", displayName: "ICICI Bank", maskedAccount: "**** 5689", amount: 1789550, locked: 0 },
+          { providerKey: "SBI", displayName: "SBI", maskedAccount: "**** 7742", amount: 965900, locked: 0 },
+          { providerKey: "KOTAK", displayName: "Kotak Bank", maskedAccount: "**** 1308", amount: 3960000, locked: 0 },
+        ],
+      },
       OnRampTransaction: {
         create: [
           {
@@ -89,6 +111,15 @@ async function main() {
       name: "Charlie",
       email: "charlie@example.com",
       Balance: { create: { amount: 150000, locked: 0 } },
+      linkedBankAccounts: {
+        create: [
+          { providerKey: "HDFC", displayName: "HDFC Bank", maskedAccount: "**** 6159", amount: 842315, locked: 0 },
+          { providerKey: "AXIS", displayName: "Axis Bank", maskedAccount: "**** 9841", amount: 3156480, locked: 0 },
+          { providerKey: "ICICI", displayName: "ICICI Bank", maskedAccount: "**** 4370", amount: 2045705, locked: 0 },
+          { providerKey: "SBI", displayName: "SBI", maskedAccount: "**** 2286", amount: 1127500, locked: 0 },
+          { providerKey: "KOTAK", displayName: "Kotak Bank", maskedAccount: "**** 9017", amount: 2828000, locked: 0 },
+        ],
+      },
     },
   });
 

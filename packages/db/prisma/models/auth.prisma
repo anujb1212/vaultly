@@ -1,0 +1,53 @@
+model UserSession {
+    id     String @id @default(cuid())
+    userId Int
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt  DateTime  @default(now())
+    lastSeenAt DateTime? @default(now())
+    expiresAt  DateTime?
+
+    ip          String?
+    userAgent   String?
+    deviceId    String?
+    deviceLabel String?
+
+    revokedAt DateTime?
+    sudoUntil DateTime?
+
+    @@index([userId, createdAt])
+    @@index([userId, revokedAt])
+    @@index([userId, lastSeenAt])
+}
+
+model TransactionPin {
+    userId Int  @id
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    pinHash   String
+    algo      String   @default("bcrypt")
+    version   Int      @default(1)
+    changedAt DateTime @default(now())
+
+    failedAttempts Int       @default(0)
+    lockedUntil    DateTime?
+    lastFailedAt   DateTime?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model EmailVerificationToken {
+    id     Int  @id @default(autoincrement())
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    email      String
+    tokenHash  String    @unique
+    expiresAt  DateTime
+    consumedAt DateTime?
+    createdAt  DateTime  @default(now())
+
+    @@index([userId, email])
+    @@index([expiresAt])
+}

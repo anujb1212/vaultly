@@ -204,3 +204,35 @@ export async function postP2PLedger(args: {
         ],
     });
 }
+
+export async function postOfframpLedger(args: {
+    tx: Prisma.TransactionClient;
+    idempotencyKey: string;
+    userId: number;
+    amount: number;
+    providerKey: string;
+    linkedBankAccountId: number;
+    currency?: string;
+}) {
+    const currency = args.currency ?? DEFAULT_CURRENCY;
+
+    const userCash = await ensureUserCashAccount(args.tx, args.userId, currency);
+    const clearing = await ensurePlatformClearingAccount(args.tx, currency);
+
+    return postBalancedLedgerTransaction({
+        tx: args.tx,
+        type: "OFFRAMP",
+        externalRef: `offramp:${args.idempotencyKey}`,
+        currency,
+        metadata: {
+            idempotencyKey: args.idempotencyKey,
+            userId: args.userId,
+            providerKey: args.providerKey,
+            linkedBankAccountId: args.linkedBankAccountId,
+        },
+        entries: [
+            { accountId: userCash.id, direction: "DEBIT", amount: args.amount },
+            { accountId: clearing.id, direction: "CREDIT", amount: args.amount },
+        ],
+    });
+}

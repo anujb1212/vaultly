@@ -1,6 +1,6 @@
 import db, { auditLogger, emitSecurityEvent } from "@repo/db/client";
 import bcrypt from "bcrypt";
-import { rateLimit } from "../rateLimit";
+import { rateLimit } from "../redis/rateLimit";
 import "server-only";
 
 export type VerifyMpinErrorCode =
@@ -39,7 +39,7 @@ function failCountBucket(n: number) {
 export async function verifyMpinOrThrow(opts: {
     userId: number;
     mpin: string | undefined;
-    context: { action: "P2P_TRANSFER" | "ONRAMP_CREATE" | "MPIN_CHANGE" };
+    context: { action: "P2P_TRANSFER" | "ONRAMP_CREATE" | "OFFRAMP_WITHDRAW" | "MPIN_CHANGE" };
 }) {
     const { userId, mpin, context } = opts;
 

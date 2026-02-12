@@ -32,7 +32,7 @@ export function TransactionList({ transactions, showViewAll = false }: { transac
                         transactions.slice(0, showViewAll ? transactions.length : 5).map((tx, idx) => (
                             <li key={idx} className="flex justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors">
                                 <div className="flex items-center gap-4">
-                                    {/* Icon/Avatar based on status */}
+                                    {/* Avatar based on status */}
                                     <div className={`
                                         w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
                                         ${tx.status === 'Success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' :
@@ -55,10 +55,18 @@ export function TransactionList({ transactions, showViewAll = false }: { transac
                                 </div>
 
                                 <div className="text-right">
-                                    <div className={`font-semibold text-sm ${tx.status === "Failed" ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
-                                        }`}>
-                                        {tx.status === "Failed" ? "Failed" : `+ ₹${Number(tx.amount).toLocaleString('en-IN')}`}
-                                    </div>
+                                    {(() => {
+                                        const amt = Number(tx.amount);
+                                        const isFailed = tx.status === "Failed" || tx.status === "Failure";
+                                        const sign = amt < 0 ? "-" : "+";
+                                        const abs = Math.abs(amt);
+                                        return (
+                                            <div
+                                                className={`font-semibold text-sm ${isFailed ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                                {isFailed ? "Failed" : `${sign} ₹${abs.toLocaleString("en-IN")}`}
+                                            </div>
+                                        );
+                                    })()}
                                     {tx.status === "Processing" && (
                                         <div className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded inline-block mt-0.5">
                                             Processing
@@ -70,6 +78,6 @@ export function TransactionList({ transactions, showViewAll = false }: { transac
                     )}
                 </ul>
             </div>
-        </div>
+        </div >
     );
 }

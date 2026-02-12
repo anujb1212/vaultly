@@ -10,7 +10,7 @@ import prisma, {
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth";
 import { revalidatePath } from "next/cache";
-import { rateLimit } from "../rateLimit";
+import { rateLimit } from "../redis/rateLimit";
 import { verifyMpinOrThrow, VerifyMpinError } from "../security/verifyMpin";
 
 type P2PTransferResult =

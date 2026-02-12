@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ThemeToggle } from "../../../components/ThemeToggle";
+import { ThemeToggle } from "../../../components/theme/ThemeToggle";
 import { Button } from "@repo/ui/button";
 import { TextInput } from "@repo/ui/textinput";
 import { ArrowRight, LockKeyhole, ShieldCheck, Loader2, AlertCircle } from "lucide-react";

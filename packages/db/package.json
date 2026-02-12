@@ -23,6 +23,7 @@
         ".": "./index.ts"
     },
     "prisma": {
-        "seed": "ts-node prisma/seed.ts"
+        "seed": "ts-node prisma/seed.ts",
+        "schema": "prisma"
     }
 }
