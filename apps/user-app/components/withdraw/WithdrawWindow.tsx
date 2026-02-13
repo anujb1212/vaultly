@@ -11,6 +11,7 @@ import { WithdrawActionPanel } from "./WithdrawActionPanel";
 
 import { useBalance, useLinkedAccounts, useTransactions } from "@repo/store";
 import { withdrawToLinkedAccount } from "../../app/lib/actions/withdraw";
+import { Loader } from "../layout/Loader";
 
 type OffRampTx = {
     id: number;
@@ -83,7 +84,6 @@ export const WithdrawWindow = () => {
             });
     }, [offRampTransactions, selected]);
 
-
     const selectedLabel = selected ? `${selected.displayName} (${selected.maskedAccount})` : null;
 
     const onConfirm = () => {
@@ -116,6 +116,8 @@ export const WithdrawWindow = () => {
 
     return (
         <>
+            {isProcessing && <Loader message="Processing withdrawal..." />}
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-7 space-y-8">
                     <LinkedAccountsGrid

@@ -7,7 +7,7 @@ import { TextInput } from "@repo/ui/textinput";
 import { useBalance, useTransactions, useLinkedAccounts } from "@repo/store";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, ArrowRight, Banknote, Loader2 } from "lucide-react";
+import { ShieldCheck, ArrowRight, Banknote, Loader2, AlertCircle } from "lucide-react";
 import { TransactionPinDialog } from "../dialog/TransactionPinDialog";
 import { createOnRampTxn } from "../../app/lib/actions/createOnRampTxn";
 
@@ -19,6 +19,8 @@ export const AddMoney = () => {
     const [selectedLinkedId, setSelectedLinkedId] = useState<number | null>(null);
     const [amount, setAmount] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
+
+    const [error, setError] = useState<string | null>(null);
 
     const [pinOpen, setPinOpen] = useState(false);
     const [pendingOnramp, setPendingOnramp] = useState<{
@@ -32,14 +34,16 @@ export const AddMoney = () => {
     const { refresh: refreshTransactions, addOptimistic } = useTransactions();
 
     const handleAddMoney = async () => {
+        setError(null);
+
         if (!Number.isFinite(amount) || amount <= 0) {
-            alert("Please enter a valid amount.");
+            setError("Please enter a valid amount greater than 0.");
             return;
         }
 
         const amountPaise = Math.round(amount * 100);
         if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
-            alert("Please enter a valid amount.");
+            setError("Please enter a valid amount.");
             return;
         }
 
@@ -52,7 +56,7 @@ export const AddMoney = () => {
                 : null);
 
         if (!effectiveSelected) {
-            alert("No linked bank accounts found. Please sign out and sign in again.");
+            setError("No linked bank accounts found. Please sign out and sign in again.");
             return;
         }
 
@@ -87,6 +91,15 @@ export const AddMoney = () => {
                     </div>
 
                     <div className="space-y-8">
+                        {error && (
+                            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                                <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                                <span className="text-sm font-medium text-rose-700 dark:text-rose-300">
+                                    {error}
+                                </span>
+                            </div>
+                        )}
+
                         <div className="space-y-3">
                             <label className="block text-sm font-bold text-slate-700 dark:text-neutral-300 ml-1">
                                 Amount to Add
@@ -94,7 +107,10 @@ export const AddMoney = () => {
                             <TextInput
                                 placeholder="e.g. 5000"
                                 label=""
-                                onChange={(value) => setAmount(Number(value))}
+                                onChange={(value) => {
+                                    setAmount(Number(value));
+                                    if (error) setError(null);
+                                }}
                                 customClass="w-full"
                             />
                         </div>
@@ -104,7 +120,10 @@ export const AddMoney = () => {
                                 Select Bank
                             </label>
                             <Select
-                                onSelect={(value) => setSelectedLinkedId(Number(value))}
+                                onSelect={(value) => {
+                                    setSelectedLinkedId(Number(value));
+                                    if (error) setError(null);
+                                }}
                                 options={linkedAccounts.map((a) => ({
                                     key: String(a.id),
                                     value: `${a.displayName} (${a.maskedAccount})`,
@@ -168,6 +187,8 @@ export const AddMoney = () => {
                     if (!pendingOnramp) return;
 
                     setIsProcessing(true);
+                    setError(null);
+
                     try {
                         const result = await createOnRampTxn(
                             pendingOnramp.amountPaise,
@@ -236,8 +257,9 @@ export const AddMoney = () => {
                         setPinOpen(false);
                         setPendingOnramp(null);
                         router.push(`/mock-bank?${qs.toString()}`);
-                    } catch (error: any) {
-                        alert(error.message);
+                    } catch (err: any) {
+                        setPinOpen(false);
+                        setError(err.message || "Something went wrong.");
                     } finally {
                         setIsProcessing(false);
                         await refreshBalance().catch(() => { });

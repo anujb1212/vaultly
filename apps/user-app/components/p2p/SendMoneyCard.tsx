@@ -12,7 +12,7 @@ import { Send, CheckCircle2, AlertCircle } from "lucide-react";
 import { TransactionPinDialog } from "../dialog/TransactionPinDialog";
 import { p2pTransfer } from "../../app/lib/actions/p2pTransfer";
 import { UserSearch } from "./UserSearch";
-
+import { Loader } from "../layout/Loader";
 
 
 export function SendMoneyCard() {
@@ -92,6 +92,8 @@ export function SendMoneyCard() {
 
     return (
         <>
+            {status === "processing" && <Loader message="Sending money securely..." />}
+
             <Card title="Send Money" className="w-full relative overflow-hidden min-h-[420px]">
                 <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
@@ -111,7 +113,6 @@ export function SendMoneyCard() {
                             onSelect={setSelectedUser}
                         />
 
-                        {/* Amount Input */}
                         <div className={`space-y-1 transition-all duration-300 ${selectedUser ? 'opacity-100' : 'opacity-50 pointer-events-none blur-[1px]'}`}>
                             <TextInput
                                 label="Amount (₹)"
