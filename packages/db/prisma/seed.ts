@@ -4,18 +4,31 @@ import bcrypt from "bcrypt";
 const prisma = new PrismaClient();
 
 async function main() {
+  const existingSystemUser = await prisma.user.findUnique({
+    where: { number: "0000000000" },
+    select: { id: true },
+  });
+
   await prisma.p2pTransfer.deleteMany();
   await prisma.onRampTransaction.deleteMany();
   await prisma.offRampTransaction.deleteMany().catch(() => { });
   await prisma.transactionPin.deleteMany();
-  await prisma.balance.deleteMany();
   await prisma.linkedBankAccount.deleteMany().catch(() => { });
   await prisma.userSession.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.idempotencyKey.deleteMany();
   await prisma.ledgerEntry.deleteMany();
   await prisma.ledgerAccount.deleteMany();
-  await prisma.user.deleteMany();
+
+  await prisma.balance.deleteMany({
+    where: existingSystemUser
+      ? { userId: { not: existingSystemUser.id } }
+      : {},
+  });
+
+  await prisma.user.deleteMany({
+    where: { number: { not: "0000000000" } },
+  });
 
   const passwordCost = 10;
   const mpinCost = 12;
@@ -23,7 +36,6 @@ async function main() {
   const alicePasswordHash = await bcrypt.hash("alice", passwordCost);
   const bobPasswordHash = await bcrypt.hash("bob", passwordCost);
   const charliePasswordHash = await bcrypt.hash("charlie", passwordCost);
-
   const aliceMpinHash = await bcrypt.hash("123456", mpinCost);
 
   const alice = await prisma.user.create({
@@ -55,20 +67,8 @@ async function main() {
       },
       OnRampTransaction: {
         create: [
-          {
-            startTime: new Date(Date.now() - 1000 * 60 * 60 * 24),
-            status: "Success",
-            amount: 100000,
-            token: "seed_token_alice_1",
-            provider: "HDFC Bank",
-          },
-          {
-            startTime: new Date(Date.now() - 1000 * 60 * 60 * 2),
-            status: "Processing",
-            amount: 50000,
-            token: "seed_token_alice_2",
-            provider: "HDFC Bank",
-          },
+          { startTime: new Date(Date.now() - 1000 * 60 * 60 * 24), status: "Success", amount: 100000, token: "seed_token_alice_1", provider: "HDFC Bank" },
+          { startTime: new Date(Date.now() - 1000 * 60 * 60 * 2), status: "Processing", amount: 50000, token: "seed_token_alice_2", provider: "HDFC Bank" },
         ],
       },
     },
@@ -92,13 +92,7 @@ async function main() {
       },
       OnRampTransaction: {
         create: [
-          {
-            startTime: new Date(Date.now() - 1000 * 60 * 60 * 20),
-            status: "Failure",
-            amount: 20000,
-            token: "seed_token_bob_1",
-            provider: "HDFC Bank",
-          },
+          { startTime: new Date(Date.now() - 1000 * 60 * 60 * 20), status: "Failure", amount: 20000, token: "seed_token_bob_1", provider: "HDFC Bank" },
         ],
       },
     },
@@ -130,26 +124,40 @@ async function main() {
       amount: 10000,
       timestamp: new Date(Date.now() - 1000 * 60 * 15),
       status: "SUCCESS",
-      metadata: {
-        seeded: true,
-        note: "Sample transfer for dev testing",
-      },
+      metadata: { seeded: true, note: "Sample transfer for dev testing" },
     },
   });
 
   console.log({
     users: [
-      { name: "Alice", phone: alice.number, password: "alice", mpin: "123456", balancePaise: 250000 },
-      { name: "Bob", phone: bob.number, password: "bob", mpin: null, balancePaise: 50000 },
-      { name: "Charlie", phone: charlie.number, password: "charlie", mpin: null, balancePaise: 150000 },
+      { name: "Alice", phone: alice.number, password: "alice", mpin: "123456" },
+      { name: "Bob", phone: bob.number, password: "bob", mpin: null },
+      { name: "Charlie", phone: charlie.number, password: "charlie", mpin: null },
     ],
   });
+
+  const arbitiumSystemPasswordHash = await bcrypt.hash(crypto.randomUUID(), passwordCost);
+
+  const arbitiumSystem = await prisma.user.upsert({
+    where: { number: "0000000000" },
+    update: {},
+    create: {
+      number: "0000000000",
+      password: arbitiumSystemPasswordHash,
+      name: "Arbitium System",
+      email: "system@arbitium.internal",
+    },
+  });
+
+  await prisma.balance.upsert({
+    where: { userId: arbitiumSystem.id },
+    update: { amount: { increment: 0 } },
+    create: { userId: arbitiumSystem.id, amount: 100_000_000, locked: 0 },
+  })
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
+  .then(async () => { await prisma.$disconnect(); })
   .catch(async (e) => {
     console.error(e);
     await prisma.$disconnect();

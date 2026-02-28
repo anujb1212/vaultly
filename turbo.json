@@ -18,7 +18,10 @@
     "AI_USER_DAILY_CAP",
     "AI_GLOBAL_DAILY_CAP",
     "ADMIN_API_TOKEN",
-    "GATEWAY_API_TOKEN"
+    "GATEWAY_API_TOKEN",
+    "BRIDGE_SECRET",
+    "ARBITIUM_SYSTEM_USER_ID",
+    "NEXT_PUBLIC_ARBITIUM_URL"
   ],
   "tasks": {
     "build": {
