@@ -44,7 +44,7 @@ async function main() {
       password: alicePasswordHash,
       name: "Alice",
       email: "alice@example.com",
-      Balance: { create: { amount: 250000, locked: 0 } },
+      Balance: { create: { amount: 10000000, locked: 0 } },
       linkedBankAccounts: {
         create: [
           { providerKey: "HDFC", displayName: "HDFC Bank", maskedAccount: "**** 4821", amount: 419611, locked: 0 },

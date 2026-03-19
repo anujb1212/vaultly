@@ -4,7 +4,15 @@ import { authOptions } from "../../../lib/auth";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const ARBITIUM_URL = process.env.NEXT_PUBLIC_ARBITIUM_URL ?? "http://localhost:5173";
+const ARBITIUM_ORIGIN = (() => {
+    try {
+        return new URL(
+            process.env.NEXT_PUBLIC_ARBITIUM_URL ?? "http://localhost:5173"
+        ).origin
+    } catch {
+        return "http://localhost:5173"
+    }
+})()
 
 export async function GET(req: NextRequest) {
     if (!JWT_SECRET) {
@@ -16,6 +24,7 @@ export async function GET(req: NextRequest) {
 
     const session = await getServerSession(authOptions);
 
+
     if (!session?.user?.id) {
         const signInUrl = new URL("/signin", req.url);
         signInUrl.searchParams.set(
@@ -25,9 +34,16 @@ export async function GET(req: NextRequest) {
         return NextResponse.redirect(signInUrl);
     }
 
-    const redirectTo = req.nextUrl.searchParams.get("redirectTo") ?? ARBITIUM_URL;
+    const redirectTo = req.nextUrl.searchParams.get("redirectTo") ?? ARBITIUM_ORIGIN;
 
-    if (!redirectTo.startsWith(ARBITIUM_URL)) {
+    let redirectOrigin: string
+    try {
+        redirectOrigin = new URL(redirectTo).origin
+    } catch {
+        return NextResponse.json({ error: "Invalid redirectTo" }, { status: 400 })
+    }
+
+    if (redirectOrigin !== ARBITIUM_ORIGIN) {
         return NextResponse.json(
             { error: "Invalid redirectTo origin" },
             { status: 400 }
