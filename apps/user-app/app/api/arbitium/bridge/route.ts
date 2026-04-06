@@ -105,8 +105,19 @@ export async function POST(req: NextRequest) {
                 amount: amountInPaise,
             });
 
+            await tx.arbitiumBridgeTransaction.upsert({
+                where: { idempotencyKey },
+                update: {},
+                create: {
+                    userId,
+                    amountInPaise,
+                    direction,
+                    idempotencyKey
+                }
+            });
+
             return { success: true };
-        }, { timeout: 10000 });
+        }, { timeout: 20000 });
 
         return NextResponse.json(result);
     } catch (error: any) {
@@ -116,6 +127,14 @@ export async function POST(req: NextRequest) {
                 { status: 422 }
             );
         }
+
+        if (error?.message === "INSUFFICIENT_SYSTEM_BALANCE") {
+            return NextResponse.json(
+                { error: "Insufficient system balance for withdrawal" },
+                { status: 422 }
+            );
+        }
+
         console.error("Bridge error:", error);
         return NextResponse.json({ error: "Transfer failed" }, { status: 500 });
     }

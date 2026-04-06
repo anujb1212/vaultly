@@ -38,21 +38,23 @@ export class IdempotencyManager {
                 if (!existing) return { exists: false };
 
                 if (new Date() >= existing.expiresAt) {
-                    try {
-                        await client.idempotencyKey.delete({ where: { key } });
-                        await client.idempotencyKey.create({
-                            data: {
-                                key,
-                                userId,
-                                action,
-                                response: Prisma.JsonNull,
-                                expiresAt: mkExpiresAt(),
-                            },
-                        });
-                        return { exists: false };
-                    } catch {
-                        // At race again, fall through to "existing" behavior 
-                    }
+                    await client.idempotencyKey.upsert({
+                        where: { key },
+                        update: {
+                            userId,
+                            action,
+                            response: Prisma.JsonNull,
+                            expiresAt: mkExpiresAt(),
+                        },
+                        create: {
+                            key,
+                            userId,
+                            action,
+                            response: Prisma.JsonNull,
+                            expiresAt: mkExpiresAt(),
+                        },
+                    });
+                    return { exists: false };
                 }
 
                 if (existing.response === null) return { exists: false };

@@ -46,6 +46,12 @@ export async function GET() {
             take: 20,
         });
 
+        const arbitiumTransactions = await prisma.arbitiumBridgeTransaction.findMany({
+            where: { userId },
+            orderBy: { createdAt: "desc" },
+            take: 20,
+        });
+
         // Format OnRamp transactions
         const formattedOnRamp = onRampTransactions.map((tx) => ({
             id: tx.id,
@@ -86,10 +92,20 @@ export async function GET() {
             type: "offRamp",
         }));
 
+        const formattedArbitium = arbitiumTransactions.map((tx) => ({
+            id: tx.id,
+            time: tx.createdAt,
+            amount: tx.amountInPaise,
+            direction: tx.direction as "DEPOSIT" | "WITHDRAW",
+            idempotencyKey: tx.idempotencyKey,
+            type: "arbitium" as const,
+        }));
+
         return NextResponse.json({
             onRamp: formattedOnRamp,
             p2p: formattedP2P,
-            offRamp: formattedOffRamp
+            offRamp: formattedOffRamp,
+            arbitium: formattedArbitium
         });
     } catch (error) {
         console.error("Transactions fetch error:", error);

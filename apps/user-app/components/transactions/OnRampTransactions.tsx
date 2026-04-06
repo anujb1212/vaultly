@@ -7,10 +7,9 @@ import {
     XCircle,
     ArrowDownLeft,
     ArrowUpRight,
-    ArrowRightLeft,
 } from "lucide-react";
 
-type ActivityKind = "onramp" | "offramp" | "p2p";
+type ActivityKind = "onramp" | "offramp" | "p2p" | "arbitium";
 type ActivityDirection = "in" | "out";
 type Status = "Processing" | "Success" | "Failure" | string;
 
@@ -76,7 +75,9 @@ export const OnRampTransactions = ({ transactions }: { transactions?: Transactio
                         (t.failureReasonCode === "USER_CANCELLED" || t.failureReasonCode === "CANCELLED");
 
                     const isOutflow =
-                        t.provider.startsWith("Sent to") || t.provider.startsWith("Withdraw to");
+                        t.provider.startsWith("Sent to") ||
+                        t.provider.startsWith("Withdraw to") ||
+                        t.provider.startsWith("Deposited to");
 
                     const tone =
                         isCancelled

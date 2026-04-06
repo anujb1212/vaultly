@@ -94,3 +94,8 @@ enum LinkedBankProviderKey {
     SBI
     KOTAK
 }
+
+enum ArbitiumBridgeDirection {
+    DEPOSIT
+    WITHDRAW
+}

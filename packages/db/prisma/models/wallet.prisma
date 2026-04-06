@@ -101,3 +101,15 @@ model OffRampTransaction {
     @@index([linkedBankAccountId, startTime])
     @@index([token])
 }
+
+model ArbitiumBridgeTransaction {
+    id             Int                     @id @default(autoincrement())
+    userId         Int
+    user           User                    @relation(fields: [userId], references: [id])
+    amountInPaise  Int
+    direction      ArbitiumBridgeDirection
+    idempotencyKey String                  @unique
+    createdAt      DateTime                @default(now())
+
+    @@index([userId, createdAt])
+}
