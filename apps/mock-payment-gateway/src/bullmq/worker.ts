@@ -1,7 +1,7 @@
 import { UnrecoverableError, Worker } from "bullmq";
 import type { WebhookJobData } from "./jobTypes";
 import { redisConnection } from "../config/redis";
-import { dlqQueue } from "./queues";
+import { dlqQueue, QUEUE_PREFIX } from "./queues";
 import { getBackoffWithJitter } from "../webhook/backoff";
 import { isTransientError } from "../webhook/classifyError";
 import { sendWebhook } from "../webhook/sender";
@@ -40,6 +40,7 @@ export function startWebhookWorker(): Worker<WebhookJobData> {
         },
         {
             connection: redisConnection,
+            prefix: QUEUE_PREFIX,
             concurrency: 4,
             settings: { backoffStrategy: getBackoffWithJitter },
         }
