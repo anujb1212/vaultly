@@ -152,7 +152,7 @@ export async function replayDLQJob(args: {
     const prevHistory = Array.isArray(data.replayHistory) ? data.replayHistory : [];
     const entry: ReplayHistoryEntry = {
         at: new Date().toISOString(),
-        actor: args.actor,
+        actor: args.actor ?? "system",
         reason: args.reason,
         enqueuedJobId: replayJobId,
         preservedWebhookEventId,

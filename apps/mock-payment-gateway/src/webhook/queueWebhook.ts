@@ -1,13 +1,13 @@
 import crypto from "crypto";
 import { webhookQueue } from "../bullmq/queues";
-import type { WebhookJobData } from "../bullmq/jobTypes";
+import type { WebhookJobData, WebhookPayload } from "../bullmq/jobTypes";
 
 function generateWebhookEventId(): string {
     return crypto.randomUUID();
 }
 
 export async function queueWebhook(
-    payload: any,
+    payload: WebhookPayload,
     secret: string,
     url: string,
     opts?: {
