@@ -4,9 +4,6 @@ import { queueWebhook } from "../../webhook/queueWebhook";
 
 export const processWithdrawRouter = Router();
 
-const WEBHOOK_URL = process.env.WEBHOOK_URL ?? "http://localhost:3003/bankWebhook";
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? "dev_secret";
-
 const WithdrawRequestSchema = z.object({
     token: z.string().min(1),
     user_identifier: z.string().min(1),
@@ -40,7 +37,7 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
 
     try {
         if (scenario === "success") {
-            await queueWebhook({ ...baseWebhookPayload, status: "Success" as const }, WEBHOOK_SECRET, WEBHOOK_URL, {
+            await queueWebhook({ ...baseWebhookPayload, status: "Success" as const }, {
                 delayMs: 0,
                 jobId: `offramp-${payload.token}`,
             });
@@ -59,8 +56,6 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
                     failureReasonCode: "USER_DECLINED" as const,
                     failureReasonMessage: "Declined in mock UI",
                 },
-                WEBHOOK_SECRET,
-                WEBHOOK_URL,
                 { delayMs: 0, jobId: `offramp-${payload.token}` }
             );
 
@@ -71,7 +66,7 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
         }
 
         if (scenario === "chaos-slow") {
-            await queueWebhook({ ...baseWebhookPayload, status: "Success" as const }, WEBHOOK_SECRET, WEBHOOK_URL, {
+            await queueWebhook({ ...baseWebhookPayload, status: "Success" as const }, {
                 delayMs: 10_000,
                 jobId: `offramp-${payload.token}`,
             });
@@ -81,15 +76,15 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
         if (scenario === "chaos-duplicate") {
             const webhookPayload = { ...baseWebhookPayload, status: "Success" as const };
             await Promise.all([
-                queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
+                queueWebhook(webhookPayload, {
                     delayMs: randomDelayMs(200),
                     jobId: `offramp-${payload.token}-dup-1`
                 }),
-                queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
+                queueWebhook(webhookPayload, {
                     delayMs: randomDelayMs(200),
                     jobId: `offramp-${payload.token}-dup-2`
                 }),
-                queueWebhook(webhookPayload, WEBHOOK_SECRET, WEBHOOK_URL, {
+                queueWebhook(webhookPayload, {
                     delayMs: randomDelayMs(200),
                     jobId: `offramp-${payload.token}-dup-3`
                 }),
@@ -111,11 +106,11 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
             };
 
             await Promise.all([
-                queueWebhook(webhookPayload1, WEBHOOK_SECRET, WEBHOOK_URL, {
+                queueWebhook(webhookPayload1, {
                     delayMs: randomDelayMs(200),
                     jobId: `offramp-${payload.token}-race-1`
                 }),
-                queueWebhook(webhookPayload2, WEBHOOK_SECRET, WEBHOOK_URL, {
+                queueWebhook(webhookPayload2, {
                     delayMs: randomDelayMs(200),
                     jobId: `offramp-${payload.token}-race-2`
                 }),

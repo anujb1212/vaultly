@@ -1,24 +1,45 @@
-import crypto from "crypto";
 import { Job } from "bullmq";
+import crypto from "crypto";
+import type { ReplayHistoryEntry, WebhookJobData, WebhookPayload } from "../bullmq/jobTypes";
 import { dlqQueue, webhookQueue } from "../bullmq/queues";
-import type { ReplayHistoryEntry, WebhookJobData } from "../bullmq/jobTypes";
+
+const DLQ_STATES = ["waiting", "delayed", "failed", "completed"] as const;
+const MAX_REPLAY_HISTORY = 50;
 
 function generateWebhookEventId(): string {
     return crypto.randomUUID();
 }
+
+type DLQJobSummary = {
+    id: string | undefined;
+    name: string;
+    token: string | undefined;
+    webhookEventId: string | undefined;
+    type: "ONRAMP" | "OFFRAMP" | null;
+    userIdentifier: string | null;
+    userId: number | null;
+    amount: number | null;
+    linkedBankAccountId: string | null;
+    failureReason: string | undefined;
+    failureClass: string | undefined;
+    failedAt: string | undefined;
+    attempts: number | undefined;
+    archivedAt: string | undefined;
+    replayCount: number;
+};
 
 export async function getDLQJobs(opts?: {
     states?: Array<"waiting" | "active" | "completed" | "failed" | "delayed" | "paused">;
     offset?: number;
     limit?: number;
     includeArchived?: boolean;
-}) {
-    const states = opts?.states ?? ["waiting", "delayed", "failed", "completed"];
+}): Promise<DLQJobSummary[]> {
+    const states = opts?.states ?? [...DLQ_STATES];
     const offset = Math.max(0, opts?.offset ?? 0);
     const limit = Math.min(200, Math.max(1, opts?.limit ?? 50));
 
     const jobs = await dlqQueue.getJobs(
-        states as any,
+        states,
         offset,
         offset + limit - 1,
         true
@@ -32,22 +53,23 @@ export async function getDLQJobs(opts?: {
         )
         .map((job) => {
             const data = job.data as WebhookJobData;
-            const p: any = data?.payload ?? {};
+            const p = data?.payload as WebhookPayload | undefined;
             const userIdentifier = p?.user_identifier ?? null;
-            const userIdNum = Number(userIdentifier);
-            const userId = Number.isFinite(userIdNum) ? userIdNum : null;
-            const type = typeof p?.type === "string" ? p.type : null;
+            const userId = Number.isFinite(Number(userIdentifier))
+                ? Number(userIdentifier)
+                : null;
+            const type = p?.type ?? null;
+
             return {
                 id: job.id,
                 name: job.name,
-                state: job.finishedOn ? "completed" : undefined,
                 token: data?.payload?.token,
                 webhookEventId: data?.webhookEventId,
                 type,
                 userIdentifier,
                 userId,
                 amount: p?.amount ?? null,
-                linkedBankAccountId: p?.linkedBankAccountId ?? null,
+                linkedBankAccountId: (p as any)?.linkedBankAccountId ?? null,
                 failureReason: data?.failureReason,
                 failureClass: data?.failureClass,
                 failedAt: data?.failedAt,
@@ -63,19 +85,26 @@ export async function getDLQJobs(opts?: {
 async function findDLQJobByPredicate(
     predicate: (data: WebhookJobData) => boolean
 ): Promise<Job<WebhookJobData> | null> {
-    const states: Array<"waiting" | "delayed" | "failed" | "completed"> = [
-        "waiting",
-        "delayed",
-        "failed",
-        "completed",
-    ];
-    const jobs = await dlqQueue.getJobs(states as any, 0, 999, true);
+    const PAGE_SIZE = 100;
+    let offset = 0;
 
-    for (const j of jobs) {
-        const data = j.data as WebhookJobData;
-        if (data && predicate(data)) return j as any;
+    while (true) {
+        const page = await dlqQueue.getJobs(
+            [...DLQ_STATES],
+            offset,
+            offset + PAGE_SIZE - 1,
+            true
+        );
+        if (page.length === 0) return null;
+
+        for (const j of page) {
+            const data = j.data as WebhookJobData;
+            if (data && predicate(data)) return j;
+        }
+
+        if (page.length < PAGE_SIZE) return null;
+        offset += PAGE_SIZE;
     }
-    return null;
 }
 
 export async function resolveDLQJobRef(ref: {
@@ -85,7 +114,7 @@ export async function resolveDLQJobRef(ref: {
 }) {
     if (ref.dlqJobId) {
         const job = await dlqQueue.getJob(ref.dlqJobId);
-        return (job as any) as Job<WebhookJobData> | null;
+        return job as Job<WebhookJobData> | null;
     }
     if (ref.webhookEventId) {
         return findDLQJobByPredicate((d) => d.webhookEventId === ref.webhookEventId);
@@ -140,16 +169,34 @@ export async function replayDLQJob(args: {
 
     const replayJobId = `replay-${token || "unknown"}-${job.id}-${Date.now()}`;
 
-    await webhookQueue.add(
-        "send-webhook",
-        {
-            ...data,
-            webhookEventId: preservedWebhookEventId,
-        } satisfies WebhookJobData,
-        { jobId: replayJobId, delay: 0 }
-    );
+    try {
+        await webhookQueue.add(
+            "send-webhook",
+            {
+                ...data,
+                webhookEventId: preservedWebhookEventId,
+            } satisfies WebhookJobData,
+            { jobId: replayJobId, delay: 0 }
+        );
+    } catch (enqueueError) {
+        console.error(JSON.stringify({
+            level: "critical",
+            event: "dlq_replay_enqueue_failed",
+            dlqJobId: args.dlqJobId,
+            token,
+            error: (enqueueError as Error)?.message,
+        }));
 
-    const prevHistory = Array.isArray(data.replayHistory) ? data.replayHistory : [];
+        return {
+            ok: false as const,
+            error: "REPLAY_ENQUEUE_FAILED" as const,
+        }
+    }
+
+    const prevHistory = Array.isArray(data.replayHistory)
+        ? data.replayHistory.slice(-MAX_REPLAY_HISTORY)
+        : [];
+
     const entry: ReplayHistoryEntry = {
         at: new Date().toISOString(),
         actor: args.actor ?? "system",
