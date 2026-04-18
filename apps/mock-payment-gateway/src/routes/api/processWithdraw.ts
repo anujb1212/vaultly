@@ -7,12 +7,19 @@ export const processWithdrawRouter = Router();
 const WithdrawRequestSchema = z.object({
     token: z.string().min(1),
     user_identifier: z.string().min(1),
-    amount: z.coerce.number().int().positive(),
-    linkedBankAccountId: z.coerce.number().int().positive(),
+    amount: z.number().int().positive(),
+    linkedBankAccountId: z.number().int().positive(),
     scenario: z.enum(["success", "failure", "chaos-slow", "chaos-duplicate", "chaos-race"]).optional().default("success"),
 });
 
 type Scenario = z.infer<typeof WithdrawRequestSchema>["scenario"];
+
+type FailureReasonCode =
+    | "USER_DECLINED"
+    | "INSUFFICIENT_FUNDS"
+    | "BANK_TIMEOUT"
+    | "PROVIDER_ERROR"
+    | "UNKNOWN";
 
 function randomDelayMs(max = 200) {
     return Math.floor(Math.random() * max);
@@ -37,31 +44,42 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
 
     try {
         if (scenario === "success") {
-            await queueWebhook({ ...baseWebhookPayload, status: "Success" as const }, {
-                delayMs: 0,
-                jobId: `offramp-${payload.token}`,
-            });
+            const { enqueued } = await queueWebhook(
+                {
+                    ...baseWebhookPayload,
+                    status: "Success" as const
+                },
+                {
+                    delayMs: 0,
+                    jobId: `offramp-${payload.token}`,
+                });
             return res.status(202).json({
                 queued: true,
                 token: payload.token,
-                status: "PENDING_WEBHOOK"
+                status: "PENDING_WEBHOOK",
+                deduplicated: !enqueued
             });
         }
 
         if (scenario === "failure") {
-            await queueWebhook(
+            const { enqueued } = await queueWebhook(
                 {
                     ...baseWebhookPayload,
                     status: "Failure" as const,
-                    failureReasonCode: "USER_DECLINED" as const,
+                    failureReasonCode: "USER_DECLINED" satisfies FailureReasonCode,
                     failureReasonMessage: "Declined in mock UI",
                 },
-                { delayMs: 0, jobId: `offramp-${payload.token}` }
+                {
+                    delayMs: 0,
+                    jobId: `offramp-${payload.token}`
+                }
             );
 
             return res.status(202).json({
                 queued: true,
-                token: payload.token, status: "PENDING_WEBHOOK"
+                token: payload.token,
+                status: "PENDING_WEBHOOK",
+                deduplicated: !enqueued
             });
         }
 
@@ -70,29 +88,48 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
                 delayMs: 10_000,
                 jobId: `offramp-${payload.token}`,
             });
-            return res.status(202).json({ queued: true, token: payload.token, status: "DELAYED_ENQUEUE" });
+
+            return res.status(202).json({
+                queued: true,
+                token: payload.token,
+                status: "DELAYED_ENQUEUE"
+            });
         }
 
         if (scenario === "chaos-duplicate") {
             const webhookPayload = { ...baseWebhookPayload, status: "Success" as const };
-            await Promise.all([
+            const results = await Promise.allSettled([
                 queueWebhook(webhookPayload, {
                     delayMs: randomDelayMs(200),
                     jobId: `offramp-${payload.token}-dup-1`
                 }),
+
                 queueWebhook(webhookPayload, {
                     delayMs: randomDelayMs(200),
                     jobId: `offramp-${payload.token}-dup-2`
                 }),
+
                 queueWebhook(webhookPayload, {
                     delayMs: randomDelayMs(200),
                     jobId: `offramp-${payload.token}-dup-3`
                 }),
             ]);
+
+            const failed = results.filter((r) => r.status === "rejected");
+            if (failed.length > 0) {
+                console.error(JSON.stringify({
+                    level: "error",
+                    event: "chaos_duplicate_partial_failure",
+                    token: payload.token,
+                    failedCount: failed.length,
+                }));
+            }
+
             return res.status(202).json({
                 queued: true,
                 token: payload.token,
-                status: "DUPLICATE_ENQUEUED"
+                status: "DUPLICATE_ENQUEUED",
+                enqueuedCount: results.filter((r) => r.status === "fulfilled").length
             });
         }
 
@@ -101,7 +138,7 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
             const webhookPayload2 = {
                 ...baseWebhookPayload,
                 status: "Failure" as const,
-                failureReasonCode: "BANK_TIMEOUT" as const,
+                failureReasonCode: "BANK_TIMEOUT" satisfies FailureReasonCode,
                 failureReasonMessage: "Race scenario induced timeout",
             };
 
@@ -124,10 +161,10 @@ processWithdrawRouter.post("/process-withdraw", async (req, res) => {
 
         return res.status(400).json({ message: "UNSUPPORTED_SCENARIO" });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         return res.status(503).json({
             error: "QUEUE_UNAVAILABLE",
-            message: err?.message ?? "Failed to enqueue webhook"
+            message: (err instanceof Error ? err.message : null) ?? "Failed to enqueue webhook"
         });
     }
 });

@@ -21,8 +21,8 @@ startWebhookWorker();
 
 const AUTO_REDRIVE_ENABLED = String(process.env.DLQ_AUTO_REDRIVE_ENABLED ?? "false") === "true";
 const AUTO_REDRIVE_INTERVAL_MS = Number(process.env.DLQ_AUTO_REDRIVE_INTERVAL_MS ?? 60_000);
-const AUTO_REDRIVE_LIMIT_PER_RUN = Number(process.env.DLQ_AUTO_REDRIVE_LIMIT_PER_RUN ?? 10);
-const AUTO_REDRIVE_MAX_REPLAYS_PER_JOB = Number(process.env.DLQ_AUTO_REDRIVE_MAX_REPLAYS_PER_JOB ?? 3);
+const AUTO_REDRIVE_LIMIT_PER_RUN = parseInt(process.env.DLQ_AUTO_REDRIVE_LIMIT_PER_RUN || "", 10) || 10;
+const AUTO_REDRIVE_MAX_REPLAYS_PER_JOB = parseInt(process.env.DLQ_AUTO_REDRIVE_MAX_REPLAYS_PER_JOB || "", 10) || 3;
 
 if (AUTO_REDRIVE_ENABLED) {
     setInterval(async () => {
@@ -46,7 +46,7 @@ if (AUTO_REDRIVE_ENABLED) {
         } catch (e) {
             console.error("[DLQ][AutoRedrive] failed:", e);
         }
-    }, Number.isFinite(AUTO_REDRIVE_INTERVAL_MS) ? AUTO_REDRIVE_INTERVAL_MS : 60_000);
+    }, AUTO_REDRIVE_INTERVAL_MS);
 }
 
 app.use(routesRouter);

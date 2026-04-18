@@ -59,7 +59,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
         if (scenario === "success") {
             const webhookPayload = { ...baseWebhookPayload, status: "Success" as const };
 
-            await queueWebhook(webhookPayload, {
+            const { enqueued } = await queueWebhook(webhookPayload, {
                 delayMs: 0,
                 jobId: `onramp-${payload.token}`,
             });
@@ -68,6 +68,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
                 queued: true,
                 token: payload.token,
                 status: "PENDING_WEBHOOK",
+                deduplicated: !enqueued
             });
         }
 
@@ -81,7 +82,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
                 failureReasonMessage: "Declined in mock bank UI",
             };
 
-            await queueWebhook(webhookPayload, {
+            const { enqueued } = await queueWebhook(webhookPayload, {
                 delayMs: 0,
                 jobId: `onramp-${payload.token}`,
             });
@@ -91,6 +92,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
                 token: payload.token,
                 status: "PENDING_WEBHOOK",
                 failureReasonCode,
+                deduplicated: !enqueued
             });
         }
 
@@ -112,7 +114,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
         if (scenario === "chaos-duplicate") {
             const webhookPayload = { ...baseWebhookPayload, status: "Success" as const };
 
-            await Promise.all([
+            const results = await Promise.allSettled([
                 queueWebhook(webhookPayload, {
                     delayMs: randomDelayMs(200),
                     jobId: `onramp-${payload.token}-dup-1`,
@@ -127,10 +129,21 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
                 }),
             ]);
 
+            const failed = results.filter((r) => r.status === "rejected");
+            if (failed.length > 0) {
+                console.error(JSON.stringify({
+                    level: "error",
+                    event: "chaos_duplicate_partial_failure",
+                    token: payload.token,
+                    failedCount: failed.length,
+                }));
+            }
+
             return res.status(202).json({
                 queued: true,
                 token: payload.token,
                 status: "DUPLICATE_ENQUEUED",
+                enqueuedCount: results.filter((r) => r.status === "fulfilled").length
             });
         }
 
@@ -139,7 +152,7 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
             const webhookPayload2 = {
                 ...baseWebhookPayload,
                 status: "Failure" as const,
-                failureReasonCode: "BANK_TIMEOUT" as const,
+                failureReasonCode: "BANK_TIMEOUT" satisfies FailureReasonCode,
                 failureReasonMessage: "Race scenario induced timeout",
             };
 
@@ -162,10 +175,10 @@ processPaymentRouter.post("/process-payment", async (req, res) => {
         }
 
         return res.status(400).json({ message: "UNSUPPORTED_SCENARIO" });
-    } catch (err: any) {
+    } catch (err: unknown) {
         return res.status(503).json({
             error: "QUEUE_UNAVAILABLE",
-            message: err?.message ?? "Failed to enqueue webhook",
+            message: (err instanceof Error ? err.message : null) ?? "Failed to enqueue webhook",
         });
     }
 });
