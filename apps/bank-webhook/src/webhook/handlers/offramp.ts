@@ -8,6 +8,7 @@ type Outcome =
     | { kind: "amount_mismatch" }
     | { kind: "account_mismatch" }
     | { kind: "already_processed" }
+    | { kind: "insufficient_funds" }
     | {
         kind: "processed_offramp_failure";
         userId: number;
@@ -25,6 +26,7 @@ type Outcome =
         token: string;
         amount: number;
         ledgerTransactionId: number;
+        newBalanceAmount: number;
         webhookEventId?: string;
     };
 
@@ -100,15 +102,22 @@ export async function handleOfframpWebhookTx(args: {
             });
 
             await tx.$queryRaw`
-        SELECT * FROM "Balance"
-        WHERE "userId" = ${txn.userId}
-        FOR UPDATE
-      `;
+                SELECT * FROM "Balance"
+                WHERE "userId" = ${txn.userId}
+                FOR UPDATE
+            `;
 
-            await tx.balance.update({
-                where: { userId: txn.userId },
-                data: { locked: { decrement: body.amount } },
-            });
+            const wallet = await tx.balance.findUnique({ where: { userId: txn.userId } });
+            if (wallet && wallet.locked >= body.amount) {
+                await tx.balance.update({
+                    where: { userId: txn.userId },
+                    data: { locked: { decrement: body.amount } },
+                });
+            } else if (wallet) {
+                console.error("[Offramp][Failure] locked < amount, skipping decrement", {
+                    locked: wallet.locked, amount: body.amount,
+                });
+            }
         }
 
         return {
@@ -163,13 +172,14 @@ export async function handleOfframpWebhookTx(args: {
   `;
 
     const wallet = await tx.balance.findUnique({ where: { userId: txn.userId } });
-    if (!wallet) throw new Error("Wallet not initialized");
-    if (wallet.locked < body.amount) throw new Error("Inconsistent wallet lock (locked < amount)");
+    if (!wallet || wallet.locked < body.amount) {
+        return { kind: "insufficient_funds" };
+    }
 
     const linked = await tx.linkedBankAccount.findFirst({
         where: { id: txn.linkedBankAccountId, userId: txn.userId },
     });
-    if (!linked) throw new Error("Linked account not found for offramp");
+    if (!linked) return { kind: "not_found" }
 
     const ledgerTxn = await postOfframpLedger({
         tx,
@@ -193,6 +203,8 @@ export async function handleOfframpWebhookTx(args: {
         data: { amount: { increment: body.amount } },
     });
 
+    const updatedBalance = await tx.balance.findUnique({ where: { userId: txn.userId } })
+
     return {
         kind: "processed_offramp_success",
         userId: txn.userId,
@@ -200,6 +212,7 @@ export async function handleOfframpWebhookTx(args: {
         token: body.token,
         amount: body.amount,
         ledgerTransactionId: ledgerTxn.id,
+        newBalanceAmount: updatedBalance?.amount ?? 0,
         webhookEventId,
     };
 }
