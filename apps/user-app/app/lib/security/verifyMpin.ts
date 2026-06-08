@@ -55,6 +55,7 @@ export async function verifyMpinOrThrow(opts: {
         limit: 10,
         windowSec: 10 * 60,
     });
+
     if (!rl.allowed) {
         throw new VerifyMpinError(
             "RATE_LIMITED",
@@ -63,7 +64,31 @@ export async function verifyMpinOrThrow(opts: {
         );
     }
 
+    const pin = await db.transactionPin.findUnique({
+        where: { userId },
+        select: {
+            pinHash: true,
+            failedAttempts: true,
+            lockedUntil: true,
+            version: true
+        },
+    });
+
+    if (!pin) throw new VerifyMpinError("PIN_NOT_SET", "Transaction PIN not set");
+
     const now = new Date();
+
+    if (pin.lockedUntil && pin.lockedUntil > now) {
+        emitSecurityEvent(db as any, {
+            userId, type: "PIN_LOCKED", source: "user-app",
+            metadata: { action: context.action, reason: "attempt_while_locked" }
+        }).catch(() => { });  // fire-and-forget
+
+        const retryAfterSec = Math.max(1, Math.floor((pin.lockedUntil.getTime() - now.getTime()) / 1000));
+        throw new VerifyMpinError("PIN_LOCKED", "PIN locked due to repeated failures", retryAfterSec);
+    }
+
+    const ok = await bcrypt.compare(mpin, pin.pinHash);
 
     await db.$transaction(async (tx) => {
         const pin = await tx.transactionPin.findUnique({
@@ -112,19 +137,21 @@ export async function verifyMpinOrThrow(opts: {
             if (pin.failedAttempts !== 0 || pin.lockedUntil) {
                 await tx.transactionPin.update({
                     where: { userId },
-                    data: { failedAttempts: 0, lockedUntil: null, lastFailedAt: null },
+                    data: {
+                        failedAttempts: 0,
+                        lockedUntil: null,
+                        lastFailedAt: null
+                    },
                 });
             }
 
-            await auditLogger.createAuditLog(
+            auditLogger.createAuditLog(
                 {
-                    userId,
-                    action: "MPIN_VERIFIED",
-                    entityType: "TransactionPin",
-                    newValue: { action: context.action, version: pin.version },
+                    userId, action: "MPIN_VERIFIED", entityType: "TransactionPin",
+                    newValue: { action: context.action, version: pin.version }
                 },
                 tx as any
-            );
+            ).catch((e) => console.error("[verifyMpin] audit MPIN_VERIFIED failed", e));
 
             return;
         }
@@ -138,9 +165,13 @@ export async function verifyMpinOrThrow(opts: {
         await tx.transactionPin.update({
             where: { userId },
             data: {
-                failedAttempts: nextFails,
+                failedAttempts: { increment: 1 },
                 lastFailedAt: now,
-                lockedUntil,
+                lockedUntil: {
+                    set: (pin.failedAttempts + 1) >= MAX_DB_FAILS
+                        ? new Date(now.getTime() + LOCK_MINUTES * 60 * 1000)
+                        : null
+                }
             },
         });
 
