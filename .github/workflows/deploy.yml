@@ -61,8 +61,6 @@ jobs:
             ${{ matrix.image }}:${{ github.sha }}
           build-args: ${{ matrix.build-args }}
           network: host
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
