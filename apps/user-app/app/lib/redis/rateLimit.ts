@@ -25,6 +25,11 @@ export async function rateLimit(
     }) {
     const { key, limit, windowSec } = opts;
 
+    if (!Number.isFinite(opts.limit) || opts.limit <= 0)
+        throw new Error("[rateLimit] limit must be positive finite integer");
+    if (!Number.isFinite(opts.windowSec) || opts.windowSec <= 0)
+        throw new Error("[rateLimit] windowSec must be positive finite integer");
+
     const [allowed, current, ttl] = (await redis.eval(
         LUA_FIXED_WINDOW,
         1,

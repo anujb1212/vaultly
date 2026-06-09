@@ -8,11 +8,16 @@ import type { NextAuthOptions, User } from "next-auth";
 const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60;
 const LAST_SEEN_SYNC_SEC = 5 * 60;
 
+let _adminEmails: string[] | null = null;
+
 function parseAdminEmails() {
-    return (process.env.ADMIN_EMAILS ?? "")
+    if (_adminEmails) return _adminEmails;
+    _adminEmails = (process.env.ADMIN_EMAILS || "")
         .split(",")
         .map((s) => s.trim().toLowerCase())
-        .filter(Boolean)
+        .filter(Boolean);
+
+    return _adminEmails;
 }
 
 function computeIsAdmin(email: unknown) {
@@ -73,7 +78,14 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
 
-    secret: process.env.JWT_SECRET || "secret",
+    secret: (() => {
+        const s = process.env.JWT_SECRET || "";
+        if (!s && process.env.NODE_ENV === "production") {
+            throw new Error("[auth] JWT_SECRET must be set in production");
+        }
+        return s || "dev_secret_do_not_use_in_production";
+    })(),
+
     pages: { signIn: "/signin" },
 
     session: {
@@ -109,13 +121,13 @@ export const authOptions: NextAuthOptions = {
                 (token as any).sessionId = created.id;
                 (token as any).lastSeenSyncAt = nowSec;
 
-                await auditLogger.createAuditLog({
+                auditLogger.createAuditLog({
                     userId: Number(userId),
                     action: "SESSION_CREATED",
                     entityType: "User Session",
                     newValue: { sessionId: created.id },
                     metadata: { sessionId: created.id },
-                });
+                }).catch((e) => { console.error("[auth] SESSION_CREATED audit failed", e) })
 
                 try {
                     await emitSecurityEvent(db as any, {
@@ -190,12 +202,14 @@ export const authOptions: NextAuthOptions = {
                 const fresh = await db.user.findUnique({
                     where: { id: userIdNum },
                     select: {
+                        name: true,
                         email: true,
                         emailVerified: true,
                         transactionPin: { select: { userId: true } },
                     },
                 });
 
+                (token as any).name = fresh?.name ?? (token as any).name ?? null;
                 (token as any).email = fresh?.email ?? (token as any).email ?? null;
                 (token as any).emailVerified = Boolean(fresh?.emailVerified);
                 (token as any).pinIsSet = Boolean(fresh?.transactionPin?.userId);

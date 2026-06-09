@@ -9,7 +9,7 @@ type TxStatus = "Pending" | "Success" | "Failed" | "Processing" | string;
 const ITEMS_PER_PAGE = 10;
 
 export default function TransactionsPage() {
-    const { onRampTransactions, p2pTransactions, isLoading } = useTransactions();
+    const { onRampTransactions, p2pTransactions, arbitiumTransactions, isLoading } = useTransactions();
     const [currentPage, setCurrentPage] = useState(1);
 
     const combinedTransactions = useMemo(() => {
@@ -37,10 +37,23 @@ export default function TransactionsPage() {
             isDebit: tx.type === 'sent'
         }));
 
-        return [...onRampTxns, ...p2pTxns].sort(
+        const arbitiumTxns = arbitiumTransactions.map((tx) => ({
+            ...tx,
+            time: new Date(tx.time),
+            description: tx.direction === "DEPOSIT"
+                ? "Deposited to Arbitium Exchange"
+                : "Withdrawn from Arbitium Exchange",
+            provider: "Arbitium Exchange",
+            type: "Arbitium",
+            rawStatus: "Success",
+            displayStatus: "Success",
+            isDebit: tx.direction === "DEPOSIT",
+        }));
+
+        return [...onRampTxns, ...p2pTxns, ...arbitiumTxns].sort(
             (a, b) => b.time.getTime() - a.time.getTime()
         );
-    }, [onRampTransactions, p2pTransactions]);
+    }, [onRampTransactions, p2pTransactions, arbitiumTransactions]);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState<TxStatus | "All">("All");

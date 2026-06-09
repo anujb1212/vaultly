@@ -22,6 +22,12 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
         const computed = computeSignatureHex(raw, config.webhookSecret);
 
         if (!signature || !safeEq(signature, computed)) {
+            console.error("[Webhook][HMAC] signature verification failed", {
+                receivedLength: signature?.length ?? 0,
+                computedLength: computed.length,
+                bodyLength: raw.length,
+            })
+
             return res.status(401).json({ message: "Invalid signature" });
         }
 
@@ -42,7 +48,7 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
                         body,
                         now,
                         webhookEventId: webhookEventId || undefined,
-                        webhookPayload: req.body,
+                        webhookPayload: parsed.data,
                     });
                 }
 
@@ -51,12 +57,12 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
                     body,
                     now,
                     webhookEventId: webhookEventId || undefined,
-                    webhookPayload: req.body,
+                    webhookPayload: parsed.data,
                 });
             },
             {
                 maxWait: 10_000,
-                timeout: 30_000,
+                timeout: 10_000,
             }
         );
 
@@ -65,12 +71,21 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
         if (outcome.kind === "amount_mismatch") return res.status(400).json({ message: "Amount mismatch" });
         if (outcome.kind === "account_mismatch") return res.status(400).json({ message: "linkedBankAccountId mismatch" });
 
-        if (outcome.kind === "already_processed") return res.status(200).json({ message: "Captured" });
+        if (outcome.kind === "already_processed") return res.status(200).json({
+            message: "Captured",
+            deduplicated: true
+        });
+
+        if (outcome.kind === "insufficient_funds") return res.status(422).json({
+            message: "Insufficient funds or wallet lock inconsistency"
+        });
 
         queueMicrotask(async () => {
-            try {
-                if (outcome.kind === "processed_onramp_success") {
-                    await auditLogger.createAuditLog({
+            const tasks: Promise<unknown>[] = [];
+
+            if (outcome.kind === "processed_onramp_success") {
+                tasks.push(
+                    auditLogger.createAuditLog({
                         userId: outcome.userId,
                         action: "ONRAMP_COMPLETED",
                         entityType: "OnRampTransaction",
@@ -83,19 +98,20 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
                             webhookEventId: outcome.webhookEventId,
                         },
                         metadata: { webhookEventId: outcome.webhookEventId },
-                    });
-
-                    await emitSecurityEvent(db as any, {
+                    }).catch(e => console.error("[Webhook][audit] ONRAMP_COMPLETED failed", e)),
+                    emitSecurityEvent(db as any, {
                         userId: outcome.userId,
                         type: "ONRAMP_COMPLETED",
                         source: "bank-webhook",
                         sourceId: `onramp:${outcome.token}`,
                         metadata: { amountBucket, webhookEventId: outcome.webhookEventId },
-                    });
-                }
+                    }).catch(e => console.error("[Webhook][security] ONRAMP_COMPLETED failed", e))
+                );
+            }
 
-                if (outcome.kind === "processed_onramp_failure") {
-                    await auditLogger.createAuditLog({
+            if (outcome.kind === "processed_onramp_failure") {
+                tasks.push(
+                    auditLogger.createAuditLog({
                         userId: outcome.userId,
                         action: "ONRAMP_FAILED",
                         entityType: "OnRampTransaction",
@@ -109,9 +125,8 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
                             webhookEventId: outcome.webhookEventId,
                         },
                         metadata: { webhookEventId: outcome.webhookEventId },
-                    });
-
-                    await emitSecurityEvent(db as any, {
+                    }).catch(e => console.error("[Webhook][audit] ONRAMP_FAILED failed", e)),
+                    emitSecurityEvent(db as any, {
                         userId: outcome.userId,
                         type: "ONRAMP_FAILED",
                         source: "bank-webhook",
@@ -121,11 +136,13 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
                             failureReasonCode: outcome.failureReasonCode,
                             webhookEventId: outcome.webhookEventId,
                         },
-                    });
-                }
+                    }).catch(e => console.error("[Webhook][security] ONRAMP_FAILED failed", e))
+                );
+            }
 
-                if (outcome.kind === "processed_offramp_success") {
-                    await auditLogger.createAuditLog({
+            if (outcome.kind === "processed_offramp_success") {
+                tasks.push(
+                    auditLogger.createAuditLog({
                         userId: outcome.userId,
                         action: "OFFRAMP_COMPLETED",
                         entityType: "OffRampTransaction",
@@ -138,19 +155,20 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
                             webhookEventId: outcome.webhookEventId,
                         },
                         metadata: { webhookEventId: outcome.webhookEventId },
-                    });
-
-                    await emitSecurityEvent(db as any, {
+                    }).catch(e => console.error("[Webhook][audit] OFFRAMP_COMPLETED failed", e)),
+                    emitSecurityEvent(db as any, {
                         userId: outcome.userId,
                         type: "OFFRAMP_COMPLETED",
                         source: "bank-webhook",
                         sourceId: `offramp:${outcome.token}`,
                         metadata: { amountBucket, webhookEventId: outcome.webhookEventId },
-                    });
-                }
+                    }).catch(e => console.error("[Webhook][security] OFFRAMP_COMPLETED failed", e))
+                );
+            }
 
-                if (outcome.kind === "processed_offramp_failure") {
-                    await auditLogger.createAuditLog({
+            if (outcome.kind === "processed_offramp_failure") {
+                tasks.push(
+                    auditLogger.createAuditLog({
                         userId: outcome.userId,
                         action: "OFFRAMP_FAILED",
                         entityType: "OffRampTransaction",
@@ -164,9 +182,8 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
                             webhookEventId: outcome.webhookEventId,
                         },
                         metadata: { webhookEventId: outcome.webhookEventId },
-                    });
-
-                    await emitSecurityEvent(db as any, {
+                    }).catch(e => console.error("[Webhook][audit] OFFRAMP_FAILED failed", e)),
+                    emitSecurityEvent(db as any, {
                         userId: outcome.userId,
                         type: "OFFRAMP_FAILED",
                         source: "bank-webhook",
@@ -176,15 +193,18 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
                             failureReasonCode: outcome.failureReasonCode,
                             webhookEventId: outcome.webhookEventId,
                         },
-                    });
-                }
-            } catch (e) {
-                console.error("[Webhook][side-effects] failed:", e);
+                    }).catch(e => console.error("[Webhook][security] OFFRAMP_FAILED failed", e))
+                );
             }
+
+            await Promise.allSettled(tasks);
         });
 
-        return res.status(200).json({ message: "Captured" });
-    } catch (e: any) {
+        return res.status(200).json({
+            message: "Captured",
+            deduplicated: false
+        });
+    } catch (e: unknown) {
         console.error("[Webhook] failed:", e);
         return res.status(500).json({ message: "Error while processing webhook" });
     }

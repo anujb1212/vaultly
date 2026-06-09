@@ -7,7 +7,12 @@ function isUniqueViolation(e: any) {
 }
 
 function normalizeEntriesForCompare(
-    entries: Array<{ accountId: number; direction: LedgerEntryDirection; amount: number; currency: string }>
+    entries: Array<{
+        accountId: number;
+        direction: LedgerEntryDirection;
+        amount: number;
+        currency: string
+    }>
 ) {
     return entries
         .map((e) => ({
@@ -27,10 +32,20 @@ function normalizeEntriesForCompare(
 function assertExistingTxnMatches(args: {
     externalRef: string;
     expectedType: LedgerTxnType;
-    expectedEntries: Array<{ accountId: number; direction: LedgerEntryDirection; amount: number; currency: string }>;
+    expectedEntries: Array<{
+        accountId: number;
+        direction: LedgerEntryDirection;
+        amount: number;
+        currency: string
+    }>;
     existing: {
         type: LedgerTxnType;
-        entries: Array<{ accountId: number; direction: LedgerEntryDirection; amount: number; currency: string }>;
+        entries: Array<{
+            accountId: number;
+            direction: LedgerEntryDirection;
+            amount: number;
+            currency: string
+        }>;
     };
 }) {
     if (args.existing.type !== args.expectedType) {
@@ -64,9 +79,19 @@ export async function ensureUserCashAccount(
     currency = DEFAULT_CURRENCY
 ) {
     return tx.ledgerAccount.upsert({
-        where: { userId_accountType_currency: { userId, accountType: "USER_CASH", currency } },
+        where: {
+            userId_accountType_currency: {
+                userId,
+                accountType: "USER_CASH",
+                currency
+            }
+        },
         update: {},
-        create: { userId, accountType: "USER_CASH", currency },
+        create: {
+            userId,
+            accountType: "USER_CASH",
+            currency
+        },
     });
 }
 
@@ -75,7 +100,12 @@ export async function ensurePlatformClearingAccount(tx: Prisma.TransactionClient
     return tx.ledgerAccount.upsert({
         where: { systemKey },
         update: {},
-        create: { systemKey, userId: null, accountType: "PLATFORM_CLEARING", currency },
+        create: {
+            systemKey,
+            userId: null,
+            accountType: "PLATFORM_CLEARING",
+            currency
+        },
     });
 }
 
@@ -85,7 +115,11 @@ export async function postBalancedLedgerTransaction(args: {
     externalRef: string;
     currency?: string;
     metadata?: Prisma.JsonObject;
-    entries: Array<{ accountId: number; direction: LedgerEntryDirection; amount: number }>;
+    entries: Array<{
+        accountId: number;
+        direction: LedgerEntryDirection;
+        amount: number
+    }>;
 }) {
     const currency = args.currency ?? DEFAULT_CURRENCY;
 
@@ -145,7 +179,10 @@ export async function postBalancedLedgerTransaction(args: {
             externalRef: args.externalRef,
             expectedType: args.type,
             expectedEntries,
-            existing: { type: existing.type, entries: existing.entries },
+            existing: {
+                type: existing.type,
+                entries: existing.entries
+            },
         });
 
         return existing;
@@ -171,7 +208,11 @@ export async function postOnrampLedger(args: {
         type: "ONRAMP",
         externalRef: `onramp:${args.token}`,
         currency,
-        metadata: { token: args.token, provider: args.provider, webhookEventId: args.webhookEventId ?? null },
+        metadata: {
+            token: args.token,
+            provider: args.provider,
+            webhookEventId: args.webhookEventId ?? null
+        },
         entries: [
             { accountId: clearing.id, direction: "DEBIT", amount: args.amount },
             { accountId: userCash.id, direction: "CREDIT", amount: args.amount },
@@ -197,7 +238,11 @@ export async function postP2PLedger(args: {
         type: "P2P_TRANSFER",
         externalRef: `p2p:${args.idempotencyKey}`,
         currency,
-        metadata: { idempotencyKey: args.idempotencyKey, senderId: args.senderId, receiverId: args.receiverId },
+        metadata: {
+            idempotencyKey: args.idempotencyKey,
+            senderId: args.senderId,
+            receiverId: args.receiverId
+        },
         entries: [
             { accountId: senderCash.id, direction: "DEBIT", amount: args.amount },
             { accountId: receiverCash.id, direction: "CREDIT", amount: args.amount },

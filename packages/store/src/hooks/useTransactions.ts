@@ -35,10 +35,20 @@ export interface OffRampTransaction {
     type: "offRamp";
 }
 
+export interface ArbitiumTransaction {
+    id: number;
+    time: Date;
+    amount: number;
+    direction: "DEPOSIT" | "WITHDRAW";
+    idempotencyKey: string;
+    type: "arbitium";
+}
+
 interface TransactionsResponse {
     onRamp: OnRampTransaction[];
     p2p: P2PTransaction[];
-    offRamp: OffRampTransaction[]
+    offRamp: OffRampTransaction[];
+    arbitium: ArbitiumTransaction[]
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -69,6 +79,7 @@ export function useTransactions() {
         onRampTransactions: data?.onRamp || [],
         p2pTransactions: data?.p2p || [],
         offRampTransactions: data?.offRamp || [],
+        arbitiumTransactions: data?.arbitium || [],
         isLoading,
         isError: error,
         refresh: mutate,

@@ -1,6 +1,9 @@
+import dotenv from "dotenv"
 import { PrismaClient } from "@prisma/client";
 import { IdempotencyManager } from "./src/utils/idempotency";
 import { AuditLogger } from "./src/utils/auditLogger";
+
+dotenv.config()
 
 const prismaClientSingleton = () => {
   const url = process.env.DATABASE_URL;

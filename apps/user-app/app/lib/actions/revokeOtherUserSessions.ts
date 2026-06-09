@@ -23,12 +23,12 @@ export async function revokeOtherUserSessions() {
         data: { revokedAt: new Date() },
     });
 
-    await auditLogger.createAuditLog({
+    auditLogger.createAuditLog({
         userId,
         action: "SESSION_REVOKED_ALL_OTHERS",
         entityType: "UserSession",
         newValue: { revokedCount: res.count },
-    });
+    }).catch((e) => console.error("[auth] SESSION_REVOKED_ALL_OTHERS audit failed", e))
 
     return { success: true as const, revokedCount: res.count };
 }

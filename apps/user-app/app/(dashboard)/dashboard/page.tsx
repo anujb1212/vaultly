@@ -13,7 +13,7 @@ type ActivityKind = "onramp" | "offramp" | "p2p";
 type ActivityDirection = "in" | "out";
 
 export default function Dashboard() {
-    const { onRampTransactions, p2pTransactions, offRampTransactions } = useTransactions();
+    const { onRampTransactions, p2pTransactions, offRampTransactions, arbitiumTransactions } = useTransactions();
 
     const recentActivity = useMemo(() => {
         const p2pFormatted = p2pTransactions.map((t) => ({
@@ -52,10 +52,23 @@ export default function Dashboard() {
             failureReasonCode: null as string | null,
         }));
 
-        return [...onRampFormatted, ...offRampFormatted, ...p2pFormatted]
+        const arbitiumFormatted = arbitiumTransactions.map((t) => ({
+            id: t.id,
+            time: new Date(t.time),
+            amount: t.amount,
+            status: "Success" as const,
+            kind: "arbitium" as const,
+            direction: (t.direction === "DEPOSIT" ? "out" : "in") as ActivityDirection,
+            provider: t.direction === "DEPOSIT"
+                ? "Deposited to Arbitium Exchange"
+                : "Withdrawn from Arbitium Exchange",
+            failureReasonCode: null as string | null,
+        }));
+
+        return [...onRampFormatted, ...offRampFormatted, ...p2pFormatted, ...arbitiumFormatted]
             .sort((a, b) => b.time.getTime() - a.time.getTime())
             .slice(0, 5);
-    }, [onRampTransactions, offRampTransactions, p2pTransactions]);
+    }, [onRampTransactions, offRampTransactions, p2pTransactions, arbitiumTransactions]);
 
     const stats = useMemo(() => {
         const onRampInflow = onRampTransactions

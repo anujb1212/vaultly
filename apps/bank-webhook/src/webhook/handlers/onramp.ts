@@ -45,6 +45,7 @@ export async function handleOnrampWebhookTx(args: {
     const { tx, body, now, webhookEventId, webhookPayload } = args;
     const userIdFromBody = Number(body.user_identifier);
 
+    //Fetch and validation
     const txn = await tx.onRampTransaction.findUnique({ where: { token: body.token } });
     if (!txn) return { kind: "not_found" };
     if (txn.userId !== userIdFromBody) return { kind: "user_mismatch" };
@@ -52,6 +53,7 @@ export async function handleOnrampWebhookTx(args: {
 
     if (txn.status === "Success") return { kind: "already_processed" };
 
+    //A confirmed timeout (BANK_TIMEOUT) from the bank's side can later be resolved with a Success confirmation
     const canOverrideFailureWithSuccess =
         txn.status === "Failure" &&
         txn.failureReasonCode === "BANK_TIMEOUT" &&
@@ -64,6 +66,7 @@ export async function handleOnrampWebhookTx(args: {
 
     const prevMeta = asJsonObject(txn.metadata);
 
+    // Failure path
     if (body.status === "Failure") {
         const claimed = await tx.onRampTransaction.updateMany({
             where: {
@@ -88,15 +91,31 @@ export async function handleOnrampWebhookTx(args: {
 
         const shouldRelease = (body.failureReasonCode ?? "UNKNOWN") !== "BANK_TIMEOUT";
         if (shouldRelease && txn.linkedBankAccountId) {
+
             await tx.$queryRaw`
-        SELECT * FROM "LinkedBankAccount"
-        WHERE "id" = ${txn.linkedBankAccountId} AND "userId" = ${txn.userId}
-        FOR UPDATE
-      `;
-            await tx.linkedBankAccount.update({
-                where: { id: txn.linkedBankAccountId },
-                data: { locked: { decrement: body.amount } },
+                SELECT * FROM "LinkedBankAccount"
+                WHERE "id" = ${txn.linkedBankAccountId} AND "userId" = ${txn.userId}
+                FOR UPDATE
+            `;
+
+            const linked = await tx.linkedBankAccount.findFirst({
+                where: { id: txn.linkedBankAccountId, userId: txn.userId },
             });
+
+            if (!linked) throw new Error("Linked account not found for onramp failure release");
+
+            if (linked.locked < body.amount) {
+                console.error("[Onramp][Failure] locked < amount, skipping decrement", {
+                    linkedId: txn.linkedBankAccountId,
+                    locked: linked.locked,
+                    amount: body.amount,
+                });
+            } else {
+                await tx.linkedBankAccount.update({
+                    where: { id: txn.linkedBankAccountId },
+                    data: { locked: { decrement: body.amount } },
+                });
+            }
         }
 
         return {
@@ -111,6 +130,7 @@ export async function handleOnrampWebhookTx(args: {
         };
     }
 
+    // Locking
     const claimed = await tx.onRampTransaction.updateMany({
         where: {
             token: body.token,
@@ -132,6 +152,12 @@ export async function handleOnrampWebhookTx(args: {
 
     if (claimed.count === 0) return { kind: "already_processed" };
 
+    await tx.$queryRaw`
+        SELECT * FROM "Balance"
+        WHERE "userId" = ${txn.userId}
+        FOR UPDATE
+    `;
+
     await tx.balance.upsert({
         where: { userId: txn.userId },
         update: {},
@@ -140,10 +166,10 @@ export async function handleOnrampWebhookTx(args: {
 
     if (txn.linkedBankAccountId) {
         await tx.$queryRaw`
-      SELECT * FROM "LinkedBankAccount"
-      WHERE "id" = ${txn.linkedBankAccountId} AND "userId" = ${txn.userId}
-      FOR UPDATE
-    `;
+        SELECT * FROM "LinkedBankAccount"
+        WHERE "id" = ${txn.linkedBankAccountId} AND "userId" = ${txn.userId}
+        FOR UPDATE
+        `;
 
         const linked = await tx.linkedBankAccount.findFirst({
             where: { id: txn.linkedBankAccountId, userId: txn.userId },
@@ -174,6 +200,7 @@ export async function handleOnrampWebhookTx(args: {
         data: { amount: { increment: body.amount } },
     });
 
+    // Success path
     return {
         kind: "processed_onramp_success",
         userId: txn.userId,
