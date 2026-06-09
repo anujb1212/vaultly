@@ -1,31 +1,28 @@
-FROM node:20-bookworm-slim AS pruner
+FROM node:20-alpine AS pruner
 WORKDIR /usr/src/app
 COPY . .
 RUN npx turbo prune --scope=mock-payment-gateway --docker
 
-FROM node:20-bookworm-slim AS deps
+FROM node:20-alpine AS prod-deps
+WORKDIR /usr/src/app
+COPY --from=pruner /usr/src/app/out/json/ ./
+COPY --from=pruner /usr/src/app/out/package-lock.json ./package-lock.json
+RUN npm ci --omit=dev
+
+FROM node:20-alpine AS builder
 WORKDIR /usr/src/app
 COPY --from=pruner /usr/src/app/out/json/ ./
 COPY --from=pruner /usr/src/app/out/package-lock.json ./package-lock.json
 RUN npm ci
-
-FROM node:20-bookworm-slim AS builder
-WORKDIR /usr/src/app
-
-COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY --from=pruner /usr/src/app/out/full/ ./
-
 RUN npm run build:gateway
-
-RUN npm prune --omit=dev
 
 FROM gcr.io/distroless/nodejs20-debian12:nonroot AS runner
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
-
 COPY --from=builder /usr/src/app/apps/mock-payment-gateway/dist ./dist
-COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/packages ./packages
-
+USER 65532
 EXPOSE 3004
 CMD ["dist/index.js"]
