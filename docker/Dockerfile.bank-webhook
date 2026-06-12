@@ -3,13 +3,13 @@ WORKDIR /usr/src/app
 COPY . .
 RUN npx turbo prune --scope=bank-webhook --docker
 
-FROM node:20-alpine AS prod-deps
+FROM node:20-slim AS prod-deps
 WORKDIR /usr/src/app
 COPY --from=pruner /usr/src/app/out/json/ ./
 COPY --from=pruner /usr/src/app/out/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev
 
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /usr/src/app
 COPY --from=pruner /usr/src/app/out/json/ ./
 COPY --from=pruner /usr/src/app/out/package-lock.json ./package-lock.json
