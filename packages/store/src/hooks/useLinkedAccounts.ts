@@ -1,47 +1,49 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import useSWR from "swr";
+import { useWalletStore, type LinkedAccount } from "../store";
 
-export type LinkedAccount = {
-    id: number;
-    providerKey: string;
-    displayName: string;
-    maskedAccount: string;
-    amount: number;
-    locked: number;
-    updatedAt?: string | Date;
-};
+interface LinkedAccountsResponse {
+    linkedAccounts: LinkedAccount[];
+}
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+export { type LinkedAccount };
 
 export function useLinkedAccounts() {
-    const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const linkedAccounts = useWalletStore((s) => s.linkedAccounts);
+    const setLinkedAccounts = useWalletStore((s) => s.setLinkedAccounts);
+    const setLinkedAccountsError = useWalletStore((s) => s.setLinkedAccountsError);
+    const syncedRef = useRef(false);
 
-    const refresh = useCallback(async () => {
-        setError(null);
-        setIsLoading(true);
-
-        try {
-            const res = await fetch("/api/user/linked-accounts", { method: "GET" });
-            const json = await res.json();
-
-            if (!res.ok) {
-                const msg = typeof json?.error === "string" ? json.error : "Failed to fetch linked accounts";
-                throw new Error(msg);
-            }
-
-            const rows = Array.isArray(json?.linkedAccounts) ? (json.linkedAccounts as LinkedAccount[]) : [];
-            setLinkedAccounts(rows);
-        } catch (e: any) {
-            setError(e?.message ?? "Failed to fetch linked accounts");
-        } finally {
-            setIsLoading(false);
+    const { data, error, mutate, isLoading } = useSWR<LinkedAccountsResponse>(
+        "/api/user/linked-accounts",
+        fetcher,
+        {
+            refreshInterval: 30000,
+            revalidateOnFocus: true,
         }
-    }, []);
+    );
 
     useEffect(() => {
-        refresh();
-    }, [refresh]);
+        if (data?.linkedAccounts) {
+            setLinkedAccounts(data.linkedAccounts);
+            syncedRef.current = true;
+        } else if (error) {
+            setLinkedAccountsError(error.message || "Failed to fetch linked accounts");
+        }
+    }, [data, error, setLinkedAccounts, setLinkedAccountsError]);
 
-    return { linkedAccounts, isLoading, error, refresh };
+    const refresh = useCallback(() => {
+        mutate();
+    }, [mutate]);
+
+    return {
+        linkedAccounts,
+        isLoading: isLoading && !syncedRef.current,
+        error: error,
+        refresh,
+    };
 }

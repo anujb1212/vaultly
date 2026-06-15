@@ -1,20 +1,22 @@
 "use client";
 
 import useSWR from "swr";
+import { useEffect, useRef } from "react";
+import { useWalletStore, type Balance } from "../store";
 
-export interface Balance {
-    amount: number;
-    locked: number;
-}
-
-export interface BalanceResponse {
+interface BalanceResponse {
     balance: Balance;
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function useBalance() {
-    const { data, error, mutate, isLoading } = useSWR<BalanceResponse>(
+    const balance = useWalletStore((s) => s.balance);
+    const setBalance = useWalletStore((s) => s.setBalance);
+    const setBalanceError = useWalletStore((s) => s.setBalanceError);
+    const syncedRef = useRef(false);
+
+    const { data, error, mutate, isLoading, isValidating } = useSWR<BalanceResponse>(
         "/api/user/balance",
         fetcher,
         {
@@ -24,9 +26,19 @@ export function useBalance() {
         }
     );
 
+    useEffect(() => {
+        if (data?.balance) {
+            setBalance(data.balance);
+            syncedRef.current = true;
+        } else if (error) {
+            setBalanceError(error.message || "Failed to fetch balance");
+        }
+    }, [data, error, setBalance, setBalanceError]);
+
     return {
-        balance: data?.balance || { amount: 0, locked: 0 },
-        isLoading,
+        balance,
+        isLoading: isLoading && !syncedRef.current,
+        isValidating,
         isError: error,
         refresh: mutate,
     };
