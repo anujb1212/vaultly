@@ -1,169 +1,119 @@
 "use client";
 
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "../components/theme/ThemeToggle";
-import {
-  ArrowRight,
-  TrendingUp,
-  Users,
-  Sparkles,
-  History,
-  ShieldCheck,
-  CheckCircle2
-} from "lucide-react";
-
-const FEATURES = [
-  {
-    title: "On-ramp Transfer",
-    desc: "Seamlessly add funds to your digital wallet from external banks.",
-    icon: TrendingUp,
-    gradient: "from-blue-500/20 to-indigo-500/20"
-  },
-  {
-    title: "P2P Payments",
-    desc: "Send money to friends instantly using just their phone number.",
-    icon: Users,
-    gradient: "from-indigo-500/20 to-violet-500/20"
-  },
-  {
-    title: "AI Powered Insights",
-    desc: "Smart insights that analyze your transaction patterns for safety.",
-    icon: Sparkles,
-    gradient: "from-violet-500/20 to-fuchsia-500/20"
-  },
-  {
-    title: "History",
-    desc: "A clear, searchable timeline of every credit and debit.",
-    icon: History,
-    gradient: "from-fuchsia-500/20 to-pink-500/20"
-  },
-];
+import { FloatingCards } from "../components/landing/FloatingCards";
+import { FeaturesGrid } from "../components/landing/FeaturesGrid";
+import { motion } from "motion/react";
+import { ShieldCheck } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();
+  const featuresRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFeatures = () => {
+    featuresRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-indigo-500/20">
+    <div className="min-h-screen bg-white dark:bg-[#06020f] text-foreground dark:text-white transition-colors duration-300 relative overflow-x-hidden">
 
-      <div className="fixed inset-0 -z-10 h-full w-full bg-background">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
+      {/* ================= BACKGROUND GLOW (Dark Mode) ================= */}
+      <div className="hidden dark:block absolute inset-0 z-0 pointer-events-none h-[1400px] overflow-hidden">
+        <div className="absolute inset-0 bg-[#06020f]" />
 
-        <div className="absolute left-[10%] top-[20%] h-[400px] w-[400px] rounded-full bg-indigo-500/10 blur-[120px] motion-safe:animate-pulse [animation-duration:8s]" />
-        <div className="absolute right-[10%] bottom-[20%] h-[400px] w-[400px] rounded-full bg-violet-500/10 blur-[120px] motion-safe:animate-pulse [animation-duration:10s] delay-1000" />
+        {/* Center Horizon Glow */}
+        <div
+          className="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[600px] rounded-full mix-blend-screen opacity-70"
+          style={{
+            background: "radial-gradient(ellipse at center, rgba(249,115,22,0.35) 0%, rgba(147,51,234,0.2) 45%, rgba(6,2,15,0) 70%)",
+            filter: "blur(60px)"
+          }}
+        />
+
+        {/* Grid Background */}
+        <div
+          className="absolute inset-0 w-full h-full opacity-25"
+          style={{
+            backgroundImage: `linear-gradient(to right, rgba(255, 255, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 1px, transparent 1px)`,
+            backgroundSize: "64px 64px"
+          }}
+        />
+
+        {/* Orbs */}
+        <div className="absolute left-[-45px] top-[36%] w-28 h-28 rounded-full mix-blend-plus-lighter bg-gradient-to-br from-blue-700 via-purple-600 to-orange-500 blur-[2px]" style={{ boxShadow: "0 0 60px rgba(124, 58, 237, 0.6), 0 0 100px rgba(234, 88, 12, 0.4)" }} />
+        <div className="absolute right-[-55px] top-[14%] w-44 h-44 rounded-full mix-blend-plus-lighter bg-gradient-to-br from-blue-600 via-purple-500 to-orange-500 blur-[2px]" style={{ boxShadow: "0 0 80px rgba(168, 85, 247, 0.5), 0 0 120px rgba(249, 115, 22, 0.3)" }} />
+
+        {/* Ambient Text-Highlight */}
+        <div className="absolute left-1/2 top-[25%] -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-purple-600/10 blur-[120px] mix-blend-screen" />
+
+        {/* The Spherical Dome (No border line) */}
+        <div
+          className="absolute top-[52%] left-1/2 -translate-x-1/2 w-[240vw] sm:w-[140vw] h-[900px] rounded-[100%]"
+          style={{
+            background: "radial-gradient(ellipse 100% 100% at 50% 0%, rgba(38, 14, 74, 0.8) 0%, rgba(10, 5, 20, 1) 40%, #06020f 100%)"
+          }}
+        />
       </div>
 
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 transition-all duration-300">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <button
-            onClick={() => router.push("/")}
-            className="group flex items-center gap-2.5"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 text-background grid place-items-center font-bold text-lg shadow-lg shadow-indigo-500/20 group-hover:scale-95 transition-transform duration-200">
-              V
-            </div>
-            <span className="font-bold tracking-tight text-lg">Vaultly</span>
+      {/* ================= NAVIGATION ================= */}
+      <nav className="relative z-50 py-6 border-b border-black/5 dark:border-white/5 bg-white/70 dark:bg-transparent backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-8 flex items-center justify-between">
+          <button onClick={() => router.push("/")} className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-foreground dark:bg-white text-background dark:text-[#06020f] grid place-items-center font-bold text-lg">V</div>
+            <span className="font-semibold tracking-tight text-xl">Vaultly</span>
           </button>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-8">
             <ThemeToggle />
-            <button
-              onClick={() => router.push("/signin")}
-              className="hidden sm:block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Sign in
-            </button>
-            <button
-              onClick={() => router.push("/signup")}
-              className="h-9 px-5 rounded-full bg-foreground text-background text-sm font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-            >
-              Get Started
-            </button>
+            <button onClick={() => router.push("/signin")} className="text-xs font-bold tracking-[0.2em] text-muted-foreground hover:text-foreground dark:text-white/70 dark:hover:text-white transition-colors">SIGN IN</button>
+            <button onClick={scrollToFeatures} className="hidden sm:inline text-xs font-bold tracking-[0.2em] text-muted-foreground hover:text-foreground dark:text-white/70 dark:hover:text-white transition-colors">FEATURES</button>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-6 pt-32 pb-24 sm:pt-40 sm:pb-32 relative">
+      <main className="relative z-10 pt-24 pb-24">
 
-        {/* Hero Section */}
-        <div className="flex flex-col items-center text-center space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 fill-mode-both">
-
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-600 dark:text-indigo-300 text-xs font-semibold backdrop-blur-md shadow-sm cursor-default hover:bg-indigo-500/10 transition-colors">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
-            <span>Vaultly 2.0 is live</span>
-          </div>
-
-          <div className="relative">
-            <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tight text-balance max-w-4xl z-10 relative">
-              Payments, but <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-                beautifully simple.
-              </span>
-            </h1>
-            <div className="absolute inset-0 -z-10 bg-indigo-500/10 blur-[60px] rounded-full opacity-50 dark:opacity-20" />
-          </div>
-
-          {/* Subtext */}
-          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-2xl text-balance leading-relaxed font-normal">
-            The financial OS for your personal wealth. <br className="hidden sm:block" />
-            Transfer, track, and secure your assets without the noise.
+        {/* ================= HERO SECTION ================= */}
+        <motion.div
+          className="flex flex-col items-center text-center px-6 mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-5xl sm:text-7xl md:text-8xl font-normal tracking-tight leading-[1.12] mb-6 text-foreground dark:text-white">
+            Banking That<br /> Works for You
+          </h1>
+          <p className="text-muted-foreground dark:text-white/60 text-sm sm:text-base max-w-xl leading-relaxed tracking-wide font-light mb-8">
+            No queues. No clutter. Just effortless control over your finances.
           </p>
+          <button
+            onClick={() => router.push("/signup")}
+            className="px-8 py-3 rounded-full bg-foreground text-background dark:bg-white dark:text-[#06020f] text-sm font-semibold tracking-wide shadow-xl hover:opacity-90 transition-all"
+          >
+            Create account
+          </button>
+        </motion.div>
 
-          {/* Primary CTA */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
-            <button
-              onClick={() => router.push("/signup")}
-              className="group relative h-14 px-8 rounded-full bg-foreground text-background text-base font-semibold shadow-xl shadow-indigo-500/20 hover:shadow-2xl hover:shadow-indigo-500/30 transition-all duration-300 hover:-translate-y-1 flex items-center gap-2 overflow-hidden"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                Create account <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </span>
-            </button>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground px-4">
-              <CheckCircle2 className="w-4 h-4 text-green-500" />
-              <span>No credit card required</span>
-            </div>
-          </div>
+        {/* Hero Visuals */}
+        <div className="relative w-full max-w-5xl mx-auto h-[440px] flex justify-center items-center overflow-visible">
+          <FloatingCards />
         </div>
 
-        {/* Features Grid */}
-        <div className="mt-24 sm:mt-32 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {FEATURES.map((feature) => (
-            <div
-              key={feature.title}
-              className="group relative p-8 h-full min-h-[220px] rounded-3xl border border-border/40 bg-background/40 hover:bg-background/60 transition-all duration-300 backdrop-blur-sm overflow-hidden hover:border-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/5"
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out`} />
-
-              <div className="relative z-10 flex flex-col justify-between h-full">
-                <div className="w-12 h-12 rounded-2xl bg-background border border-border/50 shadow-sm grid place-items-center mb-6 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 ease-out">
-                  <feature.icon className="w-6 h-6 stroke-[1.5] text-foreground" />
-                </div>
-
-                <div>
-                  <h3 className="text-2xl font-semibold tracking-tight text-foreground mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-base text-muted-foreground leading-relaxed font-medium">
-                    {feature.desc}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+        {/* Features Section */}
+        <div ref={featuresRef} className="mt-12 bg-muted/30 dark:bg-black/30 backdrop-blur-2xl">
+          <FeaturesGrid />
         </div>
 
-        {/* Bottom Trust Section */}
-        <div className="mt-32 border-t border-border/40 pt-16 pb-8 text-center">
-          <div className="flex justify-center items-center gap-2 text-foreground/80 font-medium">
-            <ShieldCheck className="w-5 h-5" />
+        {/* Footer */}
+        <div className="max-w-5xl mx-auto px-6 border-t border-black/10 dark:border-white/5 pt-12 text-center">
+          <div className="flex justify-center items-center gap-2.5 text-muted-foreground dark:text-white/50 text-xs tracking-wider">
+            <ShieldCheck className="w-4 h-4 text-purple-500 dark:text-purple-400" />
             <span>Bank-grade security standards</span>
           </div>
-          <p className="mt-8 text-sm text-muted-foreground">© {new Date().getFullYear()} Vaultly Inc.</p>
+          <p className="mt-6 text-[10px] text-muted-foreground/60 dark:text-white/30 tracking-widest font-mono">
+            &copy; {new Date().getFullYear()} Vaultly Inc.
+          </p>
         </div>
 
       </main>

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { AppbarClient } from "../../components/layout/AppbarClient";
 import { SidebarItem } from "../../components/layout/SidebarItem";
 import {
@@ -17,6 +19,18 @@ import {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const isAdmin = status === "authenticated" && Boolean((session?.user as any)?.isAdmin);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (
+      status === "authenticated" &&
+      !session?.user?.phone &&
+      pathname !== "/complete-profile"
+    ) {
+      router.replace("/complete-profile");
+    }
+  }, [status, session?.user?.phone, pathname, router]);
 
   return (
     <div className="flex h-screen w-full bg-slate-50 dark:bg-black font-sans text-slate-900 dark:text-slate-50 overflow-hidden selection:bg-indigo-100 dark:selection:bg-indigo-900">

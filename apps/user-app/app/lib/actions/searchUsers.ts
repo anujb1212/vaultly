@@ -1,8 +1,13 @@
 "use server";
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth";
 import prisma from "@repo/db/client";
 
 export async function searchUsers(query: string) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return [];
+
     if (!query || query.length < 3) return [];
 
     const cleanQuery = query.replace(/\D/g, "");

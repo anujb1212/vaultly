@@ -11,6 +11,6 @@ export const config = {
     "/transfer/:path*",
     "/transactions/:path*",
     "/p2ptransfer/:path*",
-    "/admin/:path"
+    "/admin/:path*"
   ],
 };

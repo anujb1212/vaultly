@@ -7,7 +7,8 @@ declare module "next-auth" {
     email?: string | null;
     emailVerified?: boolean;
     pinIsSet?: boolean;
-    isAdmin?: boolean
+    isAdmin?: boolean;
+    image?: string | null;
   }
 
   interface Session {

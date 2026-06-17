@@ -3,6 +3,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../app/lib/auth";
 import { revalidatePath } from "next/cache";
+import { rateLimit } from "../redis/rateLimit";
 
 function adminToken() {
     const t = process.env.GATEWAY_ADMIN_TOKEN;
@@ -20,6 +21,20 @@ async function requireAdmin() {
         .filter(Boolean);
 
     if (!email || !allow.includes(email)) throw new Error("UNAUTHORIZED");
+
+    return email;
+}
+
+async function dlqRateGuard(email: string) {
+    const rl = await rateLimit({
+        key: `rl:dlq:admin:${email}`,
+        limit: 30,
+        windowSec: 60,
+    });
+
+    if (!rl.allowed) {
+        throw new Error(`TOO_MANY_REQUESTS_${rl.ttl}`);
+    }
 }
 
 function gatewayBase() {
@@ -91,7 +106,8 @@ export async function dlqList() {
 }
 
 export async function dlqReplay(formData: FormData) {
-    await requireAdmin();
+    const email = await requireAdmin();
+    await dlqRateGuard(email);
     const dlqJobId = String(formData.get("dlqJobId") ?? "");
     if (!dlqJobId) throw new Error("Missing dlqJobId");
 
@@ -105,7 +121,8 @@ export async function dlqReplay(formData: FormData) {
 }
 
 export async function dlqArchive(formData: FormData) {
-    await requireAdmin();
+    const email = await requireAdmin();
+    await dlqRateGuard(email);
     const dlqJobId = String(formData.get("dlqJobId") ?? "");
     if (!dlqJobId) throw new Error("Missing dlqJobId");
 
@@ -118,7 +135,8 @@ export async function dlqArchive(formData: FormData) {
 }
 
 export async function dlqResolveGroup(formData: FormData) {
-    await requireAdmin();
+    const email = await requireAdmin();
+    await dlqRateGuard(email);
 
     const primaryDlqJobId = String(formData.get("primaryDlqJobId") ?? "").trim();
     if (!primaryDlqJobId) throw new Error("Missing primaryDlqJobId");
@@ -145,7 +163,8 @@ export async function dlqResolveGroup(formData: FormData) {
 }
 
 export async function dlqArchiveGroup(formData: FormData) {
-    await requireAdmin();
+    const email = await requireAdmin();
+    await dlqRateGuard(email);
 
     const ids = parseJobIds(formData);
     for (const id of ids) {

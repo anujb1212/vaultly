@@ -16,7 +16,7 @@ import { Loader } from "../layout/Loader";
 
 
 export function SendMoneyCard() {
-    const [selectedUser, setSelectedUser] = useState<{ id: number; name: string | null; number: string } | null>(null);
+    const [selectedUser, setSelectedUser] = useState<{ id: number; name: string | null; number: string | null } | null>(null);
     const [amount, setAmount] = useState("");
     const [status, setStatus] = useState<"idle" | "processing" | "success">("idle");
     const [error, setError] = useState<string | null>(null);

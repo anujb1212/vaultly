@@ -76,6 +76,8 @@ export async function changePassword(input: {
 
         if (!user) return { success: false, message: "Invalid user", errorCode: "UNAUTHENTICATED" };
 
+        if (!user.password) return { success: false, message: "Password not set for this account", errorCode: "INVALID_CURRENT" };
+
         const ok = await bcrypt.compare(currentPassword, user.password);
         if (!ok) return { success: false, message: "Current password is incorrect", errorCode: "INVALID_CURRENT" };
 

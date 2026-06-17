@@ -7,6 +7,7 @@ import { ThemeToggle } from "../../../components/theme/ThemeToggle";
 import { Button } from "@repo/ui/button";
 import { TextInput } from "@repo/ui/textinput";
 import { ArrowRight, Loader2, Sparkles, Wallet, AlertCircle } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 import { z } from "zod";
 import { toFieldErrors, type FieldErrors } from "../../../components/auth/zodFieldErrors";
 
@@ -219,6 +220,25 @@ export default function SignupPage() {
               )}
             </Button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border/60" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-background px-3 text-muted-foreground">or continue with</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            className="w-full h-11 font-medium rounded-xl"
+          >
+            <SiGoogle className="w-4 h-4 mr-2" />
+            Sign up with Google
+          </Button>
 
           <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground">

@@ -2,6 +2,7 @@ import "server-only";
 
 import db, { auditLogger, emitSecurityEvent } from "@repo/db/client";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcrypt";
 import type { NextAuthOptions, User } from "next-auth";
 
@@ -60,6 +61,8 @@ export const authOptions: NextAuthOptions = {
 
                 if (!existingUser) return null;
 
+                if (!existingUser.password) return null;
+
                 const passwordValidation = await bcrypt.compare(
                     credentials.password,
                     existingUser.password
@@ -75,6 +78,10 @@ export const authOptions: NextAuthOptions = {
                     pinIsSet: Boolean(existingUser.transactionPin?.userId),
                 } as any;
             },
+        }),
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID || "",
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
         }),
     ],
 
@@ -94,6 +101,60 @@ export const authOptions: NextAuthOptions = {
     },
 
     callbacks: {
+        async signIn({ user, account }) {
+            if (account?.provider === "google") {
+                if (!user?.email) return false;
+
+                const existing = await db.user.findUnique({
+                    where: { email: user.email },
+                    select: {
+                        id: true,
+                        number: true,
+                        emailVerified: true,
+                        transactionPin: { select: { userId: true } },
+                    },
+                });
+
+                let userId: number;
+                let phone: string | null;
+                let emailVerified: boolean;
+                let pinIsSet: boolean;
+
+                if (existing) {
+                    userId = existing.id;
+                    phone = existing.number;
+                    emailVerified = existing.emailVerified;
+                    pinIsSet = Boolean(existing.transactionPin?.userId);
+
+                    await db.user.update({
+                        where: { id: existing.id },
+                        data: { name: user.name, image: user.image },
+                    });
+                } else {
+                    const created = await db.user.create({
+                        data: {
+                            email: user.email,
+                            name: user.name,
+                            image: user.image,
+                            auth_type: "Google",
+                            emailVerified: true,
+                        },
+                        select: { id: true },
+                    });
+                    userId = created.id;
+                    phone = null;
+                    emailVerified = true;
+                    pinIsSet = false;
+                }
+
+                user.id = String(userId);
+                (user as any).phone = phone;
+                (user as any).emailVerified = emailVerified;
+                (user as any).pinIsSet = pinIsSet;
+            }
+            return true;
+        },
+
         async jwt({ token, user, trigger }) {
             const now = new Date();
             const nowSec = Math.floor(Date.now() / 1000);
@@ -204,6 +265,7 @@ export const authOptions: NextAuthOptions = {
                     select: {
                         name: true,
                         email: true,
+                        number: true,
                         emailVerified: true,
                         transactionPin: { select: { userId: true } },
                     },
@@ -211,6 +273,7 @@ export const authOptions: NextAuthOptions = {
 
                 (token as any).name = fresh?.name ?? (token as any).name ?? null;
                 (token as any).email = fresh?.email ?? (token as any).email ?? null;
+                (token as any).phone = fresh?.number ?? (token as any).phone ?? null;
                 (token as any).emailVerified = Boolean(fresh?.emailVerified);
                 (token as any).pinIsSet = Boolean(fresh?.transactionPin?.userId);
             }

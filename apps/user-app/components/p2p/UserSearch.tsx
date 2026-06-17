@@ -7,7 +7,7 @@ import { searchUsers } from "../../app/lib/actions/searchUsers";
 interface UserResult {
     id: number;
     name: string | null;
-    number: string;
+    number: string | null;
 }
 
 interface UserSearchProps {
@@ -71,7 +71,7 @@ export const UserSearch = ({ onSelect, selectedUser }: UserSearchProps) => {
                                 {selectedUser.name || "Vaultly User"}
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                                {selectedUser.number}
+                                {selectedUser.number || "No phone"}
                             </div>
                         </div>
                     </div>
@@ -130,7 +130,7 @@ export const UserSearch = ({ onSelect, selectedUser }: UserSearchProps) => {
                                     {user.name || "Vaultly User"}
                                 </div>
                                 <div className="text-xs text-slate-500 font-mono">
-                                    {user.number}
+                                    {user.number || "No phone"}
                                 </div>
                             </div>
                         </button>
