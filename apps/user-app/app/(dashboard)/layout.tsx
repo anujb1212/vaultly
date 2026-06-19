@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { AppbarClient } from "../../components/layout/AppbarClient";
 import { SidebarItem } from "../../components/layout/SidebarItem";
 import {
@@ -21,16 +21,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = status === "authenticated" && Boolean((session?.user as any)?.isAdmin);
   const router = useRouter();
   const pathname = usePathname();
+  const isSettingsPath = useMemo(() => pathname?.startsWith("/settings"), [pathname]);
 
   useEffect(() => {
-    if (
-      status === "authenticated" &&
-      !session?.user?.phone &&
-      pathname !== "/complete-profile"
-    ) {
+    if (status !== "authenticated") return;
+
+    const user = session?.user as any;
+
+    if (!user?.phone && pathname !== "/complete-profile") {
       router.replace("/complete-profile");
+      return;
     }
-  }, [status, session?.user?.phone, pathname, router]);
+
+    // Allow settings routes even when 2FA isn't verified
+    // so the user can access the security page and disable 2FA.
+    if (isSettingsPath) return;
+
+    if (
+      user?.twoFactorEnabled &&
+      !user?.is2FAVerified &&
+      pathname !== "/verify-2fa"
+    ) {
+      router.replace("/verify-2fa");
+    }
+  }, [status, session?.user?.phone, session?.user?.twoFactorEnabled, session?.user?.is2FAVerified, pathname, router, isSettingsPath]);
 
   return (
     <div className="flex h-screen w-full bg-slate-50 dark:bg-black font-sans text-slate-900 dark:text-slate-50 overflow-hidden selection:bg-indigo-100 dark:selection:bg-indigo-900">

@@ -11,6 +11,8 @@ model User {
     pendingEmail            String?
     emailVerified           Boolean                  @default(false)
     emailVerificationTokens EmailVerificationToken[]
+    twoFactorEnabled        Boolean                  @default(false)
+    twoFactorSecret         String?
 
     sessionVersion Int             @default(1)
     transactionPin TransactionPin?

@@ -4,6 +4,8 @@ import db, { auditLogger, emitSecurityEvent } from "@repo/db/client";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcrypt";
+import { redis } from "./redis/redis";
+import { seedBalance, seedLinkedAccounts } from "./account/seedLinkedAccounts";
 import type { NextAuthOptions, User } from "next-auth";
 
 const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60;
@@ -55,6 +57,7 @@ export const authOptions: NextAuthOptions = {
                         number: true,
                         password: true,
                         emailVerified: true,
+                        twoFactorEnabled: true,
                         transactionPin: { select: { userId: true } },
                     },
                 });
@@ -76,6 +79,7 @@ export const authOptions: NextAuthOptions = {
                     phone: existingUser.number,
                     emailVerified: Boolean(existingUser.emailVerified),
                     pinIsSet: Boolean(existingUser.transactionPin?.userId),
+                    twoFactorEnabled: Boolean(existingUser.twoFactorEnabled),
                 } as any;
             },
         }),
@@ -111,6 +115,7 @@ export const authOptions: NextAuthOptions = {
                         id: true,
                         number: true,
                         emailVerified: true,
+                        twoFactorEnabled: true,
                         transactionPin: { select: { userId: true } },
                     },
                 });
@@ -139,18 +144,24 @@ export const authOptions: NextAuthOptions = {
                             auth_type: "Google",
                             emailVerified: true,
                         },
-                        select: { id: true },
+                        select: { id: true, number: true },
                     });
                     userId = created.id;
                     phone = null;
                     emailVerified = true;
                     pinIsSet = false;
+
+                    await Promise.all([
+                        seedBalance(created.id),
+                        seedLinkedAccounts(created.id, `linked-accounts:google:${created.id}`),
+                    ]);
                 }
 
                 user.id = String(userId);
                 (user as any).phone = phone;
                 (user as any).emailVerified = emailVerified;
                 (user as any).pinIsSet = pinIsSet;
+                (user as any).twoFactorEnabled = existing?.twoFactorEnabled ?? false;
             }
             return true;
         },
@@ -168,6 +179,8 @@ export const authOptions: NextAuthOptions = {
                 (token as any).emailVerified = (user as any).emailVerified ?? false;
                 (token as any).pinIsSet = (user as any).pinIsSet ?? false;
                 (token as any).isAdmin = computeIsAdmin((token as any).email);
+                (token as any).twoFactorEnabled = (user as any).twoFactorEnabled ?? false;
+                (token as any).is2FAVerified = false;
 
                 const created = await db.userSession.create({
                     data: {
@@ -227,6 +240,8 @@ export const authOptions: NextAuthOptions = {
                 delete (token as any).pinIsSet;
                 delete (token as any).lastSeenSyncAt;
                 delete (token as any).isAdmin;
+                delete (token as any).twoFactorEnabled;
+                delete (token as any).is2FAVerified;
                 return token;
             }
 
@@ -243,6 +258,8 @@ export const authOptions: NextAuthOptions = {
                 delete (token as any).emailVerified;
                 delete (token as any).pinIsSet;
                 delete (token as any).lastSeenSyncAt;
+                delete (token as any).twoFactorEnabled;
+                delete (token as any).is2FAVerified;
                 return token;
             }
 
@@ -267,6 +284,7 @@ export const authOptions: NextAuthOptions = {
                         email: true,
                         number: true,
                         emailVerified: true,
+                        twoFactorEnabled: true,
                         transactionPin: { select: { userId: true } },
                     },
                 });
@@ -276,6 +294,14 @@ export const authOptions: NextAuthOptions = {
                 (token as any).phone = fresh?.number ?? (token as any).phone ?? null;
                 (token as any).emailVerified = Boolean(fresh?.emailVerified);
                 (token as any).pinIsSet = Boolean(fresh?.transactionPin?.userId);
+                (token as any).twoFactorEnabled = Boolean(fresh?.twoFactorEnabled);
+                (token as any).is2FAVerified = false;
+
+                const verified2fa = await redis.get(`2fa:verified:${userIdNum}`);
+                if (verified2fa === "1") {
+                    (token as any).is2FAVerified = true;
+                    await redis.del(`2fa:verified:${userIdNum}`);
+                }
             }
 
             (token as any).isAdmin = computeIsAdmin((token as any).email);
@@ -291,6 +317,8 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).emailVerified = (token as any).emailVerified ?? false;
                 (session.user as any).pinIsSet = (token as any).pinIsSet ?? false;
                 (session.user as any).isAdmin = Boolean((token as any).isAdmin);
+                (session.user as any).twoFactorEnabled = (token as any).twoFactorEnabled ?? false;
+                (session.user as any).is2FAVerified = (token as any).twoFactorEnabled ? ((token as any).is2FAVerified ?? false) : true;
             }
 
             (session as any).sessionId = (token as any).sessionId ?? null;

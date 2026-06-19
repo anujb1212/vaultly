@@ -89,7 +89,7 @@ export async function POST(req: Request) {
         data: { userId: created.id, amount: 0, locked: 0 },
       });
 
-      const totalSeedPaise = 10_000_000; //Rs 1L
+      const totalSeedPaise = 10_000_000;
       const dist = seededDistribution(totalSeedPaise, `linked-accounts:${created.number}:${created.id}`);
 
       await tx.linkedBankAccount.createMany({

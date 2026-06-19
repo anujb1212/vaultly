@@ -9,6 +9,8 @@ declare module "next-auth" {
     pinIsSet?: boolean;
     isAdmin?: boolean;
     image?: string | null;
+    twoFactorEnabled?: boolean;
+    is2FAVerified?: boolean;
   }
 
   interface Session {
@@ -21,6 +23,8 @@ declare module "next-auth" {
       pinIsSet?: boolean;
       isAdmin?: boolean;
       image?: string | null;
+      twoFactorEnabled?: boolean;
+      is2FAVerified?: boolean;
     } & DefaultSession["user"];
 
     sessionId?: string | null;
@@ -37,5 +41,7 @@ declare module "next-auth/jwt" {
     isAdmin?: boolean;
     sessionId?: string;
     lastSeenSyncAt?: number;
+    twoFactorEnabled?: boolean;
+    is2FAVerified?: boolean;
   }
 }
