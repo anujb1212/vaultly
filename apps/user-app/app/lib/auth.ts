@@ -204,7 +204,7 @@ export const authOptions: NextAuthOptions = {
                 }).catch((e) => { console.error("[auth] SESSION_CREATED audit failed", e) })
 
                 try {
-                    await emitSecurityEvent(db as any, {
+                    await emitSecurityEvent({
                         userId: Number(userId),
                         type: "SESSION_CREATED",
                         source: "user-app",

@@ -92,7 +92,7 @@ export async function withdrawToLinkedAccount(
     const amountBucket = bucketizeAmount(amountPaise);
 
     try {
-        await emitSecurityEvent(prisma as any, {
+        await emitSecurityEvent({
             userId,
             type: "OFFRAMP_INITIATED",
             source: "user-app",
@@ -176,20 +176,20 @@ export async function withdrawToLinkedAccount(
                 );
 
                 try {
-                    await emitSecurityEvent(tx as any, {
+                    await emitSecurityEvent({
                         userId,
                         type: "OFFRAMP_INITIATED",
                         source: "user-app",
                         sourceId: `offramp:init:${offramp.id}`,
                         metadata: { amountBucket, linkedBankAccountId: linked.id },
-                    });
+                    }, tx);
                 } catch {
                     // ignore
                 }
 
                 return { success: true, message: "Withdrawal Initiated", token: offramp.token, transactionId: offramp.id } as const;
             },
-            { timeout: 20000, maxWait: 10000 }
+            { timeout: 10000, maxWait: 5000 }
         );
 
         // Enqueue async settlement via gateway webhook delivery 
@@ -281,7 +281,7 @@ export async function withdrawToLinkedAccount(
         console.error("Offramp withdraw error:", error);
 
         try {
-            await emitSecurityEvent(prisma as any, {
+            await emitSecurityEvent({
                 userId,
                 type: "OFFRAMP_FAILED",
                 source: "user-app",

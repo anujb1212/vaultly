@@ -15,9 +15,12 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
+      REDIS_URL: redis://redis:6379
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   mock-payment-gateway:
     build:
@@ -44,6 +47,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
       REDIS_URL: redis://redis:6379
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       JWT_SECRET: ${JWT_SECRET}

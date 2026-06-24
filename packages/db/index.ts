@@ -22,7 +22,9 @@ const prismaClientSingleton = () => {
   return new PrismaClient({
     datasources: { db: { url } },
     log: [
-      { emit: "event", level: "query" },
+      ...(process.env.NODE_ENV !== "production"
+        ? [{ emit: "event" as const, level: "query" as const }]
+        : []),
       { emit: "stdout", level: "error" },
       { emit: "stdout", level: "warn" },
     ],
@@ -62,3 +64,5 @@ export { IdempotencyManager } from './src/utils/idempotency';
 
 export * from './src/utils/ledger'
 export * from './src/utils/securityInsights'
+export { startAuditWorker, stopAuditWorker } from './src/queues/auditWorker';
+export { startSecurityWorker, stopSecurityWorker } from './src/queues/securityWorker';

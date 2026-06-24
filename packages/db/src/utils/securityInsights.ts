@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import type { PrismaClient, Prisma } from "@prisma/client";
+import { enqueueSecurityEvent } from "../queues/securityQueue";
 
 export type SecurityEventInput = {
     userId: number;
@@ -184,7 +185,7 @@ export function deriveSignalsFromEvent(e: {
     }
 }
 
-export async function emitSecurityEvent(prisma: PrismaClient, input: SecurityEventInput) {
+export async function processSecurityEvent(prisma: PrismaClient | Prisma.TransactionClient, input: SecurityEventInput) {
     const occurredAt = input.occurredAt ?? new Date();
 
     const ipHash = input.ip ? sha256Base64Url(input.ip) : null;
@@ -239,4 +240,38 @@ export async function emitSecurityEvent(prisma: PrismaClient, input: SecurityEve
     }
 
     return { eventId: event.id };
+}
+
+export async function emitSecurityEvent(
+    input: SecurityEventInput,
+    txClient?: Prisma.TransactionClient
+): Promise<{ eventId: number } | void> {
+    if (txClient) {
+        // Transactional — write directly (must commit/rollback with the transaction)
+        return processSecurityEvent(txClient, input);
+    }
+
+    // Non-transactional — enqueue for async processing
+    try {
+        await enqueueSecurityEvent(input);
+    } catch (error) {
+        // Fallback: if Redis is down, try direct write with a fresh client
+        try {
+            const { PrismaClient } = await import("@prisma/client");
+            const prisma = new PrismaClient({
+                datasources: { db: { url: process.env.DATABASE_URL } },
+                log: [{ emit: "stdout", level: "error" }],
+            });
+            try {
+                return await processSecurityEvent(prisma, input);
+            } finally {
+                await prisma.$disconnect();
+            }
+        } catch (e) {
+            console.error('Security event failed (enqueue + fallback)', {
+                type: input.type,
+                error: e instanceof Error ? e.message : String(e),
+            });
+        }
+    }
 }

@@ -79,7 +79,7 @@ export async function verifyMpinOrThrow(opts: {
     const now = new Date();
 
     if (pin.lockedUntil && pin.lockedUntil > now) {
-        emitSecurityEvent(db as any, {
+        emitSecurityEvent({
             userId, type: "PIN_LOCKED", source: "user-app",
             metadata: { action: context.action, reason: "attempt_while_locked" }
         }).catch(() => { });  // fire-and-forget
@@ -107,7 +107,7 @@ export async function verifyMpinOrThrow(opts: {
 
         if (pin.lockedUntil && pin.lockedUntil > now) {
             try {
-                await emitSecurityEvent(tx as any, {
+                await emitSecurityEvent({
                     userId,
                     type: "PIN_LOCKED",
                     source: "user-app",
@@ -176,7 +176,7 @@ export async function verifyMpinOrThrow(opts: {
         });
 
         try {
-            await emitSecurityEvent(tx as any, {
+            await emitSecurityEvent({
                 userId,
                 type: "PIN_VERIFY_FAILED",
                 source: "user-app",
@@ -184,14 +184,14 @@ export async function verifyMpinOrThrow(opts: {
                     action: context.action,
                     failCountBucket: failCountBucket(nextFails),
                 },
-            });
+            }, tx);
         } catch {
             // No blocking
         }
 
         if (shouldLock) {
             try {
-                await emitSecurityEvent(tx as any, {
+                await emitSecurityEvent({
                     userId,
                     type: "PIN_LOCKED",
                     source: "user-app",
@@ -199,7 +199,7 @@ export async function verifyMpinOrThrow(opts: {
                         action: context.action,
                         lockedMinutes: LOCK_MINUTES,
                     },
-                });
+                }, tx);
             } catch {
                 // No blocking
             }

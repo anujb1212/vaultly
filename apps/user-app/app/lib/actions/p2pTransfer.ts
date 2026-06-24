@@ -116,7 +116,7 @@ export async function p2pTransfer(
     const firstTimeRecipient = !priorTransfer;
 
     try {
-        await emitSecurityEvent(prisma as any, {
+        await emitSecurityEvent({
             userId: senderId,
             type: "P2P_INITIATED",
             source: "user-app",
@@ -221,7 +221,7 @@ export async function p2pTransfer(
                 );
 
                 try {
-                    await emitSecurityEvent(tx as any, {
+                    await emitSecurityEvent({
                         userId: senderId,
                         type: "P2P_COMPLETED",
                         source: "user-app",
@@ -230,14 +230,14 @@ export async function p2pTransfer(
                             amountBucket,
                             firstTimeRecipient,
                         },
-                    });
+                    }, tx);
                 } catch {
                     // ignore
                 }
 
                 return { success: true, message: "Transfer successful" } as const;
             },
-            { timeout: 20000, maxWait: 10000 }
+            { timeout: 10000, maxWait: 5000 }
         );
 
         await idempotencyManager.updateResponse(idempotencyKey, result);
@@ -250,7 +250,7 @@ export async function p2pTransfer(
         console.error("P2P transfer error:", error);
 
         try {
-            await emitSecurityEvent(prisma as any, {
+            await emitSecurityEvent({
                 userId: senderId,
                 type: "P2P_FAILED",
                 source: "user-app",

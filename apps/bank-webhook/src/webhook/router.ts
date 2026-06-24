@@ -80,125 +80,115 @@ webhookRouter.post("/bankWebhook", async (req: ReqWithRaw, res) => {
             message: "Insufficient funds or wallet lock inconsistency"
         });
 
-        queueMicrotask(async () => {
-            const tasks: Promise<unknown>[] = [];
+        if (outcome.kind === "processed_onramp_success") {
+            auditLogger.createAuditLog({
+                userId: outcome.userId,
+                action: "ONRAMP_COMPLETED",
+                entityType: "OnRampTransaction",
+                entityId: outcome.onRampTxnId,
+                newValue: {
+                    status: "Success",
+                    token: outcome.token,
+                    amount: outcome.amount,
+                    ledgerTransactionId: outcome.ledgerTransactionId,
+                    webhookEventId: outcome.webhookEventId,
+                },
+                metadata: { webhookEventId: outcome.webhookEventId },
+            }).catch(e => console.error("[Webhook][audit] ONRAMP_COMPLETED failed", e));
 
-            if (outcome.kind === "processed_onramp_success") {
-                tasks.push(
-                    auditLogger.createAuditLog({
-                        userId: outcome.userId,
-                        action: "ONRAMP_COMPLETED",
-                        entityType: "OnRampTransaction",
-                        entityId: outcome.onRampTxnId,
-                        newValue: {
-                            status: "Success",
-                            token: outcome.token,
-                            amount: outcome.amount,
-                            ledgerTransactionId: outcome.ledgerTransactionId,
-                            webhookEventId: outcome.webhookEventId,
-                        },
-                        metadata: { webhookEventId: outcome.webhookEventId },
-                    }).catch(e => console.error("[Webhook][audit] ONRAMP_COMPLETED failed", e)),
-                    emitSecurityEvent(db as any, {
-                        userId: outcome.userId,
-                        type: "ONRAMP_COMPLETED",
-                        source: "bank-webhook",
-                        sourceId: `onramp:${outcome.token}`,
-                        metadata: { amountBucket, webhookEventId: outcome.webhookEventId },
-                    }).catch(e => console.error("[Webhook][security] ONRAMP_COMPLETED failed", e))
-                );
-            }
+            emitSecurityEvent({
+                userId: outcome.userId,
+                type: "ONRAMP_COMPLETED",
+                source: "bank-webhook",
+                sourceId: `onramp:${outcome.token}`,
+                metadata: { amountBucket, webhookEventId: outcome.webhookEventId },
+            }).catch(e => console.error("[Webhook][security] ONRAMP_COMPLETED failed", e));
+        }
 
-            if (outcome.kind === "processed_onramp_failure") {
-                tasks.push(
-                    auditLogger.createAuditLog({
-                        userId: outcome.userId,
-                        action: "ONRAMP_FAILED",
-                        entityType: "OnRampTransaction",
-                        entityId: outcome.onRampTxnId,
-                        newValue: {
-                            status: "Failure",
-                            token: outcome.token,
-                            amount: outcome.amount,
-                            failureReasonCode: outcome.failureReasonCode,
-                            failureReasonMessage: outcome.failureReasonMessage,
-                            webhookEventId: outcome.webhookEventId,
-                        },
-                        metadata: { webhookEventId: outcome.webhookEventId },
-                    }).catch(e => console.error("[Webhook][audit] ONRAMP_FAILED failed", e)),
-                    emitSecurityEvent(db as any, {
-                        userId: outcome.userId,
-                        type: "ONRAMP_FAILED",
-                        source: "bank-webhook",
-                        sourceId: `onramp:${outcome.token}`,
-                        metadata: {
-                            amountBucket,
-                            failureReasonCode: outcome.failureReasonCode,
-                            webhookEventId: outcome.webhookEventId,
-                        },
-                    }).catch(e => console.error("[Webhook][security] ONRAMP_FAILED failed", e))
-                );
-            }
+        if (outcome.kind === "processed_onramp_failure") {
+            auditLogger.createAuditLog({
+                userId: outcome.userId,
+                action: "ONRAMP_FAILED",
+                entityType: "OnRampTransaction",
+                entityId: outcome.onRampTxnId,
+                newValue: {
+                    status: "Failure",
+                    token: outcome.token,
+                    amount: outcome.amount,
+                    failureReasonCode: outcome.failureReasonCode,
+                    failureReasonMessage: outcome.failureReasonMessage,
+                    webhookEventId: outcome.webhookEventId,
+                },
+                metadata: { webhookEventId: outcome.webhookEventId },
+            }).catch(e => console.error("[Webhook][audit] ONRAMP_FAILED failed", e));
 
-            if (outcome.kind === "processed_offramp_success") {
-                tasks.push(
-                    auditLogger.createAuditLog({
-                        userId: outcome.userId,
-                        action: "OFFRAMP_COMPLETED",
-                        entityType: "OffRampTransaction",
-                        entityId: outcome.offRampTxnId,
-                        newValue: {
-                            status: "Success",
-                            token: outcome.token,
-                            amount: outcome.amount,
-                            ledgerTransactionId: outcome.ledgerTransactionId,
-                            webhookEventId: outcome.webhookEventId,
-                        },
-                        metadata: { webhookEventId: outcome.webhookEventId },
-                    }).catch(e => console.error("[Webhook][audit] OFFRAMP_COMPLETED failed", e)),
-                    emitSecurityEvent(db as any, {
-                        userId: outcome.userId,
-                        type: "OFFRAMP_COMPLETED",
-                        source: "bank-webhook",
-                        sourceId: `offramp:${outcome.token}`,
-                        metadata: { amountBucket, webhookEventId: outcome.webhookEventId },
-                    }).catch(e => console.error("[Webhook][security] OFFRAMP_COMPLETED failed", e))
-                );
-            }
+            emitSecurityEvent({
+                userId: outcome.userId,
+                type: "ONRAMP_FAILED",
+                source: "bank-webhook",
+                sourceId: `onramp:${outcome.token}`,
+                metadata: {
+                    amountBucket,
+                    failureReasonCode: outcome.failureReasonCode,
+                    webhookEventId: outcome.webhookEventId,
+                },
+            }).catch(e => console.error("[Webhook][security] ONRAMP_FAILED failed", e));
+        }
 
-            if (outcome.kind === "processed_offramp_failure") {
-                tasks.push(
-                    auditLogger.createAuditLog({
-                        userId: outcome.userId,
-                        action: "OFFRAMP_FAILED",
-                        entityType: "OffRampTransaction",
-                        entityId: outcome.offRampTxnId,
-                        newValue: {
-                            status: "Failure",
-                            token: outcome.token,
-                            amount: outcome.amount,
-                            failureReasonCode: outcome.failureReasonCode,
-                            failureReasonMessage: outcome.failureReasonMessage,
-                            webhookEventId: outcome.webhookEventId,
-                        },
-                        metadata: { webhookEventId: outcome.webhookEventId },
-                    }).catch(e => console.error("[Webhook][audit] OFFRAMP_FAILED failed", e)),
-                    emitSecurityEvent(db as any, {
-                        userId: outcome.userId,
-                        type: "OFFRAMP_FAILED",
-                        source: "bank-webhook",
-                        sourceId: `offramp:${outcome.token}`,
-                        metadata: {
-                            amountBucket,
-                            failureReasonCode: outcome.failureReasonCode,
-                            webhookEventId: outcome.webhookEventId,
-                        },
-                    }).catch(e => console.error("[Webhook][security] OFFRAMP_FAILED failed", e))
-                );
-            }
+        if (outcome.kind === "processed_offramp_success") {
+            auditLogger.createAuditLog({
+                userId: outcome.userId,
+                action: "OFFRAMP_COMPLETED",
+                entityType: "OffRampTransaction",
+                entityId: outcome.offRampTxnId,
+                newValue: {
+                    status: "Success",
+                    token: outcome.token,
+                    amount: outcome.amount,
+                    ledgerTransactionId: outcome.ledgerTransactionId,
+                    webhookEventId: outcome.webhookEventId,
+                },
+                metadata: { webhookEventId: outcome.webhookEventId },
+            }).catch(e => console.error("[Webhook][audit] OFFRAMP_COMPLETED failed", e));
 
-            await Promise.allSettled(tasks);
-        });
+            emitSecurityEvent({
+                userId: outcome.userId,
+                type: "OFFRAMP_COMPLETED",
+                source: "bank-webhook",
+                sourceId: `offramp:${outcome.token}`,
+                metadata: { amountBucket, webhookEventId: outcome.webhookEventId },
+            }).catch(e => console.error("[Webhook][security] OFFRAMP_COMPLETED failed", e));
+        }
+
+        if (outcome.kind === "processed_offramp_failure") {
+            auditLogger.createAuditLog({
+                userId: outcome.userId,
+                action: "OFFRAMP_FAILED",
+                entityType: "OffRampTransaction",
+                entityId: outcome.offRampTxnId,
+                newValue: {
+                    status: "Failure",
+                    token: outcome.token,
+                    amount: outcome.amount,
+                    failureReasonCode: outcome.failureReasonCode,
+                    failureReasonMessage: outcome.failureReasonMessage,
+                    webhookEventId: outcome.webhookEventId,
+                },
+                metadata: { webhookEventId: outcome.webhookEventId },
+            }).catch(e => console.error("[Webhook][audit] OFFRAMP_FAILED failed", e));
+
+            emitSecurityEvent({
+                userId: outcome.userId,
+                type: "OFFRAMP_FAILED",
+                source: "bank-webhook",
+                sourceId: `offramp:${outcome.token}`,
+                metadata: {
+                    amountBucket,
+                    failureReasonCode: outcome.failureReasonCode,
+                    webhookEventId: outcome.webhookEventId,
+                },
+            }).catch(e => console.error("[Webhook][security] OFFRAMP_FAILED failed", e));
+        }
 
         return res.status(200).json({
             message: "Captured",

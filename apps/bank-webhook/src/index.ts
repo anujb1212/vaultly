@@ -1,12 +1,15 @@
 import { createServer } from "./server";
 import { config } from "./config";
-import db from "@repo/db/client";
+import db, { startAuditWorker, startSecurityWorker, stopAuditWorker, stopSecurityWorker } from "@repo/db/client";
 
 const app = createServer();
 
 const server = app.listen(config.port, () => {
     console.log(`[bank-webhook] listening on 0.0.0.0:${config.port}`);
 });
+
+startAuditWorker();
+startSecurityWorker();
 
 server.timeout = 15_000;
 
@@ -22,6 +25,8 @@ server.on("error", (err: NodeJS.ErrnoException) => {
 async function shutdown(signal: string) {
     console.log(`[bank-webhook] ${signal} received, shutting down`);
     server.close(async () => {
+        await stopAuditWorker();
+        await stopSecurityWorker();
         await db.$disconnect();
         console.log("[bank-webhook] shutdown complete");
         process.exit(0);

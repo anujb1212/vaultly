@@ -184,7 +184,7 @@ export async function createOnRampTxn(
             );
 
             try {
-                await emitSecurityEvent(tx as any, {
+                await emitSecurityEvent({
                     userId,
                     type: "ONRAMP_INITIATED",
                     source: "user-app",
@@ -193,7 +193,7 @@ export async function createOnRampTxn(
                         provider,
                         amountBucket,
                     },
-                });
+                }, tx);
             } catch {
                 // ignore
             }
@@ -218,7 +218,7 @@ export async function createOnRampTxn(
         console.error("OnRamp transaction error:", error);
 
         try {
-            await emitSecurityEvent(prisma as any, {
+            await emitSecurityEvent({
                 userId,
                 type: "ONRAMP_FAILED",
                 source: "user-app",

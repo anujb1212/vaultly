@@ -1,15 +1,12 @@
-// Supports both REDIS_URL (Upstash prod) and REDIS_HOST/REDIS_PORT (Docker dev)
-// Parses URL into RedisOptions that BullMQ accepts
-
 function getRedisConnection() {
     const redisUrl = process.env.REDIS_URL;
 
     if (redisUrl) {
         const url = new URL(redisUrl);
-        const isTLS = url.protocol === 'rediss:';
+        const isTLS = url.protocol === "rediss:";
         return {
             host: url.hostname,
-            port: parseInt(url.port || '6379'),
+            port: parseInt(url.port || "6379"),
             ...(url.password ? { password: decodeURIComponent(url.password) } : {}),
             ...(url.pathname && url.pathname.length > 1
                 ? { db: parseInt(url.pathname.slice(1)) || 0 }
@@ -19,9 +16,9 @@ function getRedisConnection() {
         };
     }
 
-    const port = parseInt(process.env.REDIS_PORT || '6379');
+    const port = parseInt(process.env.REDIS_PORT || "6379");
     return {
-        host: process.env.REDIS_HOST || 'localhost',
+        host: process.env.REDIS_HOST || "localhost",
         port: Number.isFinite(port) ? port : 6379,
         maxRetriesPerRequest: null,
     };

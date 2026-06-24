@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { enqueueAuditLog } from "../queues/auditQueue";
 
 export interface AuditMetadata {
     ip?: string;
@@ -27,25 +28,51 @@ export class AuditLogger {
         txClient?: Prisma.TransactionClient
     ): Promise<void> {
 
-        const client = txClient ?? this.prisma;
-
-        try {
-            await client.auditLog.create({
-                data: {
-                    userId: entry.userId,
+        if (txClient) {
+            // Transactional — write directly (must commit/rollback with the transaction)
+            try {
+                await txClient.auditLog.create({
+                    data: {
+                        userId: entry.userId,
+                        action: entry.action,
+                        entityType: entry.entityType,
+                        entityId: entry.entityId,
+                        oldValue: entry.oldValue ?? Prisma.JsonNull,
+                        newValue: entry.newValue as Prisma.InputJsonValue,
+                        metadata: (entry.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+                    }
+                })
+            } catch (error) {
+                console.error('Audit log failed', {
                     action: entry.action,
-                    entityType: entry.entityType,
-                    entityId: entry.entityId,
-                    oldValue: entry.oldValue ?? Prisma.JsonNull,
-                    newValue: entry.newValue as Prisma.InputJsonValue,
-                    metadata: (entry.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+                    error: error instanceof Error ? error.message : String(error),
+                })
+            }
+        } else {
+            // Non-transactional — enqueue for async processing
+            try {
+                await enqueueAuditLog(entry);
+            } catch (error) {
+                // Fallback: if Redis is down, try direct write
+                try {
+                    await this.prisma.auditLog.create({
+                        data: {
+                            userId: entry.userId,
+                            action: entry.action,
+                            entityType: entry.entityType,
+                            entityId: entry.entityId,
+                            oldValue: entry.oldValue ?? Prisma.JsonNull,
+                            newValue: entry.newValue as Prisma.InputJsonValue,
+                            metadata: (entry.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+                        }
+                    })
+                } catch (e) {
+                    console.error('Audit log failed (enqueue + fallback)', {
+                        action: entry.action,
+                        error: e instanceof Error ? e.message : String(e),
+                    })
                 }
-            })
-        } catch (error) {
-            console.error('Audit log failed', {
-                action: entry.action,
-                error: error instanceof Error ? error.message : String(error),
-            })
+            }
         }
     }
 
