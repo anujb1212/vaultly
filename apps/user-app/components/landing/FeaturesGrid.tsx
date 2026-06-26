@@ -1,159 +1,177 @@
 "use client";
 
-import { forwardRef, MouseEvent } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, Users, Sparkles, History } from "lucide-react";
+import { Zap, Link as LinkIcon, ShieldCheck, ArrowRight, Brain, Activity } from "lucide-react";
 
-const features = [
-  {
-    icon: TrendingUp,
-    title: "On-ramp Transfer",
-    desc: "Add funds to your wallet from any bank. No friction, no delays.",
-    accent: "bg-blue-500",
-    glow: "shadow-[0_0_15px_rgba(59,130,246,0.5)]",
-    iconColor: "text-blue-400",
-  },
-  {
-    icon: Users,
-    title: "P2P Payments",
-    desc: "Send money to anyone with just their phone number. Instant and free.",
-    accent: "bg-purple-500",
-    glow: "shadow-[0_0_15px_rgba(168,85,247,0.5)]",
-    iconColor: "text-purple-400",
-  },
-  {
-    icon: Sparkles,
-    title: "AI Insights",
-    desc: "Your spending decoded. Smart alerts before things go wrong.",
-    accent: "bg-orange-500",
-    glow: "shadow-[0_0_15px_rgba(249,115,22,0.5)]",
-    iconColor: "text-orange-400",
-  },
-  {
-    icon: History,
-    title: "History",
-    desc: "A timeline of every transaction — searchable in a single tap.",
-    accent: "bg-pink-500",
-    glow: "shadow-[0_0_15px_rgba(236,72,153,0.5)]",
-    iconColor: "text-pink-400",
-  },
-];
-
-export const FeaturesGrid = forwardRef<HTMLDivElement>(function FeaturesGrid(
-  _props,
-  ref
-) {
-  // Mouse movement handler to calculate cursor position relative to the card
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-    const { currentTarget, clientX, clientY } = e;
-    const { left, top } = currentTarget.getBoundingClientRect();
-
-    // Set CSS variables for the exact X and Y coordinates of the mouse
-    currentTarget.style.setProperty("--mouse-x", `${clientX - left}px`);
-    currentTarget.style.setProperty("--mouse-y", `${clientY - top}px`);
-  };
-
+export function FeaturesGrid() {
   return (
-    <div ref={ref} className="mt-8 sm:mt-16 max-w-[1040px] mx-auto px-4 sm:px-6 w-full">
-      <motion.div
-        onMouseMove={handleMouseMove}
-        className="group relative rounded-[2.5rem] bg-[#0a0515]/60 border border-white/[0.08] backdrop-blur-2xl shadow-2xl overflow-hidden"
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-      >
-
-        {/* 1. Internal Soft Spotlight Glow */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 z-0"
-          style={{
-            background: "radial-gradient(600px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(139, 92, 246, 0.08), transparent 40%)"
-          }}
+    <div className="relative mt-8 sm:mt-16 max-w-[1040px] mx-auto px-4 sm:px-6 w-full pb-20">
+      {/* Center glowing line traversing the grid from beneath FloatingCards */}
+      <div className="absolute left-1/2 top-[-100px] bottom-0 w-[1px] -translate-x-1/2 bg-gradient-to-b from-transparent via-blue-500/30 to-transparent pointer-events-none z-0 hidden md:block">
+        <motion.div
+          className="w-[3px] h-[150px] absolute -left-[1px] bg-gradient-to-b from-transparent via-blue-400 to-transparent blur-[2px]"
+          animate={{ top: ["0%", "100%"] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
         />
+      </div>
 
-        {/* 2. Dynamic Border Highlight Overlay */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 z-0"
-          style={{
-            background: "radial-gradient(400px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(255, 255, 255, 0.15), transparent 40%)",
-            // Use mask to only show the gradient ON the 1px border perimeter
-            mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            maskComposite: "exclude",
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            padding: "1px" // Thickness of the glowing border
-          }}
-        />
-
-        <div className="relative z-10 p-10 sm:p-14 lg:p-16">
-
-          {/* Top label row */}
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-pulse" />
-            <span className="text-xs font-bold tracking-[0.25em] uppercase text-blue-400/90">
-              Future payment
-            </span>
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-6 gap-4 sm:gap-6">
+        
+        {/* Top Left: Text block */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="col-span-1 md:col-span-3 rounded-[1.5rem] bg-[#06020f]/80 border border-white/5 p-8 sm:p-12 flex flex-col justify-center backdrop-blur-xl shadow-2xl relative overflow-hidden group hover:border-white/10 transition-colors"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/5 border border-white/10 w-max mb-6">
+            <div className="w-1.5 h-1.5 bg-white/80" />
+            <span className="text-[10px] uppercase tracking-[0.15em] text-white/80 font-bold">What We Do</span>
           </div>
-
-          {/* Intro Text Section (Optimized whitespace & gap) */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mb-20 items-end">
-            <h2 className="md:col-span-6 text-3xl sm:text-4xl lg:text-5xl font-normal tracking-tight text-white text-balance leading-[1.15]">
-              Experience that grows
-              <br />
-              with your scale.
-            </h2>
-            <p className="md:col-span-6 text-sm sm:text-base text-white/50 leading-relaxed font-light md:pl-6">
-              From your first on-ramp deposit to your ten-thousandth P2P payment, Fundix&apos;s cash flow engine scales seamlessly. No spreadsheets, no chaos — just clean, automated money movement that keeps pace with your ambition.
-            </p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-white mb-4 leading-[1.15]">
+            Banking at full throttle. <span className="text-white/40">Execute your financial strategy with precision. Design powerful workflows.</span>
+          </h2>
+          <div className="flex flex-wrap items-center gap-4 mt-8">
+            <button className="px-6 py-2.5 rounded-lg bg-white text-black font-bold text-[11px] tracking-[0.1em] shadow-lg hover:opacity-90 transition-opacity">
+              START BUILDING
+            </button>
+            <button className="px-6 py-2.5 rounded-lg bg-white/5 text-white/80 font-bold text-[11px] tracking-[0.1em] border border-white/10 hover:bg-white/10 transition-colors">
+              EXPLORE VAULTLY
+            </button>
           </div>
+        </motion.div>
 
-          {/* 4-column Features Grid (Balanced spacing) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-12 gap-x-8 sm:gap-x-12 relative">
+        {/* Top Right: Node visualization */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} delay={0.1}
+          className="col-span-1 md:col-span-3 rounded-[1.5rem] bg-[#06020f]/80 border border-white/5 p-8 flex items-center justify-center relative overflow-hidden min-h-[350px] backdrop-blur-xl shadow-2xl group hover:border-white/10 transition-colors"
+        >
+          {/* Subtle grid background */}
+          <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:24px_24px]" />
+          
+          {/* Nodes visualization */}
+          <div className="relative w-full h-full flex items-center justify-center">
+             {/* Left Node */}
+             <motion.div 
+               className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center z-10 shadow-[0_0_30px_rgba(255,255,255,0.05)]"
+               animate={{ y: [-5, 5, -5] }}
+               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+             >
+               <Zap className="w-6 h-6 text-white/70" />
+             </motion.div>
 
-            {/* Subtle internal dividers for desktop */}
-            <div className="hidden lg:block absolute top-0 bottom-0 left-1/4 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
-            <div className="hidden lg:block absolute top-0 bottom-0 left-2/4 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
-            <div className="hidden lg:block absolute top-0 bottom-0 left-3/4 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
+             {/* Dashed Line */}
+             <div className="w-12 sm:w-16 h-[2px] border-t-2 border-dashed border-white/20" />
 
-            {features.map((feature, idx) => (
-              <motion.div
-                key={feature.title}
-                className="group/item relative flex flex-col items-start"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{
-                  duration: 0.5,
-                  delay: 0.1 + idx * 0.1,
-                  ease: [0.25, 0.46, 0.45, 0.94],
-                }}
-              >
-                {/* Icon Container */}
-                <div className="relative mb-8 inline-block">
-                  <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/[0.08] grid place-items-center transition-all duration-300 group-hover/item:scale-110 group-hover/item:bg-white/[0.05] group-hover/item:border-white/20 group-hover/item:shadow-lg">
-                    <feature.icon className={`w-6 h-6 stroke-[1.5] text-white/50 group-hover/item:${feature.iconColor} transition-colors duration-300`} />
-                  </div>
+             {/* Center Big Node */}
+             <motion.div 
+               className="w-24 h-24 rounded-[1.5rem] bg-white/10 border border-white/20 flex items-center justify-center z-10 shadow-[0_0_50px_rgba(255,255,255,0.1)] relative overflow-hidden"
+               animate={{ scale: [0.98, 1.02, 0.98] }}
+               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+             >
+               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
+               <div className="w-12 h-12 rounded-[0.8rem] bg-white flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                 <ShieldCheck className="w-6 h-6 text-black" />
+               </div>
+             </motion.div>
 
-                  {/* Expanding underline accent on hover */}
-                  <div
-                    className={`absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full ${feature.accent} ${feature.glow} opacity-0 group-hover/item:opacity-100 transition-all duration-300`}
-                  />
-                </div>
+             {/* Branches */}
+             <div className="flex flex-col justify-center h-full">
+                <div className="w-8 sm:w-12 h-[2px] border-t-2 border-dashed border-white/20 mb-10 -mr-2" />
+                <div className="w-8 sm:w-12 h-[2px] border-t-2 border-dashed border-white/20 mt-10 -mr-2" />
+             </div>
 
-                {/* Typography */}
-                <h3 className="text-base font-semibold tracking-wide text-white/90 mb-3 group-hover/item:text-white transition-colors">
-                  {feature.title}
-                </h3>
-
-                <p className="text-sm text-white/40 leading-relaxed font-light group-hover/item:text-white/60 transition-colors">
-                  {feature.desc}
-                </p>
-              </motion.div>
-            ))}
+             <div className="flex flex-col gap-8">
+                <motion.div 
+                  className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center z-10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                  animate={{ x: [-2, 2, -2] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                >
+                  <ArrowRight className="w-5 h-5 text-white/50" />
+                </motion.div>
+                <motion.div 
+                  className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center z-10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                  animate={{ x: [-2, 2, -2] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                >
+                  <ArrowRight className="w-5 h-5 text-white/50" />
+                </motion.div>
+             </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+
+        {/* Bottom 1 */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} delay={0.2}
+          className="col-span-1 md:col-span-2 rounded-[1.5rem] bg-[#06020f]/80 border border-white/5 p-8 flex flex-col items-start backdrop-blur-xl shadow-2xl group hover:border-white/10 transition-all overflow-hidden relative"
+        >
+          <div className="w-full flex items-center gap-4 mb-16 opacity-80 mix-blend-screen">
+             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:-translate-y-1 transition-transform">
+               <Brain className="w-5 h-5 text-white/60" />
+             </div>
+             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:-translate-y-1 transition-transform delay-75">
+               <Zap className="w-5 h-5 text-white/60" />
+             </div>
+          </div>
+          <div className="w-16 h-16 rounded-[1.2rem] bg-white/10 border border-white/20 flex items-center justify-center shadow-xl mb-6 relative z-10 backdrop-blur-md">
+             <Brain className="w-7 h-7 text-white" />
+          </div>
+          <h3 className="text-lg sm:text-xl font-medium text-white mb-2 tracking-tight">AI-Powered Automation</h3>
+          <p className="text-xs sm:text-sm text-white/40 leading-relaxed font-light">
+            Add Intelligence To Your Workflows Using GPT, Predictive Models, Or Smart Alerts.
+          </p>
+        </motion.div>
+
+        {/* Bottom 2 */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} delay={0.3}
+          className="col-span-1 md:col-span-2 rounded-[1.5rem] bg-[#06020f]/80 border border-white/5 p-8 flex flex-col items-start backdrop-blur-xl shadow-2xl group hover:border-white/10 transition-all overflow-hidden relative"
+        >
+          <div className="w-full flex justify-center mb-16 mt-4 relative">
+             <div className="w-16 h-16 rounded-[1.2rem] bg-white/10 border border-white/20 flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform z-10 backdrop-blur-md">
+               <LinkIcon className="w-7 h-7 text-white" />
+             </div>
+             {/* Connecting lines aesthetic */}
+             <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-6 z-0">
+               <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 opacity-50" />
+               <div className="absolute left-1/4 right-1/4 top-1/2 h-[1px] bg-white/10 border-t border-dashed border-white/20" />
+               <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 opacity-50" />
+             </div>
+          </div>
+          <h3 className="text-lg sm:text-xl font-medium text-white mb-2 tracking-tight">Connect Any Data</h3>
+          <p className="text-xs sm:text-sm text-white/40 leading-relaxed font-light">
+            Sync Product And Financial Data For A Real-Time Single Source Of Truth.
+          </p>
+        </motion.div>
+
+        {/* Bottom 3 */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} delay={0.4}
+          className="col-span-1 md:col-span-2 rounded-[1.5rem] bg-[#06020f]/80 border border-white/5 p-8 flex flex-col items-start backdrop-blur-xl shadow-2xl group hover:border-white/10 transition-all overflow-hidden relative"
+        >
+          <div className="w-full flex justify-center mb-16 mt-4 relative">
+             {/* Orbital animation aesthetic */}
+             <div className="absolute inset-0 flex items-center justify-center opacity-60">
+               <motion.div 
+                 className="w-32 h-10 border border-white/10 rounded-[50%]"
+                 animate={{ rotate: 360 }}
+                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+               />
+               <motion.div 
+                 className="w-10 h-32 border border-white/10 rounded-[50%] absolute"
+                 animate={{ rotate: -360 }}
+                 transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+               />
+             </div>
+             <div className="w-16 h-16 rounded-[1.2rem] bg-white/10 border border-white/20 flex items-center justify-center shadow-xl relative z-10 group-hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-shadow backdrop-blur-md">
+               <Activity className="w-7 h-7 text-white" />
+             </div>
+          </div>
+          <h3 className="text-lg sm:text-xl font-medium text-white mb-2 tracking-tight">Real-Time Monitoring</h3>
+          <p className="text-xs sm:text-sm text-white/40 leading-relaxed font-light">
+            Track Executions, Webhooks, And Performance In A Clean Unified Dashboard.
+          </p>
+        </motion.div>
+
+      </div>
     </div>
   );
-});
+}

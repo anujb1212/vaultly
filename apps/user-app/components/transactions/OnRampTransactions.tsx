@@ -64,7 +64,7 @@ export const OnRampTransactions = ({ transactions }: { transactions?: Transactio
                     {transactions ? "Recent Activity" : "Recent Deposits"}
                 </h2>
                 <span className="text-xs font-medium text-mutedForeground px-2.5 py-1 bg-muted rounded-full">
-                    Last 5
+                    Last {Math.min(5, dataToRender.length)}
                 </span>
             </div>
 
@@ -79,14 +79,18 @@ export const OnRampTransactions = ({ transactions }: { transactions?: Transactio
                         t.provider.startsWith("Withdraw to") ||
                         t.provider.startsWith("Deposited to");
 
+                    const isFailure = t.status === "Failure";
+                    const isProcessing = t.status === "Processing";
+                    const isSuccess = t.status === "Success";
+
                     const tone =
                         isCancelled
                             ? "text-slate-400 dark:text-neutral-500"
-                            : t.status === "Success"
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : t.status === "Processing"
+                            : isFailure || (isSuccess && isOutflow)
+                                ? "text-rose-600 dark:text-rose-400"
+                                : isProcessing
                                     ? "text-amber-600 dark:text-amber-400"
-                                    : "text-rose-600 dark:text-rose-400";
+                                    : "text-emerald-600 dark:text-emerald-400";
 
                     return (
                         <div
@@ -95,9 +99,9 @@ export const OnRampTransactions = ({ transactions }: { transactions?: Transactio
                         >
                             <div className="flex items-center gap-4">
                                 <div
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center border ${t.status === "Success"
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center border ${isSuccess && !isOutflow
                                         ? "bg-emerald-100 border-emerald-200 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900/50"
-                                        : t.status === "Processing"
+                                        : isProcessing
                                             ? "bg-amber-100 border-amber-200 text-amber-600 dark:bg-amber-900/20 dark:border-amber-900/50"
                                             : "bg-rose-100 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-900/50"
                                         }`}
@@ -141,9 +145,9 @@ export const OnRampTransactions = ({ transactions }: { transactions?: Transactio
                                 </div>
 
                                 <span
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${t.status === "Success"
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${isSuccess
                                         ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400"
-                                        : t.status === "Processing"
+                                        : isProcessing
                                             ? "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400"
                                             : "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400"
                                         }`}

@@ -26,14 +26,14 @@ import { ActiveSessionsList } from "../../../../components/settings/ActiveSessio
 function StatusBadge({ enabled }: { enabled: boolean }) {
     if (enabled) {
         return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Enabled
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm">
+                <CheckCircle2 className="w-3.5 h-3.5 drop-shadow-sm" /> Enabled
             </span>
         );
     }
     return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-slate-50 text-slate-600 border-slate-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700">
-            <AlertCircle className="w-3.5 h-3.5" /> Not set
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold border bg-slate-50 text-slate-600 border-slate-200 dark:bg-white/5 dark:text-white/50 dark:border-white/10 shadow-sm">
+            <AlertCircle className="w-3.5 h-3.5 opacity-80" /> Not set
         </span>
     );
 }
@@ -163,21 +163,21 @@ export default function SecuritySettingsPage() {
     );
 
     return (
-        <div className="w-full relative pb-20 animate-fade-in">
-            <div className="mb-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-20 animate-fade-in relative">
+            <div className="mb-12">
                 <button
                     onClick={() => router.push("/settings")}
-                    className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white transition mb-6"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 dark:text-white/50 dark:hover:text-white transition-colors mb-8 group bg-slate-50 dark:bg-white/5 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 hover:shadow-sm active:scale-95"
                 >
-                    <ArrowLeft className="w-4 h-4" /> Back to Settings
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Settings
                 </button>
 
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                        <h1 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight drop-shadow-sm">
                             Security Center
                         </h1>
-                        <p className="text-slate-500 dark:text-neutral-400 mt-2 font-medium">
+                        <p className="text-slate-500 dark:text-white/60 mt-3 font-medium">
                             Manage 2FA, transaction PIN, and active sessions.
                         </p>
                     </div>
@@ -188,17 +188,18 @@ export default function SecuritySettingsPage() {
                 {/* LEFT COLUMN */}
                 <div className="lg:col-span-2 space-y-8">
                     {/* Two-Factor Authentication Card */}
-                    <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white/20 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-8 border-b border-slate-200/50 dark:border-white/5 flex items-start justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-100 dark:border-indigo-500/20">
-                                    <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    <section className="relative overflow-hidden bg-white dark:bg-[#06020f] rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-2xl transition-colors duration-300 isolate">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+                        <div className="p-8 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10 bg-slate-50/50 dark:bg-white/[0.02]">
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-100 dark:border-indigo-500/20 shadow-inner">
+                                    <Shield className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                    <div className="font-extrabold text-xl text-slate-900 dark:text-white drop-shadow-sm">
                                         Two-Factor Authentication
                                     </div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400">
+                                    <div className="text-sm text-slate-500 dark:text-white/50 font-medium mt-1">
                                         Add an extra layer of security to your account
                                     </div>
                                 </div>
@@ -206,9 +207,9 @@ export default function SecuritySettingsPage() {
                             <StatusBadge enabled={twoFactorEnabled} />
                         </div>
 
-                        <div className="p-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
+                        <div className="p-8 flex flex-col md:flex-row gap-8 md:items-center md:justify-between relative z-10">
                             <div className="flex-1">
-                                <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
+                                <p className="text-sm text-slate-500 dark:text-white/60 max-w-lg leading-relaxed font-medium">
                                     When enabled, you'll need to enter a one-time code sent to your
                                     email each time you sign in. This protects your account even if
                                     your password is compromised.
@@ -217,12 +218,12 @@ export default function SecuritySettingsPage() {
                             <button
                                 onClick={handleToggle2FA}
                                 disabled={toggling2FA || (!twoFactorEnabled && !emailVerified)}
-                                className={`h-12 px-8 rounded-2xl font-bold transition shadow-sm ${
+                                className={`h-12 px-8 rounded-2xl font-extrabold transition-all shadow-sm flex items-center justify-center active:scale-95 ${
                                     twoFactorEnabled
-                                        ? "bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20"
+                                        ? "bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 hover:-translate-y-0.5"
                                         : emailVerified
-                                        ? "bg-slate-900 text-white dark:bg-white dark:text-black hover:opacity-90"
-                                        : "bg-slate-300 dark:bg-neutral-700 text-white dark:text-neutral-400 cursor-not-allowed"
+                                        ? "bg-slate-900 text-white dark:bg-white dark:text-black hover:opacity-90 hover:-translate-y-0.5"
+                                        : "bg-slate-300 dark:bg-white/5 text-white dark:text-white/30 border border-transparent dark:border-white/10 cursor-not-allowed"
                                 }`}
                             >
                                 {toggling2FA
@@ -235,20 +236,21 @@ export default function SecuritySettingsPage() {
                                 }
                             </button>
                         </div>
-                    </div>
+                    </section>
 
                     {/* Email verification */}
-                    <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white/20 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-8 border-b border-slate-200/50 dark:border-white/5 flex items-start justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-slate-50 dark:bg-neutral-800 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-neutral-700">
-                                    <Mail className="w-6 h-6 text-slate-700 dark:text-neutral-200" />
+                    <section className="relative overflow-hidden bg-white dark:bg-[#06020f] rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-2xl transition-colors duration-300 isolate">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+                        <div className="p-8 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10 bg-slate-50/50 dark:bg-white/[0.02]">
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 bg-slate-50 dark:bg-[#0a0515] rounded-2xl flex items-center justify-center border border-slate-100 dark:border-white/5 shadow-inner">
+                                    <Mail className="w-7 h-7 text-slate-700 dark:text-white/80" />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                    <div className="font-extrabold text-xl text-slate-900 dark:text-white drop-shadow-sm">
                                         Email verification
                                     </div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400">
+                                    <div className="text-sm text-slate-500 dark:text-white/50 font-medium mt-1">
                                         Verify your email for account security
                                     </div>
                                 </div>
@@ -256,15 +258,15 @@ export default function SecuritySettingsPage() {
                             <StatusBadge enabled={emailVerified} />
                         </div>
 
-                        <div className="p-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
+                        <div className="p-8 flex flex-col md:flex-row gap-8 md:items-center md:justify-between relative z-10">
                             <div className="flex-1">
-                                <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
+                                <p className="text-sm text-slate-500 dark:text-white/60 max-w-lg leading-relaxed font-medium">
                                     We will send a 6-digit code to your inbox. Enter the code to
                                     verify your email address.
                                 </p>
                                 {email && (
-                                    <div className="text-xs text-slate-500 dark:text-neutral-400 mt-3 font-semibold">
-                                        Email: {email}
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#0a0515] border border-slate-100 dark:border-white/5 text-xs text-slate-600 dark:text-white/60 mt-4 font-bold shadow-sm">
+                                        <Mail className="w-3.5 h-3.5" /> {email}
                                     </div>
                                 )}
                             </div>
@@ -272,12 +274,12 @@ export default function SecuritySettingsPage() {
                             <button
                                 onClick={() => setShowEmailDialog(true)}
                                 disabled={emailLoading || emailVerified}
-                                className="h-12 px-8 rounded-2xl bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 font-bold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-neutral-800 transition disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+                                className="h-12 px-8 rounded-2xl bg-white dark:bg-[#0a0515] border border-slate-200 dark:border-white/10 font-extrabold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center"
                             >
                                 {emailVerified ? "Verified" : "Send code"}
                             </button>
                         </div>
-                    </div>
+                    </section>
 
                     {showEmailDialog && (
                         <EmailVerificationDialog
@@ -293,17 +295,18 @@ export default function SecuritySettingsPage() {
                     )}
 
                     {/* Transaction PIN Card */}
-                    <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white/20 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="p-8 border-b border-slate-200/50 dark:border-white/5 flex items-start justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-slate-50 dark:bg-neutral-800 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-neutral-700">
-                                    <KeyRound className="w-6 h-6 text-slate-700 dark:text-neutral-200" />
+                    <section className="relative overflow-hidden bg-white dark:bg-[#06020f] rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-2xl transition-colors duration-300 isolate">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+                        <div className="p-8 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10 bg-slate-50/50 dark:bg-white/[0.02]">
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20 shadow-inner">
+                                    <KeyRound className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                    <div className="font-extrabold text-xl text-slate-900 dark:text-white drop-shadow-sm">
                                         Transaction PIN
                                     </div>
-                                    <div className="text-sm text-slate-500 dark:text-neutral-400">
+                                    <div className="text-sm text-slate-500 dark:text-white/50 font-medium mt-1">
                                         Required for money movement
                                     </div>
                                 </div>
@@ -311,27 +314,27 @@ export default function SecuritySettingsPage() {
                             <StatusBadge enabled={pinLoaded ? pinIsSet : false} />
                         </div>
 
-                        <div className="p-8 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
+                        <div className="p-8 flex flex-col md:flex-row gap-8 md:items-center md:justify-between relative z-10">
                             <div className="flex-1">
-                                <p className="text-sm text-slate-500 dark:text-neutral-400 max-w-lg leading-relaxed">
+                                <p className="text-sm text-slate-500 dark:text-white/60 max-w-lg leading-relaxed font-medium">
                                     A 6-digit PIN required to authorize transfers. This protects
                                     your funds even if your account is logged in.
                                 </p>
                                 {pinLockedMsg && (
-                                    <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 mt-3">
-                                        {pinLockedMsg}
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 text-xs text-rose-700 dark:text-rose-400 mt-4 font-bold shadow-sm">
+                                        <AlertCircle className="w-3.5 h-3.5" /> {pinLockedMsg}
                                     </div>
                                 )}
                             </div>
                             <button
                                 onClick={() => setPinDialogOpen(true)}
                                 disabled={!pinLoaded}
-                                className="h-12 px-8 rounded-2xl bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 font-bold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-neutral-800 transition disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+                                className="h-12 px-8 rounded-2xl bg-white dark:bg-[#0a0515] border border-slate-200 dark:border-white/10 font-extrabold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center"
                             >
                                 {pinIsSet ? "Change PIN" : "Set PIN"}
                             </button>
                         </div>
-                    </div>
+                    </section>
 
                     <TransactionPinDialog
                         open={pinDialogOpen}
@@ -357,10 +360,12 @@ export default function SecuritySettingsPage() {
                 {/* --- RIGHT COLUMN --- */}
                 <div className="space-y-8">
                     {/* Security Health Score Widget */}
-                    <div className="bg-slate-900 dark:bg-black rounded-[2.5rem] p-8 border border-slate-800 dark:border-neutral-800 shadow-2xl relative overflow-hidden group text-white">
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-transparent opacity-50" />
+                    <section className="bg-slate-900 dark:bg-[#06020f] rounded-[2.5rem] p-8 border border-slate-800 dark:border-white/5 shadow-2xl relative overflow-hidden group text-white isolate transition-colors duration-300">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[80px] pointer-events-none" />
+                        
                         <div className="relative z-10 flex flex-col items-center text-center">
-                            <div className="relative w-36 h-36 flex items-center justify-center mb-6">
+                            <div className="relative w-40 h-40 flex items-center justify-center mb-8 drop-shadow-xl">
                                 <svg
                                     className="w-full h-full transform -rotate-90"
                                     viewBox="0 0 128 128"
@@ -370,9 +375,9 @@ export default function SecuritySettingsPage() {
                                         cy="64"
                                         r="60"
                                         stroke="currentColor"
-                                        strokeWidth="8"
+                                        strokeWidth="6"
                                         fill="transparent"
-                                        className="text-slate-800 dark:text-neutral-800"
+                                        className="text-slate-800 dark:text-white/5"
                                     />
                                     <circle
                                         cx="64"
@@ -383,25 +388,25 @@ export default function SecuritySettingsPage() {
                                         fill="transparent"
                                         strokeDasharray={circleDasharray}
                                         strokeDashoffset={circleDashoffset}
-                                        className="text-emerald-500 transition-all duration-1000 ease-out"
+                                        className="text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out"
                                         strokeLinecap="round"
                                     />
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-4xl font-bold">{securityScore}%</span>
-                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                    <span className="text-4xl font-extrabold tracking-tight drop-shadow-sm">{securityScore}%</span>
+                                    <span className="text-[10px] text-slate-400 dark:text-white/50 font-bold uppercase tracking-widest mt-1">
                                         Secure
                                     </span>
                                 </div>
                             </div>
 
-                            <h3 className="text-xl font-bold mb-2">Account Protection</h3>
-                            <p className="text-slate-400 text-sm mb-6 leading-relaxed px-2">
+                            <h3 className="text-2xl font-extrabold mb-3 drop-shadow-sm">Account Protection</h3>
+                            <p className="text-slate-400 dark:text-white/60 text-sm mb-8 leading-relaxed px-2 font-medium">
                                 Improve security by enabling 2FA, verifying your email, and setting
                                 a transaction PIN.
                             </p>
 
-                            <div className="w-full space-y-2 text-left">
+                            <div className="w-full space-y-3 text-left">
                                 {[
                                     {
                                         label: "Two-Factor Auth",
@@ -418,16 +423,18 @@ export default function SecuritySettingsPage() {
                                 ].map((item, i) => (
                                     <div
                                         key={i}
-                                        className={`flex items-center gap-3 text-sm p-3 rounded-xl bg-white/5 border border-white/10 ${item.check ? "" : "opacity-40"
+                                        className={`flex items-center gap-4 text-sm p-4 rounded-2xl bg-white/5 dark:bg-[#0a0515] border border-white/10 dark:border-white/5 shadow-sm transition-all ${item.check ? "" : "opacity-50"
                                             }`}
                                     >
                                         {item.check ? (
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                            <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-400 drop-shadow-sm" />
+                                            </div>
                                         ) : (
-                                            <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
+                                            <div className="w-6 h-6 rounded-full border-2 border-slate-600 dark:border-white/20 shrink-0" />
                                         )}
                                         <span
-                                            className={item.check ? "text-slate-200" : "text-slate-400"}
+                                            className={`font-bold ${item.check ? "text-slate-200 dark:text-white drop-shadow-sm" : "text-slate-400 dark:text-white/40"}`}
                                         >
                                             {item.label}
                                         </span>
@@ -435,30 +442,31 @@ export default function SecuritySettingsPage() {
                                 ))}
                             </div>
                         </div>
-                    </div>
+                    </section>
                 </div>
             </div>
 
             {showDisable2FAConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-                    <div className="w-full max-w-sm bg-white dark:bg-neutral-900 rounded-[2rem] border border-slate-200 dark:border-neutral-800 shadow-2xl p-8">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-12 h-12 bg-rose-50 dark:bg-rose-500/10 rounded-2xl flex items-center justify-center border border-rose-100 dark:border-rose-500/20 mb-5">
-                                <Shield className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md px-4 animate-in fade-in">
+                    <div className="w-full max-w-md bg-white dark:bg-[#06020f] rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl p-8 isolate relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+                        <div className="relative z-10 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-rose-50 dark:bg-rose-500/10 rounded-2xl flex items-center justify-center border border-rose-100 dark:border-rose-500/20 mb-6 shadow-inner">
+                                <Shield className="w-8 h-8 text-rose-600 dark:text-rose-400 drop-shadow-sm" />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-3 drop-shadow-sm">
                                 Disable two-factor authentication?
                             </h2>
-                            <p className="text-sm text-slate-500 dark:text-neutral-400 leading-relaxed mb-6">
+                            <p className="text-sm text-slate-500 dark:text-white/60 leading-relaxed mb-8 font-medium px-2">
                                 Your account will no longer require a verification code
-                                at sign-in, making it <span className="font-bold text-rose-600 dark:text-rose-400">less secure</span>.
+                                at sign-in, making it <span className="font-extrabold text-rose-600 dark:text-rose-400">less secure</span>.
                                 Only do this if you're having trouble with your
                                 authenticator method.
                             </p>
-                            <div className="w-full flex gap-3">
+                            <div className="w-full flex gap-4">
                                 <button
                                     onClick={() => setShowDisable2FAConfirm(false)}
-                                    className="flex-1 h-11 rounded-2xl bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 font-bold text-sm text-slate-700 dark:text-neutral-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition"
+                                    className="flex-1 h-12 rounded-2xl bg-slate-100 dark:bg-[#0a0515] border border-slate-200 dark:border-white/10 font-extrabold text-sm text-slate-700 dark:text-white/80 hover:bg-slate-200 dark:hover:bg-white/5 transition-all shadow-sm active:scale-95"
                                 >
                                     Cancel
                                 </button>
@@ -468,7 +476,7 @@ export default function SecuritySettingsPage() {
                                         await doToggle2FA(false);
                                     }}
                                     disabled={toggling2FA}
-                                    className="flex-1 h-11 rounded-2xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 transition disabled:opacity-50"
+                                    className="flex-1 h-12 rounded-2xl bg-rose-600 text-white font-extrabold text-sm hover:bg-rose-700 transition-all disabled:opacity-50 shadow-md hover:-translate-y-0.5 active:scale-95"
                                 >
                                     {toggling2FA ? "Disabling..." : "Yes, disable"}
                                 </button>

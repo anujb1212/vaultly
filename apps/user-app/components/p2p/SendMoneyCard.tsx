@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@repo/ui/button";
-import { Card } from "@repo/ui/card";
 import { TextInput } from "@repo/ui/textinput";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -71,18 +70,19 @@ export function SendMoneyCard() {
 
     if (status === "success") {
         return (
-            <div className="w-full max-w-md mx-auto animate-fade-in">
-                <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border border-slate-200 dark:border-neutral-800 shadow-sm min-h-[420px] flex flex-col items-center justify-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
-                    <div className="text-center animate-in zoom-in-95 duration-300">
-                        <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <CheckCircle2 className="w-8 h-8" />
+            <div className="w-full max-w-[28rem] mx-auto animate-fade-in">
+                <div className="bg-white dark:bg-[#06020f] rounded-[2.5rem] p-8 border border-slate-200 dark:border-white/5 shadow-2xl min-h-[420px] flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-300">
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-40 h-40 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full blur-[60px] pointer-events-none"></div>
+                    <div className="text-center animate-in zoom-in-95 duration-500 relative z-10">
+                        <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner ring-1 ring-emerald-500/20">
+                            <CheckCircle2 className="w-10 h-10 drop-shadow-sm" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
                             Transfer Successful!
                         </h3>
-                        <p className="text-slate-500 dark:text-neutral-400 text-sm">
-                            ₹{Number(amount).toLocaleString()} sent to {selectedUser?.name || selectedUser?.number}
+                        <p className="text-slate-500 dark:text-white/60 text-sm font-medium">
+                            ₹{Number(amount).toLocaleString("en-IN")} sent to {selectedUser?.name || selectedUser?.number}
                         </p>
                     </div>
                 </div>
@@ -94,15 +94,18 @@ export function SendMoneyCard() {
         <>
             {status === "processing" && <Loader message="Sending money securely..." />}
 
-            <Card title="Send Money" className="w-full relative overflow-hidden min-h-[420px]">
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <section className="w-full relative overflow-hidden rounded-[2rem] bg-white dark:bg-[#06020f] border border-slate-200 dark:border-white/5 shadow-2xl min-h-[420px] isolate transition-colors duration-300">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[60px] pointer-events-none"></div>
 
-                <div className="space-y-6 relative z-10">
-                    <div className="bg-slate-50 dark:bg-neutral-800/50 rounded-xl p-4 flex justify-between items-center border border-slate-100 dark:border-neutral-800">
-                        <span className="text-sm font-medium text-slate-500 dark:text-neutral-400">
+                <div className="p-8 space-y-6 relative z-10">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Send Money</h2>
+
+                    <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 flex justify-between items-center border border-slate-100 dark:border-white/10 backdrop-blur-md transition-colors">
+                        <span className="text-sm font-medium text-slate-500 dark:text-white/60">
                             Available Balance
                         </span>
-                        <span className="text-lg font-bold text-slate-900 dark:text-white">
+                        <span className="text-lg font-bold text-slate-900 dark:text-white drop-shadow-sm">
                             ₹{(balance.amount / 100).toLocaleString("en-IN")}
                         </span>
                     </div>
@@ -138,20 +141,20 @@ export function SendMoneyCard() {
                         <Button
                             onClick={handleSend}
                             disabled={status === "processing" || !selectedUser || !amount}
-                            className={`w-full py-4 text-base shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2
-              ${status === "processing" ? "opacity-70 cursor-wait" : "hover:-translate-y-0.5"}`}
+                            className={`w-full py-4 text-base font-semibold shadow-xl shadow-purple-500/10 dark:shadow-purple-500/10 flex items-center justify-center gap-2 transition-all duration-300
+              ${status === "processing" ? "opacity-70 cursor-wait scale-95" : "hover:-translate-y-0.5 hover:shadow-purple-500/20 active:scale-95"}`}
                         >
                             {status === "processing" ? (
                                 "Processing..."
                             ) : (
                                 <>
-                                    Send Securely <Send className="w-4 h-4" />
+                                    Send Securely <Send className="w-5 h-5" />
                                 </>
                             )}
                         </Button>
                     </div>
                 </div>
-            </Card>
+            </section>
 
             <TransactionPinDialog
                 open={pinOpen}

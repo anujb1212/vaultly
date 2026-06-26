@@ -77,31 +77,42 @@ export default function LandingPage() {
 
         {/* ================= HERO SECTION ================= */}
         <motion.div
-          className="flex flex-col items-center text-center px-6 mb-16"
+          className="flex flex-col items-center text-center px-6 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-normal tracking-tight leading-[1.12] mb-6 text-foreground dark:text-white">
-            Banking That<br /> Works for You
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 w-max mb-6">
+            <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-black/70 dark:text-white/70 font-bold">Introducing Vaultly</span>
+          </div>
+          
+          <h1 className="text-[3.5rem] sm:text-7xl md:text-[6.5rem] font-bold tracking-tighter leading-[1.05] mb-6">
+            <span className="bg-clip-text text-transparent bg-gradient-to-b from-black to-black/70 dark:from-white dark:to-white/70">
+              Banking That
+            </span>
+            <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-b from-black/70 to-black/30 dark:from-white/80 dark:to-white/30">
+              Works for You
+            </span>
           </h1>
-          <p className="text-muted-foreground dark:text-white/60 text-sm sm:text-base max-w-xl leading-relaxed tracking-wide font-light mb-8">
-            No queues. No clutter. Just effortless control over your finances.
+          <p className="text-muted-foreground dark:text-white/50 text-sm sm:text-lg max-w-2xl leading-relaxed tracking-wide font-light mb-8">
+            No queues. No clutter. Just effortless control over your finances with intelligent insights and real-time transfers.
           </p>
           <button
             onClick={() => router.push("/signup")}
-            className="px-8 py-3 rounded-full bg-foreground text-background dark:bg-white dark:text-[#06020f] text-sm font-semibold tracking-wide shadow-xl hover:opacity-90 transition-all"
+            className="px-8 py-3.5 rounded-full bg-foreground text-background dark:bg-white dark:text-[#06020f] text-sm font-bold tracking-wide shadow-[0_0_40px_rgba(255,255,255,0.1)] hover:shadow-[0_0_60px_rgba(255,255,255,0.2)] hover:scale-105 transition-all"
           >
             Create account
           </button>
         </motion.div>
 
         {/* Hero Visuals */}
-        <div className="relative w-full max-w-5xl mx-auto h-[440px] flex justify-center items-center overflow-visible">
+        <div className="relative w-full max-w-5xl mx-auto h-[320px] flex justify-center items-center overflow-visible z-20">
           <FloatingCards />
         </div>
 
         {/* Features Section */}
-        <div ref={featuresRef} className="mt-12 bg-muted/30 dark:bg-black/30 backdrop-blur-2xl">
+        <div ref={featuresRef} className="mt-8 relative z-10 bg-transparent">
           <FeaturesGrid />
         </div>
 

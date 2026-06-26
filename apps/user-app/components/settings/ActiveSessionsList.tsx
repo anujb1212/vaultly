@@ -58,60 +58,61 @@ export function ActiveSessionsList() {
     };
 
     return (
-        <div className="bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl rounded-[2.5rem] border border-white/20 dark:border-white/5 shadow-sm overflow-hidden flex flex-col w-full">
-            <div className="p-8 border-b border-slate-200/50 dark:border-white/5 flex items-center justify-between gap-4 shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20">
-                        <Monitor className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+        <section className="relative overflow-hidden bg-white dark:bg-[#06020f] rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-2xl transition-colors duration-300 flex flex-col w-full isolate">
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+            <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between gap-4 shrink-0 relative z-10 bg-slate-50/50 dark:bg-white/[0.02]">
+                <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-100 dark:border-emerald-500/20 shadow-inner">
+                        <Monitor className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div>
-                        <div className="font-bold text-lg text-slate-900 dark:text-white">
+                        <div className="font-extrabold text-xl text-slate-900 dark:text-white drop-shadow-sm">
                             Active Sessions
                         </div>
-                        <div className="text-sm text-slate-500 dark:text-neutral-400">
+                        <div className="text-sm text-slate-500 dark:text-white/50 font-medium mt-1">
                             Devices currently logged in
                         </div>
                     </div>
                 </div>
                 <button
                     onClick={handleRevokeAll}
-                    className="h-9 px-4 rounded-xl border border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-400 font-bold text-xs hover:bg-white dark:hover:bg-neutral-800 transition"
+                    className="h-10 px-5 rounded-2xl bg-white dark:bg-[#0a0515] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white font-extrabold text-xs hover:bg-slate-50 dark:hover:bg-white/5 shadow-sm active:scale-95 transition-all"
                 >
                     Revoke all other
                 </button>
             </div>
 
             {/* Scrollable Area */}
-            <div className="p-6 space-y-3 overflow-y-auto custom-scrollbar">
+            <div className="p-8 space-y-4 overflow-y-auto custom-scrollbar relative z-10">
                 {error && (
-                    <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-sm font-semibold">
+                    <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 text-sm font-bold border border-rose-100 dark:border-rose-500/20 shadow-sm">
                         {error}
                     </div>
                 )}
                 {!sessionsLoaded ? (
-                    <div className="p-5 text-sm text-slate-500">Loading...</div>
+                    <div className="p-5 text-sm text-slate-500 dark:text-white/40 font-medium">Loading...</div>
                 ) : sessions.length === 0 ? (
-                    <div className="p-5 text-sm text-slate-500">No active sessions.</div>
+                    <div className="p-5 text-sm text-slate-500 dark:text-white/40 font-medium">No active sessions.</div>
                 ) : (
                     sessions.map((s) => (
                         <div
                             key={s.id}
-                            className="p-4 rounded-2xl bg-white/40 dark:bg-neutral-900/40 border border-slate-200/50 dark:border-neutral-800 flex items-center justify-between gap-4 transition-all"
+                            className="p-5 rounded-2xl bg-slate-50/50 dark:bg-[#0a0515] border border-slate-200 dark:border-white/5 flex items-center justify-between gap-4 transition-all hover:border-slate-300 dark:hover:border-white/10 shadow-sm"
                         >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-5">
                                 <div
-                                    className={`w-2.5 h-2.5 rounded-full ${s.isCurrent
-                                        ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                                        : "bg-indigo-500"
+                                    className={`w-3 h-3 rounded-full shrink-0 border-2 ${s.isCurrent
+                                        ? "bg-emerald-500 border-emerald-200 dark:border-emerald-900 shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+                                        : "bg-indigo-500 border-indigo-200 dark:border-indigo-900"
                                         }`}
                                 />
                                 <div>
-                                    <div className="font-bold text-slate-900 dark:text-white text-sm">
+                                    <div className="font-extrabold text-slate-900 dark:text-white text-sm drop-shadow-sm">
                                         {s.deviceLabel || (s.userAgent ? "Browser Session" : "Session")}
                                     </div>
-                                    <div className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
+                                    <div className="text-xs text-slate-500 dark:text-white/50 mt-1 font-medium">
                                         {s.isCurrent ? "This device" : "Active"}
-                                        {" - "}
+                                        <span className="mx-1.5 opacity-50">•</span>
                                         {s.lastSeenAt ? new Date(s.lastSeenAt).toLocaleString() : "Unknown"}
                                     </div>
                                 </div>
@@ -119,7 +120,7 @@ export function ActiveSessionsList() {
                             {!s.isCurrent && (
                                 <button
                                     onClick={() => handleRevoke(s.id)}
-                                    className="text-xs font-bold text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition"
+                                    className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-white px-4 py-2 rounded-xl border border-transparent hover:border-rose-200 dark:hover:border-rose-500/30 hover:bg-rose-500 dark:hover:bg-rose-500/20 transition-all active:scale-95 shadow-sm"
                                 >
                                     Revoke
                                 </button>
@@ -128,6 +129,6 @@ export function ActiveSessionsList() {
                     ))
                 )}
             </div>
-        </div>
+        </section>
     );
 }

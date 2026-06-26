@@ -22,27 +22,27 @@ export function RecentOfframpActivity(props: {
     const { selectedLabel, items } = props;
 
     return (
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-slate-200 dark:border-neutral-800 overflow-hidden shadow-sm">
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-neutral-800">
+        <div className="bg-white dark:bg-[#06020f] rounded-[2rem] border border-slate-200 dark:border-white/5 overflow-hidden shadow-2xl transition-colors duration-300">
+            <div className="px-6 py-5 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-lg tracking-tight">
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-lg tracking-tight drop-shadow-sm">
                             Recent activity
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-neutral-500 mt-1">
+                        <p className="text-xs text-slate-500 dark:text-white/50 mt-1 font-medium">
                             {selectedLabel ? `Withdrawals to ${selectedLabel}.` : "Select an account to view recent withdrawals."}
                         </p>
                     </div>
                     <a
                         href="/transactions"
-                        className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors"
+                        className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors"
                     >
                         View all
                     </a>
                 </div>
             </div>
 
-            <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+            <ul className="divide-y divide-slate-100 dark:divide-white/5">
                 {!selectedLabel ? (
                     <li className="py-10 text-center text-slate-400 dark:text-neutral-500 italic text-sm">
                         Select a linked account to see activity.

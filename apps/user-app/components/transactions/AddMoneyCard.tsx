@@ -71,20 +71,21 @@ export const AddMoney = () => {
 
     return (
         <>
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 shadow-xl shadow-indigo-500/5 p-8 md:p-10">
-
-                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+            <section className="relative overflow-hidden rounded-[2.5rem] bg-white dark:bg-[#06020f] border border-slate-200 dark:border-white/5 shadow-2xl p-8 md:p-10 isolate transition-colors duration-300">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay dark:mix-blend-soft-light pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[80px] pointer-events-none" />
 
                 <div className="relative z-10">
                     <div className="flex items-center gap-5 mb-10">
-                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/20">
-                            <Banknote className="w-7 h-7" />
+                        <div className="w-14 h-14 rounded-[1.2rem] bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner border border-indigo-100 dark:border-indigo-500/20 relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 dark:from-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <Banknote className="w-7 h-7 drop-shadow-sm" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight drop-shadow-sm">
                                 Deposit via Bank
                             </h2>
-                            <p className="text-sm font-medium text-slate-500 dark:text-neutral-400 mt-1">
+                            <p className="text-sm font-medium text-slate-500 dark:text-white/60 mt-1">
                                 Instant transfer using NetBanking
                             </p>
                         </div>
@@ -101,7 +102,7 @@ export const AddMoney = () => {
                         )}
 
                         <div className="space-y-3">
-                            <label className="block text-sm font-bold text-slate-700 dark:text-neutral-300 ml-1">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-white/80 ml-1 drop-shadow-sm">
                                 Amount to Add
                             </label>
                             <TextInput
@@ -116,7 +117,7 @@ export const AddMoney = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <label className="block text-sm font-bold text-slate-700 dark:text-neutral-300 ml-1">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-white/80 ml-1 drop-shadow-sm">
                                 Select Bank
                             </label>
                             <Select
@@ -147,10 +148,10 @@ export const AddMoney = () => {
                             <Button
                                 onClick={handleAddMoney}
                                 disabled={isProcessing}
-                                className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:shadow-md
+                                className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/10 dark:shadow-indigo-500/5
                   ${isProcessing
-                                        ? "bg-slate-100 text-slate-400 dark:bg-neutral-800 dark:text-neutral-600 cursor-not-allowed shadow-none"
-                                        : "bg-slate-900 dark:bg-white text-white dark:text-black shadow-slate-900/20"
+                                        ? "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-white/40 cursor-wait shadow-none scale-95 opacity-70"
+                                        : "bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:shadow-indigo-500/20 hover:-translate-y-0.5 active:scale-95 active:translate-y-0"
                                     }`}
                             >
                                 {isProcessing ? (
@@ -164,14 +165,14 @@ export const AddMoney = () => {
                                 )}
                             </Button>
 
-                            <div className="flex items-center justify-center gap-2 mt-6 text-xs font-medium text-slate-400 dark:text-neutral-500">
+                            <div className="flex items-center justify-center gap-2 mt-6 text-xs font-bold tracking-widest uppercase text-slate-400 dark:text-white/40">
                                 <ShieldCheck className="w-3.5 h-3.5" />
                                 <span>256-bit Secure SSL Connection</span>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
             <TransactionPinDialog
                 open={pinOpen}

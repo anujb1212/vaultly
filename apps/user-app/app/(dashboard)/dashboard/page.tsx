@@ -93,26 +93,32 @@ export default function Dashboard() {
             <Header />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-4">
+                {/* Row 1 */}
+                <div className="lg:col-span-5 h-full">
                     <BalanceCard />
                 </div>
 
-                <div className="lg:col-span-8">
+                <div className="lg:col-span-7 flex flex-col">
                     <h3 className="text-sm font-semibold text-mutedForeground mb-3 ml-1 uppercase tracking-wider">
                         Quick Actions
                     </h3>
                     <ActionTiles />
                 </div>
 
-                <div className="lg:col-span-8">
-                    <OnRampTransactions transactions={recentActivity} />
+                {/* Row 2 */}
+                <div className="lg:col-span-7 h-full">
+                    <MonthlyAnalysis inflow={stats.inflow} outflow={stats.outflow} />
                 </div>
 
-                <div className="lg:col-span-4 space-y-6">
-                    <div className="h-[300px]">
+                <div className="lg:col-span-5 h-full">
+                    <div className="h-full min-h-[300px]">
                         <SecurityInsights />
                     </div>
-                    <MonthlyAnalysis inflow={stats.inflow} outflow={stats.outflow} />
+                </div>
+
+                {/* Row 3 */}
+                <div className="lg:col-span-12">
+                    <OnRampTransactions transactions={recentActivity} />
                 </div>
             </div>
         </div>

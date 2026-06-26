@@ -54,10 +54,10 @@ export function LinkedAccountsGrid(props: {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {isLoading ? (
                     <>
-                        <div className="h-[200px] rounded-[1.5rem] bg-slate-100 dark:bg-neutral-900 animate-pulse" />
-                        <div className="h-[200px] rounded-[1.5rem] bg-slate-100 dark:bg-neutral-900 animate-pulse" />
-                        <div className="h-[200px] rounded-[1.5rem] bg-slate-100 dark:bg-neutral-900 animate-pulse" />
-                        <div className="h-[200px] rounded-[1.5rem] bg-slate-100 dark:bg-neutral-900 animate-pulse" />
+                        <div className="h-[200px] rounded-[1.5rem] bg-slate-100 dark:bg-white/5 animate-pulse" />
+                        <div className="h-[200px] rounded-[1.5rem] bg-slate-100 dark:bg-white/5 animate-pulse" />
+                        <div className="h-[200px] rounded-[1.5rem] bg-slate-100 dark:bg-white/5 animate-pulse" />
+                        <div className="h-[200px] rounded-[1.5rem] bg-slate-100 dark:bg-white/5 animate-pulse" />
                     </>
                 ) : error ? (
                     <div className="md:col-span-2 p-4 rounded-2xl border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300">
@@ -73,9 +73,9 @@ export function LinkedAccountsGrid(props: {
                         </div>
                     </div>
                 ) : linkedAccounts.length === 0 ? (
-                    <div className="md:col-span-2 p-6 rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/60 backdrop-blur">
-                        <div className="text-slate-900 dark:text-white font-semibold">No linked accounts</div>
-                        <div className="text-sm text-slate-500 dark:text-neutral-400 mt-1">
+                    <div className="md:col-span-2 p-6 rounded-[2rem] border border-slate-200 dark:border-white/5 bg-white/60 dark:bg-white/5 backdrop-blur-md shadow-sm">
+                        <div className="text-slate-900 dark:text-white font-bold tracking-tight">No linked accounts</div>
+                        <div className="text-sm text-slate-500 dark:text-white/50 mt-1 font-medium">
                             Your account list looks empty. Try signing out and back in, or contact support.
                         </div>
                     </div>

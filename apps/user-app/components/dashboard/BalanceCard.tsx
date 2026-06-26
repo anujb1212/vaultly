@@ -33,9 +33,10 @@ export const BalanceCard = () => {
 
     return (
         <section
-            className="relative w-full h-full min-h-[240px] rounded-[1.5rem] overflow-hidden bg-card text-cardForeground ring-1 ring-white/10 dark:ring-white/5 shadow-2xl isolate"
+            className="group relative w-full h-full min-h-[240px] rounded-[1.5rem] overflow-hidden bg-card text-cardForeground ring-1 ring-white/10 dark:ring-white/5 shadow-2xl isolate transition-all duration-500 hover:shadow-[0_0_40px_rgba(168,85,247,0.15)] hover:ring-purple-500/30"
             aria-label="Balance summary"
         >
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-transparent to-purple-500/0 group-hover:from-purple-500/10 group-hover:to-orange-500/5 transition-colors duration-500 pointer-events-none" />
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.25] mix-blend-overlay pointer-events-none filter contrast-125" />
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20 pointer-events-none mix-blend-soft-light" />
 
